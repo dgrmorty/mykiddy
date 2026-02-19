@@ -191,9 +191,9 @@ export const CourseDetail: React.FC = () => {
                 </div>
             )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"}>
-                <div className="flex gap-4 h-full items-center justify-center transition-all duration-500">
+                <div className="flex gap-4 h-full items-center justify-center transition-all duration-700 ease-out">
                     {/* Левая модалка - отправка ДЗ */}
-                    <div className={`p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] transition-all duration-500 ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0' : 'w-full'}`}>
+                    <div className={`p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
                         <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
                         {activeLesson?.homeworkTask && (
                             <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
@@ -226,7 +226,7 @@ export const CourseDetail: React.FC = () => {
                     
                     {/* Правая модалка - ответ нейронки */}
                     {aiFeedback && (
-                        <div className="p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-in slide-in-from-right duration-500">
+                        <div className="p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-display font-bold text-white flex items-center gap-2">
                                     <Sparkles size={24} className="text-kiddy-primary" />
