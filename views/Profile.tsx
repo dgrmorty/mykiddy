@@ -62,21 +62,34 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       if (saving || uploading) return;
       setSaving(true);
       try {
-          const { error } = await supabase
+          const updateData: any = {
+              name: editName,
+              avatar: editAvatar
+          };
+          
+          // Пытаемся обновить профиль
+          const { data, error } = await supabase
               .from('profiles')
-              .update({
-                  name: editName,
-                  avatar: editAvatar,
-                  updated_at: new Date().toISOString(),
-              })
-              .eq('id', initialUser.id);
+              .update(updateData)
+              .eq('id', initialUser.id)
+              .select();
 
-          if (error) throw error;
+          if (error) {
+              console.error('[Profile] Update error:', error);
+              throw error;
+          }
+          
+          if (!data || data.length === 0) {
+              throw new Error('Профиль не найден или нет прав на обновление');
+          }
+          
           await refreshUser();
           setIsEditing(false);
           showToast('Изменения сохранены', 'success');
       } catch (error: any) {
-          showToast('Не удалось обновить данные профиля', 'error');
+          console.error('[Profile] Save error:', error);
+          const errorMessage = error?.message || error?.error_description || 'Не удалось обновить данные профиля';
+          showToast(errorMessage, 'error');
       } finally {
           setSaving(false);
       }
