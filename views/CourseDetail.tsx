@@ -66,7 +66,25 @@ export const CourseDetail: React.FC = () => {
     if (activeLesson && playerRef.current) {
         playerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [activeLesson]);
+    
+    // Проверяем статус ДЗ при смене урока
+    if (activeLesson?.id && user.id) {
+        supabase
+            .from('homework_submissions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('lesson_id', activeLesson.id)
+            .single()
+            .then(({ data }) => {
+                setIsHomeworkCompleted(!!data);
+            })
+            .catch(() => {
+                setIsHomeworkCompleted(false);
+            });
+    } else {
+        setIsHomeworkCompleted(false);
+    }
+  }, [activeLesson, user.id]);
 
   const handleCompleteLesson = async () => {
       if (!activeLesson || activeLesson.isCompleted) return;
@@ -197,12 +215,20 @@ export const CourseDetail: React.FC = () => {
                                     )}
                                 </div>
                                 {activeLesson.homeworkTask && (
-                                    <button 
-                                        onClick={() => setIsHomeworkOpen(true)} 
-                                        className="w-full py-4 bg-kiddy-primary text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <PenTool size={18} /> Сдать работу
-                                    </button>
+                                    <>
+                                        {isHomeworkCompleted ? (
+                                            <div className="w-full py-4 bg-green-500/10 border border-green-500/30 text-green-500 font-bold rounded-2xl flex items-center justify-center gap-2">
+                                                <CheckCircle size={18} /> Задание выполнено
+                                            </div>
+                                        ) : (
+                                            <button 
+                                                onClick={() => setIsHomeworkOpen(true)} 
+                                                className="w-full py-4 bg-kiddy-primary text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <PenTool size={18} /> Сдать работу
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </Card>
                         </div>
