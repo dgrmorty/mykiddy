@@ -3,7 +3,16 @@
 -- Выполните этот скрипт в SQL Editor Supabase
 -- ============================================
 
--- Удаляем старую функцию если есть
+-- СНАЧАЛА удаляем все политики, которые используют старую функцию
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can manage courses" ON courses;
+DROP POLICY IF EXISTS "Admins can manage modules" ON modules;
+DROP POLICY IF EXISTS "Admins can manage lessons" ON lessons;
+DROP POLICY IF EXISTS "Admins can manage settings" ON settings;
+DROP POLICY IF EXISTS "Admins can delete" ON storage.objects;
+
+-- ТЕПЕРЬ удаляем старую функцию
 DROP FUNCTION IF EXISTS is_admin(UUID);
 
 -- Создаем функцию для проверки роли администратора БЕЗ обращения к profiles
@@ -54,10 +63,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
--- Удаляем старые политики
-DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
-DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
-
 -- Создаем новые политики с использованием простой функции
 CREATE POLICY "Admins can view all profiles"
   ON profiles FOR SELECT
@@ -73,13 +78,7 @@ CREATE POLICY "Admins can update all profiles"
     is_admin_simple(auth.uid())  -- Или если он администратор
   );
 
--- Обновляем политики для других таблиц
-DROP POLICY IF EXISTS "Admins can manage courses" ON courses;
-DROP POLICY IF EXISTS "Admins can manage modules" ON modules;
-DROP POLICY IF EXISTS "Admins can manage lessons" ON lessons;
-DROP POLICY IF EXISTS "Admins can manage settings" ON settings;
-DROP POLICY IF EXISTS "Admins can delete" ON storage.objects;
-
+-- Создаем политики для других таблиц
 CREATE POLICY "Admins can manage courses"
   ON courses FOR ALL
   USING (is_admin_simple(auth.uid()));
