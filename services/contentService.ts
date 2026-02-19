@@ -79,7 +79,8 @@ export const contentService = {
                     moduleId: m.id,
                     isCompleted,
                     locked,
-                    videoUrl: l.video_url || 'https://www.youtube.com/watch?v=M576WGiDBdQ' 
+                    videoUrl: l.video_url || 'https://www.youtube.com/watch?v=M576WGiDBdQ',
+                    homeworkTask: l.homework_task || l.homeworkTask || null
                 };
             });
 

@@ -14,10 +14,12 @@ import { AccessGate } from '../components/AccessGate';
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
 import { useContentContext } from '../contexts/ContentContext';
 import { supabase } from '../services/supabase';
+import { useToast } from '../contexts/ToastContext';
 
 export const CourseDetail: React.FC = () => {
   const { user } = useAuth();
   const { activeCourse, setActiveCourse, activeLesson, setActiveLesson } = useContentContext();
+  const { showToast } = useToast();
   
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,17 +89,25 @@ export const CourseDetail: React.FC = () => {
     try {
         const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer);
         setAiFeedback(feedback);
-        if (feedback.includes('ACCEPTED') || feedback.length > 20) {
-            // Начисляем очки за выполненное ДЗ (100 XP за ДЗ + 50 XP за урок = 150 XP всего)
+        
+        // Начисляем очки только если ответ принят (ACCEPTED)
+        if (feedback.trim().toUpperCase().startsWith('ACCEPTED')) {
+            // Сначала отмечаем урок как пройденный (50 XP)
             await contentService.markLessonComplete(user.id, activeLesson.id);
-            // Дополнительные очки за ДЗ начисляются в markLessonComplete (50 XP за урок)
-            // Добавим еще 50 XP за выполненное ДЗ
+            // Дополнительные очки за выполненное ДЗ (50 XP)
             try {
                 await supabase.rpc('increment_xp', { x_val: 50 });
+                showToast('Отлично! Задание принято. +50 XP', 'success');
             } catch (e) {
                 console.warn('Failed to increment XP for homework:', e);
             }
             await loadData();
+        } else if (feedback.trim().toUpperCase().startsWith('NEEDS_WORK')) {
+            // Если ответ совсем не по теме, не начисляем очки, но даем обратную связь
+            showToast('Попробуйте еще раз. Вы справитесь!', 'info');
+        } else {
+            // Для частично правильных ответов тоже даем обратную связь
+            showToast('Хорошая попытка! Проверьте комментарии', 'info');
         }
     } catch (e) {
         setAiFeedback("Не удалось проверить задание. Попробуйте еще раз.");
