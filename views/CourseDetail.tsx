@@ -30,6 +30,7 @@ export const CourseDetail: React.FC = () => {
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [securityError, setSecurityError] = useState<string | null>(null);
   const [lessonCompleting, setLessonCompleting] = useState(false);
+  const [isHomeworkCompleted, setIsHomeworkCompleted] = useState(false);
 
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +81,13 @@ export const CourseDetail: React.FC = () => {
 
   const handleCheckHomework = async () => {
     if (!activeLesson?.homeworkTask || !homeworkAnswer.trim()) return;
+    
+    // Проверяем, не решено ли уже это ДЗ
+    if (isHomeworkCompleted) {
+        showToast('Это задание уже решено!', 'info');
+        return;
+    }
+    
     setSecurityError(null);
     setAiFeedback(null);
     const cleanAnswer = sanitizeInput(homeworkAnswer);
@@ -104,6 +112,17 @@ export const CourseDetail: React.FC = () => {
             // Дополнительные очки за выполненное ДЗ (50 XP)
             try {
                 await supabase.rpc('increment_xp', { x_val: 50 });
+                
+                // Сохраняем факт решения ДЗ
+                await supabase
+                    .from('homework_submissions')
+                    .insert({
+                        user_id: user.id,
+                        lesson_id: activeLesson.id,
+                        xp_awarded: 50
+                    });
+                
+                setIsHomeworkCompleted(true);
                 showToast('Отлично! Задание принято. +50 XP', 'success');
             } catch (e) {
                 console.warn('Failed to increment XP for homework:', e);
@@ -214,13 +233,13 @@ export const CourseDetail: React.FC = () => {
                             <button onClick={() => setIsHomeworkOpen(false)} className="px-8 py-4 bg-zinc-900 text-white font-bold rounded-xl">
                                 Закрыть
                             </button>
-                            <button 
-                                onClick={handleCheckHomework} 
-                                disabled={isChecking || !activeLesson?.homeworkTask} 
-                                className="flex-1 py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isChecking ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> Проверить</>}
-                            </button>
+                        <button 
+                            onClick={handleCheckHomework} 
+                            disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted} 
+                            className="flex-1 py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isChecking ? <Loader2 className="animate-spin" size={20} /> : isHomeworkCompleted ? <><CheckCircle size={18} /> Уже решено</> : <><Send size={18} /> Проверить</>}
+                        </button>
                         </div>
                     </div>
                     
