@@ -21,13 +21,13 @@ CREATE POLICY "Users can insert own profile"
   ON profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- 3. Исправляем функцию increment_xp (1000 XP = 1 уровень)
+-- 3. Исправляем функцию increment_xp (100 XP = 1 уровень)
 CREATE OR REPLACE FUNCTION increment_xp(x_val INTEGER)
 RETURNS void AS $$
 BEGIN
   UPDATE profiles
   SET xp = xp + x_val,
-      level = FLOOR((xp + x_val) / 1000) + 1
+      level = FLOOR((xp + x_val) / 100) + 1
   WHERE id = auth.uid();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -97,9 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!error && profile) {
           const finalRole = normalizeRole(profile.role, profile.email || authUser?.email);
-          // Убеждаемся, что уровень рассчитывается правильно на основе XP
+          // Убеждаемся, что уровень рассчитывается правильно на основе XP (100 XP = 1 уровень)
           const userXp = profile.xp || 0;
-          const calculatedLevel = Math.floor(userXp / 1000) + 1;
+          const calculatedLevel = Math.floor(userXp / 100) + 1;
           const profileLevel = profile.level || calculatedLevel;
           
           setUser({

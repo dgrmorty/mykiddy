@@ -308,12 +308,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             <div className="space-y-2">
                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-zinc-500">
                     <span>До следующего уровня</span>
-                    <span>{Math.min(100, ((initialUser.xp % 1000) / 1000) * 100).toFixed(0)}%</span>
+                    <span>{Math.min(100, ((initialUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
                 </div>
                 <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
                     <div 
                         className="h-full bg-gradient-to-r from-kiddy-primary to-rose-400 shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
-                        style={{ width: `${Math.min(100, ((initialUser.xp % 1000) / 1000) * 100)}%` }} 
+                        style={{ width: `${Math.min(100, ((initialUser.xp % 100) / 100) * 100)}%` }} 
                     />
                 </div>
             </div>
