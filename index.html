@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <title>Kiddy | IT-Школа будущего</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              kiddy: {
+                base: '#000000',
+                surface: '#09090b',
+                surfaceHighlight: '#18181b',
+                primary: '#be123c',
+                primaryGlow: '#e11d48',
+                accent: '#38bdf8',
+                muted: '#52525b',
+                text: '#fafafa'
+              }
+            },
+            fontFamily: {
+              display: ['Orbitron', 'sans-serif'],
+              sans: ['Inter', 'sans-serif'],
+              mono: ['Fira Code', 'monospace']
+            },
+            animation: {
+              'slide-up': 'slide-up 0.5s ease-out forwards',
+              'glow-pulse': 'glow-pulse 2s infinite'
+            },
+            keyframes: {
+              'slide-up': {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' }
+              },
+              'glow-pulse': {
+                '0%, 100%': { opacity: '0.5' },
+                '50%': { opacity: '1' }
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      body { background-color: #000000; color: #fafafa; margin: 0; overflow-x: hidden; }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
