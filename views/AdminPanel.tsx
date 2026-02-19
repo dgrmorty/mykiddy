@@ -46,6 +46,7 @@ export const AdminPanel: React.FC = () => {
     const logoFileRef = useRef<HTMLInputElement>(null);
     const editCourseFileRef = useRef<HTMLInputElement>(null);
     const editLessonVideoRef = useRef<HTMLInputElement>(null);
+    const courseFormRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (currentView === 'content') fetchContent();
@@ -97,15 +98,26 @@ export const AdminPanel: React.FC = () => {
                 .select('*, modules(*, lessons(*))')
                 .order('created_at', { ascending: false });
             
-            if (error) throw error;
+            if (error) {
+                console.error('[AdminPanel] Content fetch error:', error);
+                showToast(`Ошибка при загрузке каталога: ${error.message}`, "error");
+                return;
+            }
+            
             if (data) {
                 setCourses(data);
+                if (data.length === 0) {
+                    showToast("Каталог пуст. Создайте первый курс!", "info");
+                }
+            } else {
+                setCourses([]);
             }
         } catch (error: any) {
             console.error('[AdminPanel] Content fetch error:', error);
-            showToast("Ошибка при загрузке каталога", "error");
+            showToast(`Ошибка при загрузке каталога: ${error?.message || 'Неизвестная ошибка'}`, "error");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const fetchUsers = async () => {
@@ -247,6 +259,8 @@ export const AdminPanel: React.FC = () => {
         setLoading(false);
     };
 
+    const courseFormRef = useRef<HTMLDivElement>(null);
+
     const handleEditCourse = (course: any) => {
         setCourseForm({
             id: course.id,
@@ -256,6 +270,10 @@ export const AdminPanel: React.FC = () => {
         });
         setEditing({ type: 'course', id: course.id });
         setExpandedCourses(new Set([course.id]));
+        // Скроллим к форме редактирования
+        setTimeout(() => {
+            courseFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const handleUpdateCourse = async () => {
@@ -517,10 +535,32 @@ export const AdminPanel: React.FC = () => {
             {!loading && currentView === 'content' && (
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
                     {/* Форма создания/редактирования курса */}
-                    <Card className="bg-zinc-950/40 border-zinc-900 p-6">
-                        <h2 className="text-white font-bold text-sm mb-4 uppercase tracking-widest">
-                            {editing.type === 'course' ? 'Редактировать курс' : 'Создать новый курс'}
-                        </h2>
+                    <div ref={courseFormRef}>
+                        <Card className={`bg-zinc-950/40 border-zinc-900 p-6 transition-all ${editing.type === 'course' ? 'border-kiddy-primary ring-2 ring-kiddy-primary/20 shadow-lg shadow-kiddy-primary/10' : ''}`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-white font-bold text-sm uppercase tracking-widest">
+                                    {editing.type === 'course' ? (
+                                        <span className="flex items-center gap-2">
+                                            <Edit2 size={16} className="text-kiddy-primary" />
+                                            Редактировать курс
+                                        </span>
+                                    ) : (
+                                        'Создать новый курс'
+                                    )}
+                                </h2>
+                                {editing.type === 'course' && (
+                                    <button
+                                        onClick={() => {
+                                            setEditing({ type: null, id: null });
+                                            setCourseForm({ title: '', description: '', cover_image: '', id: '' });
+                                        }}
+                                        className="text-zinc-500 hover:text-white transition-colors"
+                                        title="Отменить редактирование"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                            </div>
                         <div className="space-y-4">
                             <input
                                 value={courseForm.title}
@@ -583,7 +623,8 @@ export const AdminPanel: React.FC = () => {
                                 )}
                             </div>
                         </div>
-                    </Card>
+                        </Card>
+                    </div>
 
                     {/* Список курсов */}
                     <div className="space-y-4">
@@ -608,7 +649,12 @@ export const AdminPanel: React.FC = () => {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => handleEditCourse(course)}
-                                            className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white"
+                                            className={`p-2 rounded-lg transition-all ${
+                                                editing.type === 'course' && editing.id === course.id
+                                                    ? 'bg-kiddy-primary text-white'
+                                                    : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                                            }`}
+                                            title="Редактировать курс"
                                         >
                                             <Edit2 size={16} />
                                         </button>
