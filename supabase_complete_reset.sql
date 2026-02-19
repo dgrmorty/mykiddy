@@ -7,7 +7,15 @@
 -- ШАГ 1: УДАЛЯЕМ ВСЕ СУЩЕСТВУЮЩЕЕ
 -- ============================================
 
--- Удаляем все политики
+-- СНАЧАЛА удаляем все таблицы с CASCADE (это удалит все зависимости автоматически)
+DROP TABLE IF EXISTS user_progress CASCADE;
+DROP TABLE IF EXISTS lessons CASCADE;
+DROP TABLE IF EXISTS modules CASCADE;
+DROP TABLE IF EXISTS courses CASCADE;
+DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+
+-- Удаляем все политики (если таблицы еще существуют)
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
@@ -38,14 +46,6 @@ DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
 -- Удаляем все триггеры
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
-
--- Удаляем все таблицы (в правильном порядке из-за foreign keys)
-DROP TABLE IF EXISTS user_progress CASCADE;
-DROP TABLE IF EXISTS lessons CASCADE;
-DROP TABLE IF EXISTS modules CASCADE;
-DROP TABLE IF EXISTS courses CASCADE;
-DROP TABLE IF EXISTS settings CASCADE;
-DROP TABLE IF EXISTS profiles CASCADE;
 
 -- ШАГ 2: СОЗДАЕМ ТАБЛИЦЫ ЗАНОВО
 -- ============================================
