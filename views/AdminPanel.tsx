@@ -259,8 +259,6 @@ export const AdminPanel: React.FC = () => {
         setLoading(false);
     };
 
-    const courseFormRef = useRef<HTMLDivElement>(null);
-
     const handleEditCourse = (course: any) => {
         setCourseForm({
             id: course.id,
