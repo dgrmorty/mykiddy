@@ -42,6 +42,19 @@ DROP TABLE IF EXISTS modules CASCADE;
 DROP TABLE IF EXISTS courses CASCADE;
 DROP TABLE IF EXISTS settings CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS homeworks CASCADE;
+
+-- Удаляем ВСЕ таблицы из public схемы (на всякий случай)
+-- Это удалит любые другие таблицы, которые могли остаться
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE 'pg_%') 
+    LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
 
 -- Проверяем, что все удалено (этот запрос должен вернуть пустой результат)
 -- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('profiles', 'courses', 'modules', 'lessons', 'user_progress', 'settings');
