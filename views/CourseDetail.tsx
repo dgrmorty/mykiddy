@@ -135,7 +135,36 @@ export const CourseDetail: React.FC = () => {
             {!user.isApproved ? <AccessGate /> : (
                 <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
                     <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-zinc-800 shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
-                    {!isTheaterMode && (<div className="space-y-6"><Card className="bg-kiddy-primary/5 border-kiddy-primary/20 p-8 flex flex-col justify-between h-fit"><div><div className="w-12 h-12 bg-kiddy-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-kiddy-primary/20"><Zap className="text-kiddy-primary" size={24} /></div><h3 className="text-white font-bold text-lg mb-3">Практика</h3><p className="text-zinc-500 text-sm leading-relaxed mb-10">Сдай задание для проверки ИИ.</p></div><button onClick={() => setIsHomeworkOpen(true)} className="w-full py-4 bg-kiddy-primary text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"><PenTool size={18} /> Сдать работу</button></Card></div>)}
+                    {!isTheaterMode && (
+                        <div className="space-y-6">
+                            <Card className="bg-kiddy-primary/5 border-kiddy-primary/20 p-8 flex flex-col justify-between h-fit">
+                                <div>
+                                    <div className="w-12 h-12 bg-kiddy-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-kiddy-primary/20">
+                                        <Zap className="text-kiddy-primary" size={24} />
+                                    </div>
+                                    <h3 className="text-white font-bold text-lg mb-3">Практика</h3>
+                                    {activeLesson.homeworkTask ? (
+                                        <div className="mb-6">
+                                            <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">Задание:</p>
+                                            <div className="bg-black/50 border border-zinc-800 rounded-xl p-4 mb-4">
+                                                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-zinc-500 text-sm leading-relaxed mb-10">Задание не задано для этого урока.</p>
+                                    )}
+                                </div>
+                                {activeLesson.homeworkTask && (
+                                    <button 
+                                        onClick={() => setIsHomeworkOpen(true)} 
+                                        className="w-full py-4 bg-kiddy-primary text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <PenTool size={18} /> Сдать работу
+                                    </button>
+                                )}
+                            </Card>
+                        </div>
+                    )}
                 </div>
             )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth="max-w-xl">
