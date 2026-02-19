@@ -148,11 +148,12 @@ $$ LANGUAGE plpgsql;
 -- ШАГ 4: СОЗДАНИЕ RLS ПОЛИТИК (БЕЗ РЕКУРСИИ!)
 -- ============================================
 
--- PROFILES: Пользователи могут видеть и обновлять ТОЛЬКО свои профили
--- Админы могут видеть все профили (используем функцию, которая проверяет auth.users, НЕ profiles!)
-CREATE POLICY "Users can view own profile"
+-- PROFILES: Все аутентифицированные могут видеть профили (для лидерборда)
+-- Пользователи могут обновлять ТОЛЬКО свои профили
+-- Админы могут обновлять все профили
+CREATE POLICY "Authenticated users can view profiles"
   ON profiles FOR SELECT
-  USING (auth.uid() = id OR is_admin_user());
+  USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE

@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { AccessGate } from '../components/AccessGate';
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
 import { useContentContext } from '../contexts/ContentContext';
+import { supabase } from '../services/supabase';
 
 export const CourseDetail: React.FC = () => {
   const { user } = useAuth();
@@ -87,7 +88,15 @@ export const CourseDetail: React.FC = () => {
         const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer);
         setAiFeedback(feedback);
         if (feedback.includes('ACCEPTED') || feedback.length > 20) {
+            // Начисляем очки за выполненное ДЗ (100 XP за ДЗ + 50 XP за урок = 150 XP всего)
             await contentService.markLessonComplete(user.id, activeLesson.id);
+            // Дополнительные очки за ДЗ начисляются в markLessonComplete (50 XP за урок)
+            // Добавим еще 50 XP за выполненное ДЗ
+            try {
+                await supabase.rpc('increment_xp', { x_val: 50 });
+            } catch (e) {
+                console.warn('Failed to increment XP for homework:', e);
+            }
             await loadData();
         }
     } catch (e) {

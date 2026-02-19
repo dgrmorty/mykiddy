@@ -6,7 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import { 
     Award, Zap, Settings, Bell, Lock, Crown, Fingerprint, 
     ChevronRight, Edit2, Save, X, Loader2, Camera, Target, 
-    LogOut, AlertTriangle 
+    LogOut, AlertTriangle, Trophy, Medal, Star
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { SKILL_DATA } from '../constants';
@@ -26,6 +26,9 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<User[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const { showToast } = useToast();
   
   const [editName, setEditName] = useState(initialUser.name);
@@ -36,6 +39,43 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setEditName(initialUser.name);
     setEditAvatar(initialUser.avatar);
   }, [initialUser]);
+
+  const fetchLeaderboard = async () => {
+    setLoadingLeaderboard(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, avatar, xp, level, email')
+        .order('xp', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      
+      if (data) {
+        setLeaderboard(data.map(u => ({
+          id: u.id,
+          email: u.email || '',
+          name: u.name || 'Анонимный',
+          role: 'Student' as any,
+          avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
+          level: u.level || 1,
+          xp: u.xp || 0,
+          isApproved: true
+        })));
+      }
+    } catch (error: any) {
+      console.error('[Profile] Leaderboard fetch error:', error);
+      showToast('Ошибка загрузки лидерборда', 'error');
+    } finally {
+      setLoadingLeaderboard(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLeaderboardOpen) {
+      fetchLeaderboard();
+    }
+  }, [isLeaderboardOpen]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -252,7 +292,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 <h3 className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Рейтинг в академии</h3>
                 <div className="text-4xl font-display font-bold text-white italic">#{Math.max(1, 100 - initialUser.level)}</div>
             </div>
-            <button className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-primary hover:text-white transition-colors group">
+            <button 
+              onClick={() => setIsLeaderboardOpen(true)}
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-primary hover:text-white transition-colors group"
+            >
                 Таблица лидеров <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
         </Card>
@@ -268,6 +311,96 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               Выход из системы
           </button>
       </section>
+
+      {/* Leaderboard Modal */}
+      <Modal isOpen={isLeaderboardOpen} onClose={() => setIsLeaderboardOpen(false)} maxWidth="max-w-3xl">
+          <div className="p-10 flex flex-col h-full">
+              <div className="flex items-center gap-4 mb-8">
+                  <div className="w-16 h-16 bg-kiddy-primary/10 rounded-2xl flex items-center justify-center border border-kiddy-primary/20">
+                      <Trophy className="text-kiddy-primary" size={32} />
+                  </div>
+                  <div>
+                      <h2 className="text-3xl font-display font-bold text-white mb-1">Таблица лидеров</h2>
+                      <p className="text-zinc-500 text-xs uppercase tracking-widest">Рейтинг по очкам опыта</p>
+                  </div>
+              </div>
+              
+              {loadingLeaderboard ? (
+                  <div className="flex-1 flex items-center justify-center">
+                      <Loader2 className="animate-spin text-kiddy-primary" size={40} />
+                  </div>
+              ) : (
+                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
+                      {leaderboard.map((user, index) => {
+                          const isCurrentUser = user.id === initialUser.id;
+                          const rank = index + 1;
+                          const medalColor = rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-zinc-400' : rank === 3 ? 'text-amber-600' : 'text-zinc-700';
+                          
+                          return (
+                              <div
+                                  key={user.id}
+                                  className={`p-4 rounded-xl border transition-all ${
+                                      isCurrentUser
+                                          ? 'bg-kiddy-primary/10 border-kiddy-primary/50 shadow-lg shadow-kiddy-primary/10'
+                                          : 'bg-zinc-950/50 border-zinc-800 hover:border-zinc-700'
+                                  }`}
+                              >
+                                  <div className="flex items-center gap-4">
+                                      <div className="flex items-center justify-center w-12">
+                                          {rank <= 3 ? (
+                                              <Medal className={medalColor} size={24} fill="currentColor" />
+                                          ) : (
+                                              <span className={`text-sm font-display font-bold ${isCurrentUser ? 'text-kiddy-primary' : 'text-zinc-600'}`}>
+                                                  #{rank}
+                                              </span>
+                                          )}
+                                      </div>
+                                      
+                                      <img 
+                                          src={user.avatar} 
+                                          alt={user.name}
+                                          className="w-12 h-12 rounded-full border-2 border-zinc-800 object-cover"
+                                      />
+                                      
+                                      <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2">
+                                              <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-kiddy-primary' : 'text-white'}`}>
+                                                  {user.name}
+                                              </h4>
+                                              {isCurrentUser && (
+                                                  <span className="px-2 py-0.5 bg-kiddy-primary/20 text-kiddy-primary text-[9px] font-bold rounded uppercase">
+                                                      Вы
+                                                  </span>
+                                              )}
+                                          </div>
+                                          <div className="flex items-center gap-4 mt-1">
+                                              <span className="text-zinc-500 text-xs">Уровень {user.level}</span>
+                                              <span className="text-zinc-600 text-xs">•</span>
+                                              <span className="text-zinc-500 text-xs">{user.xp.toLocaleString()} XP</span>
+                                          </div>
+                                      </div>
+                                      
+                                      <div className="text-right">
+                                          <div className={`text-2xl font-display font-bold ${isCurrentUser ? 'text-kiddy-primary' : 'text-zinc-400'}`}>
+                                              {user.xp.toLocaleString()}
+                                          </div>
+                                          <div className="text-[9px] text-zinc-600 uppercase tracking-widest">Очков</div>
+                                      </div>
+                                  </div>
+                              </div>
+                          );
+                      })}
+                      
+                      {leaderboard.length === 0 && (
+                          <div className="text-center py-20">
+                              <Trophy className="text-zinc-800 mx-auto mb-4" size={48} />
+                              <p className="text-zinc-600 text-sm font-bold uppercase tracking-widest">Лидерборд пуст</p>
+                          </div>
+                      )}
+                  </div>
+              )}
+          </div>
+      </Modal>
 
       {/* Logout Confirmation Modal */}
       <Modal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} maxWidth="max-w-md">
