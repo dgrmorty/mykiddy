@@ -93,28 +93,72 @@ export const AdminPanel: React.FC = () => {
     const fetchContent = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            // Сначала пробуем получить курсы
+            const { data: coursesData, error: coursesError } = await supabase
                 .from('courses')
-                .select('*, modules(*, lessons(*))')
+                .select('*')
                 .order('created_at', { ascending: false });
             
-            if (error) {
-                console.error('[AdminPanel] Content fetch error:', error);
-                showToast(`Ошибка при загрузке каталога: ${error.message}`, "error");
+            if (coursesError) {
+                console.error('[AdminPanel] Courses fetch error:', coursesError);
+                showToast(`Ошибка при загрузке курсов: ${coursesError.message}`, "error");
+                setCourses([]);
+                setLoading(false);
                 return;
             }
             
-            if (data) {
-                setCourses(data);
-                if (data.length === 0) {
-                    showToast("Каталог пуст. Создайте первый курс!", "info");
-                }
-            } else {
+            if (!coursesData || coursesData.length === 0) {
                 setCourses([]);
+                setLoading(false);
+                return;
+            }
+            
+            // Затем для каждого курса получаем модули и уроки
+            const coursesWithContent = await Promise.all(
+                coursesData.map(async (course: any) => {
+                    const { data: modulesData } = await supabase
+                        .from('modules')
+                        .select('*')
+                        .eq('course_id', course.id)
+                        .order('created_at', { ascending: true });
+                    
+                    if (modulesData && modulesData.length > 0) {
+                        const modulesWithLessons = await Promise.all(
+                            modulesData.map(async (module: any) => {
+                                const { data: lessonsData } = await supabase
+                                    .from('lessons')
+                                    .select('*')
+                                    .eq('module_id', module.id)
+                                    .order('created_at', { ascending: true });
+                                
+                                return {
+                                    ...module,
+                                    lessons: lessonsData || []
+                                };
+                            })
+                        );
+                        
+                        return {
+                            ...course,
+                            modules: modulesWithLessons
+                        };
+                    }
+                    
+                    return {
+                        ...course,
+                        modules: []
+                    };
+                })
+            );
+            
+            setCourses(coursesWithContent);
+            if (coursesWithContent.length === 0) {
+                showToast("Каталог пуст. Создайте первый курс!", "info");
             }
         } catch (error: any) {
             console.error('[AdminPanel] Content fetch error:', error);
             showToast(`Ошибка при загрузке каталога: ${error?.message || 'Неизвестная ошибка'}`, "error");
+            setCourses([]);
         } finally {
             setLoading(false);
         }
