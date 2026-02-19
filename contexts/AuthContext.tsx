@@ -97,14 +97,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!error && profile) {
           const finalRole = normalizeRole(profile.role, profile.email || authUser?.email);
+          // Убеждаемся, что уровень рассчитывается правильно на основе XP
+          const userXp = profile.xp || 0;
+          const calculatedLevel = Math.floor(userXp / 1000) + 1;
+          const profileLevel = profile.level || calculatedLevel;
+          
           setUser({
             id: userId,
             email: profile.email || authUser?.email,
             name: profile.name || authUser?.user_metadata?.name || 'Пользователь',
             role: finalRole,
             avatar: profile.avatar || authUser?.user_metadata?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`,
-            level: profile.level || 1,
-            xp: profile.xp || 0,
+            level: Math.max(profileLevel, calculatedLevel), // Используем максимум из БД и рассчитанного
+            xp: userXp,
             isApproved: finalRole === Role.ADMIN || profile.is_approved === true
           });
       } else {

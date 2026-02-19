@@ -1,7 +1,6 @@
 
 import { supabase } from './supabase';
 import { Course, Lesson, Module } from '../types';
-import { MOCK_COURSES } from '../constants';
 
 export const contentService = {
   
@@ -30,8 +29,8 @@ export const contentService = {
       const { data: dbCourses, error } = result;
 
       if (error || !dbCourses || dbCourses.length === 0) {
-        console.warn('[ContentService] DB Empty or Error, using Mock Data');
-        return MOCK_COURSES;
+        console.warn('[ContentService] DB Empty or Error, returning empty array');
+        return []; // Возвращаем пустой массив вместо моковых данных
       }
 
       let completedLessonIds: Set<string> = new Set();
@@ -108,8 +107,8 @@ export const contentService = {
       return courses;
 
     } catch (e) {
-      console.error('[ContentService] Critical error or timeout, falling back to Mock:', e);
-      return MOCK_COURSES;
+      console.error('[ContentService] Critical error or timeout, returning empty array:', e);
+      return []; // Возвращаем пустой массив вместо моковых данных
     }
   },
 
