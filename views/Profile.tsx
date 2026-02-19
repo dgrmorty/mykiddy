@@ -107,20 +107,47 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               avatar: editAvatar
           };
           
-          // Пытаемся обновить профиль
-          const { data, error } = await supabase
+          // Сначала проверяем, существует ли профиль
+          const { data: existingProfile } = await supabase
               .from('profiles')
-              .update(updateData)
+              .select('id')
               .eq('id', initialUser.id)
-              .select();
-
-          if (error) {
-              console.error('[Profile] Update error:', error);
-              throw error;
-          }
+              .single();
           
-          if (!data || data.length === 0) {
-              throw new Error('Профиль не найден или нет прав на обновление');
+          // Если профиля нет, создаем его
+          if (!existingProfile) {
+              const { error: insertError } = await supabase
+                  .from('profiles')
+                  .insert({
+                      id: initialUser.id,
+                      email: initialUser.email,
+                      name: editName,
+                      avatar: editAvatar,
+                      role: 'Student',
+                      level: 1,
+                      xp: 0
+                  });
+              
+              if (insertError) {
+                  console.error('[Profile] Insert error:', insertError);
+                  throw insertError;
+              }
+          } else {
+              // Обновляем существующий профиль
+              const { data, error } = await supabase
+                  .from('profiles')
+                  .update(updateData)
+                  .eq('id', initialUser.id)
+                  .select();
+
+              if (error) {
+                  console.error('[Profile] Update error:', error);
+                  throw error;
+              }
+              
+              if (!data || data.length === 0) {
+                  throw new Error('Профиль не найден или нет прав на обновление');
+              }
           }
           
           await refreshUser();
