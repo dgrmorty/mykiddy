@@ -33,7 +33,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const normalizeRole = (rawRole: string | undefined, email?: string): Role => {
-    if (email && ADMIN_EMAILS.includes(email.toLowerCase())) return Role.ADMIN;
+    // Проверяем email только если он точно указан и совпадает
+    if (email) {
+      const emailLower = email.toLowerCase();
+      if (ADMIN_EMAILS.includes(emailLower)) return Role.ADMIN;
+    }
+    // Проверяем роль из метаданных или профиля
     if (!rawRole) return Role.STUDENT;
     const r = rawRole.toLowerCase();
     if (r === 'admin') return Role.ADMIN;
@@ -43,13 +48,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const mapAuthToUser = useCallback((authUser: any): User => {
     const metadata = authUser.user_metadata || {};
-    const email = authUser.email;
-    const role = normalizeRole(metadata.role, email);
+    const email = authUser.email?.toLowerCase() || '';
+    // Проверяем email только если он точно совпадает
+    const isAdminEmail = email && ADMIN_EMAILS.includes(email);
+    const role = normalizeRole(metadata.role, isAdminEmail ? email : undefined);
     
     return {
       id: authUser.id,
-      email: email,
-      name: metadata.name || email?.split('@')[0] || 'Ученик',
+      email: authUser.email,
+      name: metadata.name || authUser.email?.split('@')[0] || 'Ученик',
       role: role,
       avatar: metadata.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(metadata.name || 'User')}&background=random`,
       level: 1,
@@ -222,9 +229,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
         await supabaseSignOut();
         setUser(GUEST_USER);
+        // Очищаем состояние после выхода
+        setTimeout(() => {
+            setAuthLoading(false);
+        }, 100);
     } catch (e) {
         console.error("Sign out error", e);
-    } finally {
         setAuthLoading(false);
     }
   };

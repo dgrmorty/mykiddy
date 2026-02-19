@@ -109,6 +109,18 @@ DROP POLICY IF EXISTS "Admins can manage settings" ON settings;
 -- 4. СОЗДАНИЕ RLS ПОЛИТИК
 -- ============================================
 
+-- Функция для проверки роли администратора (без рекурсии)
+CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = user_id
+    AND role = 'Admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Политики для profiles
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
@@ -121,21 +133,15 @@ CREATE POLICY "Users can update own profile"
 CREATE POLICY "Admins can view all profiles"
   ON profiles FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role = 'Admin'
-    )
+    auth.uid() = id OR  -- Пользователь может видеть свой профиль
+    is_admin(auth.uid())  -- Или если он администратор
   );
 
 CREATE POLICY "Admins can update all profiles"
   ON profiles FOR UPDATE
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role = 'Admin'
-    )
+    auth.uid() = id OR  -- Пользователь может обновлять свой профиль
+    is_admin(auth.uid())  -- Или если он администратор
   );
 
 -- Политики для courses
@@ -145,13 +151,7 @@ CREATE POLICY "Authenticated users can view courses"
 
 CREATE POLICY "Admins can manage courses"
   ON courses FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role = 'Admin'
-    )
-  );
+  USING (is_admin(auth.uid()));
 
 -- Политики для modules
 CREATE POLICY "Authenticated users can view modules"
@@ -160,13 +160,7 @@ CREATE POLICY "Authenticated users can view modules"
 
 CREATE POLICY "Admins can manage modules"
   ON modules FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role = 'Admin'
-    )
-  );
+  USING (is_admin(auth.uid()));
 
 -- Политики для lessons
 CREATE POLICY "Authenticated users can view lessons"
@@ -175,13 +169,7 @@ CREATE POLICY "Authenticated users can view lessons"
 
 CREATE POLICY "Admins can manage lessons"
   ON lessons FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role = 'Admin'
-    )
-  );
+  USING (is_admin(auth.uid()));
 
 -- Политики для user_progress
 CREATE POLICY "Users can view own progress"
@@ -199,13 +187,7 @@ CREATE POLICY "Everyone can view settings"
 
 CREATE POLICY "Admins can manage settings"
   ON settings FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role = 'Admin'
-    )
-  );
+  USING (is_admin(auth.uid()));
 
 -- 5. СОЗДАНИЕ ФУНКЦИЙ
 -- ============================================
@@ -291,11 +273,7 @@ USING (
 CREATE POLICY "Admins can delete"
 ON storage.objects FOR DELETE
 USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-    AND role = 'Admin'
-  ) AND
+  is_admin(auth.uid()) AND
   (bucket_id = 'images' OR bucket_id = 'covers' OR bucket_id = 'videos' OR bucket_id = 'avatars')
 );
 

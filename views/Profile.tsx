@@ -83,9 +83,15 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   };
 
   const handleLogout = async () => {
-    resetNavigation();
-    await signOut();
-    setIsLogoutModalOpen(false);
+    try {
+      resetNavigation();
+      setIsLogoutModalOpen(false);
+      await signOut();
+      // Перенаправление произойдет автоматически через AuthContext
+      window.location.hash = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
