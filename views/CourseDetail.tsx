@@ -90,8 +90,15 @@ export const CourseDetail: React.FC = () => {
         const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer);
         setAiFeedback(feedback);
         
-        // Начисляем очки только если ответ принят (ACCEPTED)
-        if (feedback.trim().toUpperCase().startsWith('ACCEPTED')) {
+        // Начисляем очки если ответ достаточно хороший (не пустой, не совсем не по теме)
+        // Проверяем по длине и содержанию ответа
+        const feedbackLower = feedback.toLowerCase();
+        const isGoodAnswer = cleanAnswer.trim().length > 10 && 
+                            !feedbackLower.includes('совсем не') && 
+                            !feedbackLower.includes('пустой') &&
+                            !feedbackLower.includes('не по теме');
+        
+        if (isGoodAnswer) {
             // Сначала отмечаем урок как пройденный (50 XP)
             await contentService.markLessonComplete(user.id, activeLesson.id);
             // Дополнительные очки за выполненное ДЗ (50 XP)
@@ -102,12 +109,9 @@ export const CourseDetail: React.FC = () => {
                 console.warn('Failed to increment XP for homework:', e);
             }
             await loadData();
-        } else if (feedback.trim().toUpperCase().startsWith('NEEDS_WORK')) {
-            // Если ответ совсем не по теме, не начисляем очки, но даем обратную связь
-            showToast('Попробуйте еще раз. Вы справитесь!', 'info');
         } else {
-            // Для частично правильных ответов тоже даем обратную связь
-            showToast('Хорошая попытка! Проверьте комментарии', 'info');
+            // Если ответ не очень хороший, даем мотивирующую обратную связь
+            showToast('Проверьте комментарии наставника', 'info');
         }
     } catch (e) {
         setAiFeedback("Не удалось проверить задание. Попробуйте еще раз.");
@@ -187,10 +191,10 @@ export const CourseDetail: React.FC = () => {
                 </div>
             )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth="max-w-xl">
-                <div className="p-10 flex flex-col h-full max-h-[90vh]">
-                    <h2 className="text-2xl font-display font-bold text-white mb-6 flex-shrink-0">Ваше решение</h2>
+                <div className="p-10 flex flex-col h-full relative">
+                    <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
                     {activeLesson?.homeworkTask && (
-                        <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl flex-shrink-0 max-h-32 overflow-y-auto">
+                        <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
                             <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
                             <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                         </div>
@@ -198,18 +202,13 @@ export const CourseDetail: React.FC = () => {
                     <textarea 
                         value={homeworkAnswer} 
                         onChange={(e) => setHomeworkAnswer(e.target.value)} 
-                        className="flex-1 min-h-[200px] bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm resize-none" 
+                        className="flex-1 bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm" 
                         placeholder="Вставьте ваш код или текст..." 
                     />
-                    {aiFeedback && (
-                        <div className="mt-6 p-6 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm text-zinc-300 leading-relaxed italic max-h-64 overflow-y-auto flex-shrink-0">
-                            {aiFeedback}
-                        </div>
-                    )}
                     {securityError && (
-                        <div className="mt-4 text-red-500 text-xs font-bold flex-shrink-0">{securityError}</div>
+                        <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
                     )}
-                    <div className="mt-8 flex gap-4 flex-shrink-0">
+                    <div className="mt-8 flex gap-4">
                         <button onClick={() => setIsHomeworkOpen(false)} className="px-8 py-4 bg-zinc-900 text-white font-bold rounded-xl">
                             Закрыть
                         </button>
@@ -221,6 +220,29 @@ export const CourseDetail: React.FC = () => {
                             {isChecking ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> Проверить</>}
                         </button>
                     </div>
+                    
+                    {/* Отдельное окно с ответом нейронки справа */}
+                    {aiFeedback && (
+                        <div className="absolute top-0 right-0 h-full w-full md:w-[500px] bg-zinc-950 border-l border-zinc-800 shadow-2xl flex flex-col transform transition-transform duration-500 ease-out translate-x-0">
+                            <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2">
+                                    <Sparkles size={20} className="text-kiddy-primary" />
+                                    Ответ от наставника
+                                </h3>
+                                <button 
+                                    onClick={() => setAiFeedback(null)} 
+                                    className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+                                >
+                                    <X size={20} className="text-zinc-400" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                                <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                                    {aiFeedback}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Modal>
         </div>
