@@ -131,7 +131,7 @@ RETURNS void AS $$
 BEGIN
   UPDATE profiles
   SET xp = xp + x_val,
-      level = FLOOR((xp + x_val) / 100) + 1
+      level = FLOOR((xp + x_val) / 1000) + 1
   WHERE id = auth.uid();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
