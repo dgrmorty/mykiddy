@@ -191,7 +191,7 @@ export const CourseDetail: React.FC = () => {
                 </div>
             )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth="max-w-xl">
-                <div className="p-10 flex flex-col h-full relative">
+                <div className="p-10 flex flex-col h-full relative overflow-hidden">
                     <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
                     {activeLesson?.homeworkTask && (
                         <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
@@ -223,7 +223,7 @@ export const CourseDetail: React.FC = () => {
                     
                     {/* Отдельное окно с ответом нейронки справа */}
                     {aiFeedback && (
-                        <div className="absolute top-0 right-0 h-full w-full md:w-[500px] bg-zinc-950 border-l border-zinc-800 shadow-2xl flex flex-col transform transition-transform duration-500 ease-out translate-x-0">
+                        <div className="fixed top-0 right-0 h-screen w-full md:w-[500px] bg-zinc-950 border-l border-zinc-800 shadow-2xl flex flex-col z-[250] animate-in slide-in-from-right duration-500">
                             <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-lg font-display font-bold text-white flex items-center gap-2">
                                     <Sparkles size={20} className="text-kiddy-primary" />
