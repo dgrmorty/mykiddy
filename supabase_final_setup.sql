@@ -89,7 +89,63 @@ ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
--- ШАГ 3: СОЗДАНИЕ RLS ПОЛИТИК (БЕЗ РЕКУРСИИ!)
+-- ШАГ 3: СОЗДАНИЕ ФУНКЦИЙ (ПЕРЕД политиками!)
+-- ============================================
+
+-- Функция для проверки админа БЕЗ рекурсии (проверяет email из auth.users, НЕ из profiles!)
+CREATE OR REPLACE FUNCTION is_admin_user()
+RETURNS BOOLEAN AS $$
+BEGIN
+  -- Проверяем email напрямую из auth.users (не вызывает RLS и не вызывает рекурсию)
+  RETURN EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = auth.uid()
+    AND email = 'knazar002@gmail.com'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- Функция для автоматического создания профиля при регистрации
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, name, role, avatar)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'Student'),
+    COALESCE(
+      NEW.raw_user_meta_data->>'avatar',
+      'https://ui-avatars.com/api/?name=' || encode_uri_component(COALESCE(NEW.raw_user_meta_data->>'name', 'User')) || '&background=random'
+    )
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Функция для увеличения XP
+CREATE OR REPLACE FUNCTION increment_xp(x_val INTEGER)
+RETURNS void AS $$
+BEGIN
+  UPDATE profiles
+  SET xp = xp + x_val,
+      level = FLOOR((xp + x_val) / 100) + 1
+  WHERE id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Функция для автоматического обновления updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ШАГ 4: СОЗДАНИЕ RLS ПОЛИТИК (БЕЗ РЕКУРСИИ!)
 -- ============================================
 
 -- PROFILES: Пользователи могут видеть и обновлять ТОЛЬКО свои профили
@@ -176,62 +232,6 @@ USING (
   is_admin_user() AND
   (bucket_id = 'images' OR bucket_id = 'covers' OR bucket_id = 'videos' OR bucket_id = 'avatars')
 );
-
--- ШАГ 4: СОЗДАНИЕ ФУНКЦИЙ
--- ============================================
-
--- Функция для проверки админа БЕЗ рекурсии (проверяет email из auth.users, НЕ из profiles!)
-CREATE OR REPLACE FUNCTION is_admin_user()
-RETURNS BOOLEAN AS $$
-BEGIN
-  -- Проверяем email напрямую из auth.users (не вызывает RLS и не вызывает рекурсию)
-  RETURN EXISTS (
-    SELECT 1 FROM auth.users
-    WHERE id = auth.uid()
-    AND email = 'knazar002@gmail.com'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
-
--- Функция для автоматического создания профиля при регистрации
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, name, role, avatar)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'Student'),
-    COALESCE(
-      NEW.raw_user_meta_data->>'avatar',
-      'https://ui-avatars.com/api/?name=' || encode_uri_component(COALESCE(NEW.raw_user_meta_data->>'name', 'User')) || '&background=random'
-    )
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Функция для увеличения XP
-CREATE OR REPLACE FUNCTION increment_xp(x_val INTEGER)
-RETURNS void AS $$
-BEGIN
-  UPDATE profiles
-  SET xp = xp + x_val,
-      level = FLOOR((xp + x_val) / 100) + 1
-  WHERE id = auth.uid();
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Функция для автоматического обновления updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 -- ШАГ 5: СОЗДАНИЕ ТРИГГЕРОВ
 -- ============================================
