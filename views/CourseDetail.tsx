@@ -187,10 +187,10 @@ export const CourseDetail: React.FC = () => {
                 </div>
             )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth="max-w-xl">
-                <div className="p-10 flex flex-col h-full">
-                    <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
+                <div className="p-10 flex flex-col h-full max-h-[90vh]">
+                    <h2 className="text-2xl font-display font-bold text-white mb-6 flex-shrink-0">Ваше решение</h2>
                     {activeLesson?.homeworkTask && (
-                        <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                        <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl flex-shrink-0 max-h-32 overflow-y-auto">
                             <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
                             <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                         </div>
@@ -198,18 +198,18 @@ export const CourseDetail: React.FC = () => {
                     <textarea 
                         value={homeworkAnswer} 
                         onChange={(e) => setHomeworkAnswer(e.target.value)} 
-                        className="flex-1 bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm" 
+                        className="flex-1 min-h-[200px] bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm resize-none" 
                         placeholder="Вставьте ваш код или текст..." 
                     />
                     {aiFeedback && (
-                        <div className="mt-6 p-6 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm text-zinc-300 leading-relaxed italic">
+                        <div className="mt-6 p-6 bg-zinc-900 border border-zinc-800 rounded-2xl text-sm text-zinc-300 leading-relaxed italic max-h-64 overflow-y-auto flex-shrink-0">
                             {aiFeedback}
                         </div>
                     )}
                     {securityError && (
-                        <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
+                        <div className="mt-4 text-red-500 text-xs font-bold flex-shrink-0">{securityError}</div>
                     )}
-                    <div className="mt-8 flex gap-4">
+                    <div className="mt-8 flex gap-4 flex-shrink-0">
                         <button onClick={() => setIsHomeworkOpen(false)} className="px-8 py-4 bg-zinc-900 text-white font-bold rounded-xl">
                             Закрыть
                         </button>
