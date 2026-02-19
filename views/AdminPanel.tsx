@@ -101,7 +101,7 @@ export const AdminPanel: React.FC = () => {
             
             if (coursesError) {
                 console.error('[AdminPanel] Courses fetch error:', coursesError);
-                showToast(`Ошибка при загрузке курсов: ${coursesError.message}`, "error");
+                showToast('Не удалось загрузить курсы. Попробуйте обновить страницу', "error");
                 setCourses([]);
                 setLoading(false);
                 return;
@@ -157,7 +157,7 @@ export const AdminPanel: React.FC = () => {
             }
         } catch (error: any) {
             console.error('[AdminPanel] Content fetch error:', error);
-            showToast(`Ошибка при загрузке каталога: ${error?.message || 'Неизвестная ошибка'}`, "error");
+            showToast('Не удалось загрузить каталог. Попробуйте обновить страницу', "error");
             setCourses([]);
         } finally {
             setLoading(false);
@@ -204,7 +204,7 @@ export const AdminPanel: React.FC = () => {
             }
         } catch (error: any) {
             console.error('[AdminPanel] Users fetch error:', error);
-            showToast("Ошибка доступа к реестру пользователей. Проверьте RLS политики в Supabase", "error");
+            showToast("Не удалось загрузить список пользователей. Попробуйте позже", "error");
         }
         setLoading(false);
     };
@@ -267,11 +267,11 @@ export const AdminPanel: React.FC = () => {
                     showToast('Логотип успешно загружен', 'success');
                 }
             } else {
-                showToast('Не удалось загрузить файл. Проверьте настройки хранилища Supabase', 'error');
+                showToast('Не удалось загрузить файл. Попробуйте еще раз', 'error');
             }
         } catch (error: any) {
             console.error('[AdminPanel] Upload error:', error);
-            showToast(`Ошибка загрузки: ${error?.message || 'Неизвестная ошибка'}`, 'error');
+            showToast('Не удалось загрузить файл. Проверьте формат и размер файла', 'error');
         } finally {
             setUploading(false);
             e.target.value = '';
@@ -927,7 +927,7 @@ export const AdminPanel: React.FC = () => {
                             {filteredUsers.length === 0 ? (
                                 <div className="col-span-full text-center py-10">
                                     <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">
-                                        {searchQuery ? 'Пользователи не найдены' : 'Пользователи не загружены. Проверьте RLS политики в Supabase.'}
+                                        {searchQuery ? 'Пользователи не найдены' : 'Не удалось загрузить список пользователей'}
                                     </p>
                                 </div>
                             ) : (

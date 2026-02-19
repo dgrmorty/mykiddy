@@ -46,11 +46,11 @@ export const checkHomework = async (task: string, studentAnswer: string): Promis
     });
 
     if (!response.ok) {
-        return "Ошибка проверки на сервере.";
+        return "Не удалось проверить задание. Попробуйте позже.";
     }
 
     const data = await response.json();
-    return data.text || "Ошибка анализа ответа.";
+    return data.text || "Не удалось проанализировать ответ. Попробуйте еще раз.";
   } catch (error) {
     console.error("Homework Service Error:", error);
     return "Не удалось отправить задание. Проверьте интернет.";

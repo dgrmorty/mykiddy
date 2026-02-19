@@ -155,8 +155,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
           showToast('Изменения сохранены', 'success');
       } catch (error: any) {
           console.error('[Profile] Save error:', error);
-          const errorMessage = error?.message || error?.error_description || 'Не удалось обновить данные профиля';
-          showToast(errorMessage, 'error');
+          // Преобразуем технические ошибки в понятные сообщения
+          let userMessage = 'Не удалось сохранить изменения';
+          if (error?.message?.includes('row-level security') || error?.message?.includes('RLS')) {
+            userMessage = 'Недостаточно прав для выполнения операции';
+          } else if (error?.message?.includes('permission') || error?.message?.includes('доступ')) {
+            userMessage = 'Недостаточно прав для выполнения операции';
+          } else if (error?.message?.includes('not found') || error?.message?.includes('не найден')) {
+            userMessage = 'Профиль не найден';
+          }
+          showToast(userMessage, 'error');
       } finally {
           setSaving(false);
       }

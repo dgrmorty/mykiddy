@@ -41,7 +41,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <h1 className="text-3xl md:text-5xl font-display font-bold text-white tracking-tight">
                 Привет, <span className="text-kiddy-primary">{user.name.split(' ')[0]}</span>
               </h1>
-              <p className="text-zinc-500 mt-1 font-mono text-[10px] uppercase tracking-[0.3em]">Статус системы: <span className="text-green-500">Online</span></p>
             </div>
         </div>
         

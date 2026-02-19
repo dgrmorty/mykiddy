@@ -53,7 +53,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       }, 300);
     } catch (err: any) {
       console.error("[AuthModal] Auth error:", err);
-      setError(err.message === 'Invalid login credentials' ? 'Неверный email или пароль' : err.message);
+      // Преобразуем технические ошибки в понятные сообщения
+      let userMessage = 'Произошла ошибка. Попробуйте еще раз';
+      if (err.message === 'Invalid login credentials' || err.message?.includes('Invalid')) {
+        userMessage = 'Неверный email или пароль';
+      } else if (err.message?.includes('Email') && err.message?.includes('already')) {
+        userMessage = 'Пользователь с таким email уже существует';
+      } else if (err.message?.includes('password') || err.message?.includes('Password')) {
+        userMessage = 'Пароль слишком короткий (минимум 6 символов)';
+      } else if (err.message?.includes('email') || err.message?.includes('Email')) {
+        userMessage = 'Неверный формат email';
+      } else if (err.message?.includes('Database error') || err.message?.includes('saving new user')) {
+        userMessage = 'Не удалось создать аккаунт. Попробуйте позже';
+      }
+      setError(userMessage);
       setLoading(false);
     }
   };

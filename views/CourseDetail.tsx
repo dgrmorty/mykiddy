@@ -100,7 +100,7 @@ export const CourseDetail: React.FC = () => {
             await loadData();
         }
     } catch (e) {
-        setAiFeedback("Ошибка связи с ИИ.");
+        setAiFeedback("Не удалось проверить задание. Попробуйте еще раз.");
     } finally {
         setIsChecking(false);
     }

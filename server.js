@@ -44,7 +44,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.post('/api/ai-tutor', async (req, res) => {
-    if (!ai) return res.status(503).json({ error: "AI Key Missing on Server" });
+    if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
     try {
         const { question, context } = req.body;
         const response = await ai.models.generateContent({
@@ -61,12 +61,12 @@ app.post('/api/ai-tutor', async (req, res) => {
         res.json({ text: response.text });
     } catch (error) {
         console.error("AI Request Failed:", error);
-        res.status(500).json({ error: "AI Processing Failed" });
+        res.status(500).json({ error: "Сервис временно недоступен. Попробуйте позже" });
     }
 });
 
 app.post('/api/check-homework', async (req, res) => {
-    if (!ai) return res.status(503).json({ error: "AI Key Missing on Server" });
+    if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
     try {
         const { task, studentAnswer } = req.body;
         
@@ -108,7 +108,7 @@ ${studentAnswer}
         res.json({ text: response.text });
     } catch (error) {
         console.error("Homework Check Failed:", error);
-        res.status(500).json({ error: "Homework Check Failed" });
+        res.status(500).json({ error: "Не удалось проверить задание. Попробуйте позже" });
     }
 });
 
