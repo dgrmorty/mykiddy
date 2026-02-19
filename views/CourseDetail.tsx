@@ -190,53 +190,56 @@ export const CourseDetail: React.FC = () => {
                     )}
                 </div>
             )}
-            <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth="max-w-xl">
-                <div className="p-10 flex flex-col h-full relative overflow-hidden">
-                    <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
-                    {activeLesson?.homeworkTask && (
-                        <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-                            <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
-                            <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
+            <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"}>
+                <div className="flex gap-4 h-full items-center justify-center transition-all duration-500">
+                    {/* Левая модалка - отправка ДЗ */}
+                    <div className={`p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] transition-all duration-500 ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0' : 'w-full'}`}>
+                        <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
+                        {activeLesson?.homeworkTask && (
+                            <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                                <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
+                                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
+                            </div>
+                        )}
+                        <textarea 
+                            value={homeworkAnswer} 
+                            onChange={(e) => setHomeworkAnswer(e.target.value)} 
+                            className="flex-1 bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm" 
+                            placeholder="Вставьте ваш код или текст..." 
+                        />
+                        {securityError && (
+                            <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
+                        )}
+                        <div className="mt-8 flex gap-4">
+                            <button onClick={() => setIsHomeworkOpen(false)} className="px-8 py-4 bg-zinc-900 text-white font-bold rounded-xl">
+                                Закрыть
+                            </button>
+                            <button 
+                                onClick={handleCheckHomework} 
+                                disabled={isChecking || !activeLesson?.homeworkTask} 
+                                className="flex-1 py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isChecking ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> Проверить</>}
+                            </button>
                         </div>
-                    )}
-                    <textarea 
-                        value={homeworkAnswer} 
-                        onChange={(e) => setHomeworkAnswer(e.target.value)} 
-                        className="flex-1 bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm" 
-                        placeholder="Вставьте ваш код или текст..." 
-                    />
-                    {securityError && (
-                        <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
-                    )}
-                    <div className="mt-8 flex gap-4">
-                        <button onClick={() => setIsHomeworkOpen(false)} className="px-8 py-4 bg-zinc-900 text-white font-bold rounded-xl">
-                            Закрыть
-                        </button>
-                        <button 
-                            onClick={handleCheckHomework} 
-                            disabled={isChecking || !activeLesson?.homeworkTask} 
-                            className="flex-1 py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isChecking ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> Проверить</>}
-                        </button>
                     </div>
                     
-                    {/* Отдельное окно с ответом нейронки справа */}
+                    {/* Правая модалка - ответ нейронки */}
                     {aiFeedback && (
-                        <div className="fixed top-0 right-0 h-screen w-full md:w-[500px] bg-zinc-950 border-l border-zinc-800 shadow-2xl flex flex-col z-[250] animate-in slide-in-from-right duration-500">
-                            <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2">
-                                    <Sparkles size={20} className="text-kiddy-primary" />
+                        <div className="p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-in slide-in-from-right duration-500">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-display font-bold text-white flex items-center gap-2">
+                                    <Sparkles size={24} className="text-kiddy-primary" />
                                     Ответ от наставника
-                                </h3>
+                                </h2>
                                 <button 
                                     onClick={() => setAiFeedback(null)} 
-                                    className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+                                    className="p-2 hover:bg-zinc-900 rounded-lg transition-colors"
                                 >
                                     <X size={20} className="text-zinc-400" />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar">
                                 <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
                                     {aiFeedback}
                                 </div>
