@@ -167,76 +167,52 @@ export const AdminPanel: React.FC = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Получаем всех пользователей из auth.users (если доступно)
-            let authUsers: any[] = [];
-            try {
-                const { data: authData, error: authError } = await supabase.auth.admin?.listUsers();
-                if (!authError && authData?.users) {
-                    authUsers = authData.users;
-                }
-            } catch (e) {
-                console.warn('[AdminPanel] Cannot access auth.admin.listUsers, using profiles only');
-            }
+            // Пробуем получить всех пользователей через RPC функцию
+            const { data: rpcUsers, error: rpcError } = await supabase.rpc('get_all_users');
             
-            // Получаем профили из базы
-            const { data: profilesData, error: profilesError } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (profilesError) {
-                console.warn('[AdminPanel] Profiles error:', profilesError);
-            }
-            
-            // Создаем Map для быстрого поиска профилей по ID
-            const profilesMap = new Map();
-            if (profilesData) {
-                profilesData.forEach(p => profilesMap.set(p.id, p));
-            }
-            
-            // Объединяем данные: если есть auth.users, используем их, иначе только profiles
-            let usersToShow: User[] = [];
-            
-            if (authUsers.length > 0) {
-                // Используем auth.users как основной источник, дополняем данными из profiles
-                usersToShow = authUsers.map((u: any) => {
-                    const profile = profilesMap.get(u.id);
-                    return {
-                        id: u.id,
-                        email: u.email || profile?.email || '',
-                        name: profile?.name || u.user_metadata?.name || u.email?.split('@')[0] || 'Пользователь',
-                        role: profile?.role || u.user_metadata?.role || 'Student',
-                        avatar: profile?.avatar || u.user_metadata?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || u.email?.split('@')[0] || 'U')}&background=random`,
-                        level: profile?.level || 1,
-                        xp: profile?.xp || 0,
-                        isApproved: profile?.is_approved ?? false
-                    };
-                });
-            } else if (profilesData) {
-                // Если auth.users недоступен, используем только profiles
-                usersToShow = profilesData.map(u => ({ 
+            if (!rpcError && rpcUsers && rpcUsers.length > 0) {
+                // Используем данные из RPC функции (объединение auth.users + profiles)
+                setUsersList(rpcUsers.map((u: any) => ({
                     id: u.id,
                     email: u.email || '',
                     name: u.name || 'Анонимный пользователь',
                     role: u.role || 'Student',
                     avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
-                    level: u.level || 0,
+                    level: u.level || 1,
                     xp: u.xp || 0,
                     isApproved: u.is_approved === true
-                }));
+                })));
+            } else {
+                // Fallback: получаем только из profiles (если RPC недоступен)
+                console.warn('[AdminPanel] RPC get_all_users failed, using profiles only:', rpcError);
+                const { data: profilesData, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (profilesError) {
+                    throw profilesError;
+                }
+                
+                if (profilesData) {
+                    setUsersList(profilesData.map(u => ({ 
+                        id: u.id,
+                        email: u.email || '',
+                        name: u.name || 'Анонимный пользователь',
+                        role: u.role || 'Student',
+                        avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
+                        level: u.level || 0,
+                        xp: u.xp || 0,
+                        isApproved: u.is_approved === true
+                    })));
+                } else {
+                    setUsersList([]);
+                }
             }
-            
-            // Сортируем по дате создания (новые сначала)
-            usersToShow.sort((a, b) => {
-                const aCreated = authUsers.find((u: any) => u.id === a.id)?.created_at || '';
-                const bCreated = authUsers.find((u: any) => u.id === b.id)?.created_at || '';
-                return bCreated.localeCompare(aCreated);
-            });
-            
-            setUsersList(usersToShow);
         } catch (error: any) {
             console.error('[AdminPanel] Users fetch error:', error);
             showToast("Не удалось загрузить список пользователей. Попробуйте позже", "error");
+            setUsersList([]);
         }
         setLoading(false);
     };
