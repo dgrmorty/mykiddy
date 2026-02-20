@@ -254,33 +254,39 @@ export const CourseDetail: React.FC = () => {
                 </div>
             )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"}>
-                <div className="flex gap-4 h-full items-center justify-center transition-all duration-700 ease-out">
+                <div className="flex flex-col md:flex-row gap-4 h-full md:items-center md:justify-center transition-all duration-700 ease-out p-4 md:p-0">
                     {/* Левая модалка - отправка ДЗ */}
-                    <div className={`p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
-                        <h2 className="text-2xl font-display font-bold text-white mb-6">Ваше решение</h2>
+                    <div className={`p-6 md:p-10 flex flex-col min-h-0 bg-zinc-950 border border-white/5 rounded-[2rem] md:rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
+                        <h2 className="text-xl md:text-2xl font-display font-bold text-white mb-4 md:mb-6">Ваше решение</h2>
                         {activeLesson?.homeworkTask && (
-                            <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
                                 <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
                                 <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                             </div>
                         )}
                         <textarea 
                             value={homeworkAnswer} 
-                            onChange={(e) => setHomeworkAnswer(e.target.value)} 
-                            className="flex-1 bg-black border border-zinc-800 p-6 rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm" 
+                            onChange={(e) => setHomeworkAnswer(e.target.value)}
+                            onFocus={(e) => {
+                                // Автоскролл к textarea когда она получает фокус (для мобильных)
+                                setTimeout(() => {
+                                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }, 300);
+                            }}
+                            className="min-h-[200px] md:min-h-0 md:flex-1 bg-black border border-zinc-800 p-4 md:p-6 rounded-xl md:rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm resize-none" 
                             placeholder="Вставьте ваш код или текст..." 
                         />
                         {securityError && (
                             <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
                         )}
-                        <div className="mt-8 flex gap-4">
-                            <button onClick={() => setIsHomeworkOpen(false)} className="px-8 py-4 bg-zinc-900 text-white font-bold rounded-xl">
+                        <div className="mt-4 md:mt-8 flex gap-3 md:gap-4 flex-shrink-0">
+                            <button onClick={() => setIsHomeworkOpen(false)} className="px-6 md:px-8 py-3 md:py-4 bg-zinc-900 text-white font-bold rounded-xl text-sm md:text-base">
                                 Закрыть
                             </button>
                         <button 
                             onClick={handleCheckHomework} 
                             disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted} 
-                            className="flex-1 py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 py-3 md:py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                         >
                             {isChecking ? <Loader2 className="animate-spin" size={20} /> : isHomeworkCompleted ? <><CheckCircle size={18} /> Уже решено</> : <><Send size={18} /> Проверить</>}
                         </button>
@@ -289,10 +295,10 @@ export const CourseDetail: React.FC = () => {
                     
                     {/* Правая модалка - ответ нейронки */}
                     {aiFeedback && (
-                        <div className="p-10 flex flex-col h-full bg-zinc-950 border border-white/5 rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-display font-bold text-white flex items-center gap-2">
-                                    <Sparkles size={24} className="text-kiddy-primary" />
+                        <div className="p-6 md:p-10 flex flex-col min-h-[300px] md:min-h-0 md:h-full bg-zinc-950 border border-white/5 rounded-[2rem] md:rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
+                            <div className="flex items-center justify-between mb-4 md:mb-6 flex-shrink-0">
+                                <h2 className="text-xl md:text-2xl font-display font-bold text-white flex items-center gap-2">
+                                    <Sparkles size={20} md:size={24} className="text-kiddy-primary" />
                                     Ответ от наставника
                                 </h2>
                                 <button 
@@ -302,8 +308,8 @@ export const CourseDetail: React.FC = () => {
                                     <X size={20} className="text-zinc-400" />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                                <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap pb-4">
                                     {aiFeedback}
                                 </div>
                             </div>

@@ -51,9 +51,9 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={onClose} 
       />
       
-      {/* Modal Container: h-full на мобилках, max-h на десктопе */}
+      {/* Modal Container: прокручиваемый на мобильных, фиксированный на десктопе */}
       <div 
-        className={`relative z-10 w-full ${maxWidth} bg-zinc-950 md:border md:border-white/5 md:rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col h-full md:h-[85vh] animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 overflow-hidden`}
+        className={`relative z-10 w-full ${maxWidth} bg-zinc-950 md:border md:border-white/5 md:rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col h-full md:h-[85vh] animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 overflow-y-auto md:overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
