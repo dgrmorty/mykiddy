@@ -17,7 +17,7 @@ import { supabase } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
 
 export const CourseDetail: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { activeCourse, setActiveCourse, activeLesson, setActiveLesson } = useContentContext();
   const { showToast } = useToast();
   
@@ -142,6 +142,9 @@ export const CourseDetail: React.FC = () => {
                 
                 setIsHomeworkCompleted(true);
                 showToast('Отлично! Задание принято. +50 XP', 'success');
+                
+                // Обновляем данные пользователя, чтобы сразу увидеть новый уровень и XP
+                await refreshUser();
             } catch (e) {
                 console.warn('Failed to increment XP for homework:', e);
             }

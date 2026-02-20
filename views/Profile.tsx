@@ -20,7 +20,7 @@ interface ProfileProps {
 }
 
 export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
-  const { refreshUser, signOut } = useAuth();
+  const { user, refreshUser, signOut } = useAuth();
   const { resetNavigation } = useContentContext();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,14 +31,17 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const { showToast } = useToast();
   
-  const [editName, setEditName] = useState(initialUser.name);
-  const [editAvatar, setEditAvatar] = useState(initialUser.avatar);
+  // Используем актуального пользователя из контекста, а не из пропсов
+  const currentUser = user.id !== 'guest' ? user : initialUser;
+  
+  const [editName, setEditName] = useState(currentUser.name);
+  const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setEditName(initialUser.name);
-    setEditAvatar(initialUser.avatar);
-  }, [initialUser]);
+    setEditName(currentUser.name);
+    setEditAvatar(currentUser.avatar);
+  }, [currentUser]);
 
   const fetchLeaderboard = async () => {
     setLoadingLeaderboard(true);
@@ -111,7 +114,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
           const { data: existingProfile } = await supabase
               .from('profiles')
               .select('id')
-              .eq('id', initialUser.id)
+              .eq('id', currentUser.id)
               .single();
           
           // Если профиля нет, создаем его
@@ -119,8 +122,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               const { error: insertError } = await supabase
                   .from('profiles')
                   .insert({
-                      id: initialUser.id,
-                      email: initialUser.email,
+                      id: currentUser.id,
+                      email: currentUser.email,
                       name: editName,
                       avatar: editAvatar,
                       role: 'Student',
@@ -137,7 +140,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               const { data, error } = await supabase
                   .from('profiles')
                   .update(updateData)
-                  .eq('id', initialUser.id)
+                  .eq('id', currentUser.id)
                   .select();
 
               if (error) {
@@ -198,7 +201,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <div className="absolute inset-0 bg-kiddy-primary blur-3xl opacity-20 animate-pulse" />
                     <div className="w-28 h-28 md:w-32 md:h-32 rounded-full border-2 border-white/10 relative z-10 shadow-2xl overflow-hidden bg-black">
                          <img 
-                            src={editAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || 'U')}&background=random`} 
+                            src={editAvatar || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`} 
                             className="w-full h-full object-cover"
                             alt="Avatar" 
                         />
@@ -227,7 +230,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     
                     {!isEditing && (
                         <div className="absolute -bottom-1 -right-1 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-full border border-black z-20 shadow-lg">
-                            LVL {initialUser.level}
+                            LVL {currentUser.level}
                         </div>
                     )}
                 </div>
@@ -248,12 +251,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         />
                     ) : (
                         <h1 className="text-4xl md:text-6xl font-display font-bold text-white tracking-tighter italic">
-                            {initialUser.name}
+                            {currentUser.name}
                         </h1>
                     )}
 
                     <div className="flex flex-col md:flex-row items-center gap-4 text-zinc-500 font-mono text-[10px] uppercase tracking-widest">
-                        <span className="flex items-center gap-2"><Fingerprint size={12} /> ID: {initialUser.id.substring(0, 8).toUpperCase()}</span>
+                        <span className="flex items-center gap-2"><Fingerprint size={12} /> ID: {currentUser.id.substring(0, 8).toUpperCase()}</span>
                     </div>
                 </div>
 
@@ -303,17 +306,17 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <Zap className="text-yellow-500" size={24} />
                 </div>
                 <h3 className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Очки опыта</h3>
-                <div className="text-4xl font-display font-bold text-white mb-4 italic">{initialUser.xp.toLocaleString()} <span className="text-xs text-zinc-700 not-italic">XP</span></div>
+                <div className="text-4xl font-display font-bold text-white mb-4 italic">{currentUser.xp.toLocaleString()} <span className="text-xs text-zinc-700 not-italic">XP</span></div>
             </div>
             <div className="space-y-2">
                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-zinc-500">
                     <span>До следующего уровня</span>
-                    <span>{Math.min(100, ((initialUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
+                    <span>{Math.min(100, ((currentUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
                 </div>
                 <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
                     <div 
                         className="h-full bg-gradient-to-r from-kiddy-primary to-rose-400 shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
-                        style={{ width: `${Math.min(100, ((initialUser.xp % 100) / 100) * 100)}%` }} 
+                        style={{ width: `${Math.min(100, ((currentUser.xp % 100) / 100) * 100)}%` }} 
                     />
                 </div>
             </div>
@@ -325,7 +328,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <Award className="text-kiddy-primary" size={24} />
                 </div>
                 <h3 className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Рейтинг в академии</h3>
-                <div className="text-4xl font-display font-bold text-white italic">#{Math.max(1, 100 - initialUser.level)}</div>
+                <div className="text-4xl font-display font-bold text-white italic">#{Math.max(1, 100 - currentUser.level)}</div>
             </div>
             <button 
               onClick={() => setIsLeaderboardOpen(true)}
