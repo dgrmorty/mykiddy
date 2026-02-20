@@ -1,8 +1,10 @@
 node_modules/
 
-# Environment
-.env
+# Environment (оставляем только локальные примеры, реальные .env пойдут в Git)
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # OS / editor junk
 .DS_Store
