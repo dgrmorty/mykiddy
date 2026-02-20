@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card } from '../components/ui/Card';
-import { Mail, Lock, User, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface AuthProps {
   onLoginSuccess: () => void;
@@ -15,6 +15,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,11 +56,35 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                     )}
                     <div className="relative">
                         <Mail className="absolute left-4 top-3.5 text-zinc-600" size={18} />
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-4 py-3 rounded-xl outline-none text-sm transition-all" placeholder="Электронная почта" />
+                        <input 
+                            type="email" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-4 py-3 rounded-xl outline-none text-sm transition-all" 
+                            placeholder="Электронная почта" 
+                        />
                     </div>
                     <div className="relative">
                         <Lock className="absolute left-4 top-3.5 text-zinc-600" size={18} />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-4 py-3 rounded-xl outline-none text-sm transition-all" placeholder="Пароль" />
+                        <input 
+                            type={showPassword ? 'text' : 'password'} 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-10 py-3 rounded-xl outline-none text-sm transition-all" 
+                            placeholder="Пароль" 
+                        />
+                        <button
+                            type="button"
+                            className="absolute right-3 top-2.5 text-zinc-600 hover:text-zinc-300 p-1 rounded-lg"
+                            onMouseDown={() => setShowPassword(true)}
+                            onMouseUp={() => setShowPassword(false)}
+                            onMouseLeave={() => setShowPassword(false)}
+                            onTouchStart={() => setShowPassword(true)}
+                            onTouchEnd={() => setShowPassword(false)}
+                            aria-label="Показать пароль"
+                        >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
                     </div>
                     {error && <div className="p-3 bg-red-950/30 border border-red-900/50 rounded-lg text-red-500 text-xs text-center font-bold">{error}</div>}
                     <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-kiddy-primary to-rose-700 text-white font-bold py-4 rounded-xl mt-4 hover:shadow-[0_0_20px_rgba(190,18,60,0.4)] disabled:opacity-50 transition-all flex items-center justify-center gap-2">

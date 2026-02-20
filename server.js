@@ -10,8 +10,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Разрешаем CORS
-app.use(cors());
+// Разрешаем CORS только для доверенных источников
+const allowedOrigins = [
+    'https://mykiddy-production.up.railway.app',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'capacitor://localhost',
+    'ionic://localhost'
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // мобильные webview / curl
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        console.warn('[CORS] Blocked origin:', origin);
+        return callback(new Error('Not allowed by CORS'));
+    }
+}));
 app.use(express.json());
 
 // ВАЖНО: В продакшене мы отдаем файлы из папки dist (сборка Vite)
@@ -47,6 +62,14 @@ app.post('/api/ai-tutor', async (req, res) => {
     if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
     try {
         const { question, context } = req.body;
+
+        // Базовая валидация входных данных
+        if (typeof question !== 'string' || question.trim().length === 0) {
+            return res.status(400).json({ error: "Вопрос не должен быть пустым" });
+        }
+        if (question.length > 4000) {
+            return res.status(400).json({ error: "Вопрос слишком длинный. Попробуйте сократить формулировку." });
+        }
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: question,
@@ -73,14 +96,21 @@ app.post('/api/check-homework', async (req, res) => {
         if (!task || !studentAnswer) {
             return res.status(400).json({ error: "Task and student answer are required" });
         }
+
+        const taskStr = String(task);
+        const answerStr = String(studentAnswer);
+
+        if (taskStr.length > 4000 || answerStr.length > 8000) {
+            return res.status(400).json({ error: "Ответ или задание слишком длинные. Попробуйте сократить текст." });
+        }
         
         const prompt = `Ты проверяешь домашнее задание в IT-школе Kiddy для детей 8-14 лет.
 
 ЗАДАНИЕ ИЗ УРОКА:
-${task}
+${taskStr}
 
 ОТВЕТ УЧЕНИКА:
-${studentAnswer}
+${answerStr}
 
 ВАЖНО: Ты работаешь с детьми! Будь максимально поддерживающим и добрым.
 

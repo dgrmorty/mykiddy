@@ -31,6 +31,7 @@ export const CourseDetail: React.FC = () => {
   const [securityError, setSecurityError] = useState<string | null>(null);
   const [lessonCompleting, setLessonCompleting] = useState(false);
   const [isHomeworkCompleted, setIsHomeworkCompleted] = useState(false);
+  const [lastAnswerWasGood, setLastAnswerWasGood] = useState(false);
 
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +109,7 @@ export const CourseDetail: React.FC = () => {
     
     setSecurityError(null);
     setAiFeedback(null);
+    setLastAnswerWasGood(false);
     const cleanAnswer = sanitizeInput(homeworkAnswer);
     const injectionError = isPotentialInjection(cleanAnswer);
     if (injectionError) { setSecurityError(injectionError); return; }
@@ -116,39 +118,18 @@ export const CourseDetail: React.FC = () => {
         const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer);
         setAiFeedback(feedback);
         
-        // Начисляем очки если ответ достаточно хороший (не пустой, не совсем не по теме)
-        // Проверяем по длине и содержанию ответа
+        // Оцениваем ответ; пока XP начисляются сразу, но логика вынесена в отдельную функцию,
+        // чтобы при необходимости можно было привязать начисление к закрытию окна с ответом наставника
         const feedbackLower = feedback.toLowerCase();
         const isGoodAnswer = cleanAnswer.trim().length > 10 && 
                             !feedbackLower.includes('совсем не') && 
                             !feedbackLower.includes('пустой') &&
                             !feedbackLower.includes('не по теме');
         
+        setLastAnswerWasGood(isGoodAnswer);
+
         if (isGoodAnswer) {
-            // Сначала отмечаем урок как пройденный (50 XP)
-            await contentService.markLessonComplete(user.id, activeLesson.id);
-            // Дополнительные очки за выполненное ДЗ (50 XP)
-            try {
-                await supabase.rpc('increment_xp', { x_val: 50 });
-                
-                // Сохраняем факт решения ДЗ
-                await supabase
-                    .from('homework_submissions')
-                    .insert({
-                        user_id: user.id,
-                        lesson_id: activeLesson.id,
-                        xp_awarded: 50
-                    });
-                
-                setIsHomeworkCompleted(true);
-                showToast('Отлично! Задание принято. +50 XP', 'success');
-                
-                // Обновляем данные пользователя, чтобы сразу увидеть новый уровень и XP
-                await refreshUser();
-            } catch (e) {
-                console.warn('Failed to increment XP for homework:', e);
-            }
-            await loadData();
+            await finalizeHomeworkReward();
         } else {
             // Если ответ не очень хороший, даем мотивирующую обратную связь
             showToast('Проверьте комментарии наставника', 'info');
@@ -158,6 +139,40 @@ export const CourseDetail: React.FC = () => {
     } finally {
         setIsChecking(false);
     }
+  };
+
+  // Начисляем XP и закрываем задание только после того,
+  // как ребенок закрыл окно с ответом наставника
+  const finalizeHomeworkReward = async () => {
+      if (!activeLesson || isHomeworkCompleted || !lastAnswerWasGood) return;
+      try {
+          // Отмечаем урок как пройденный (50 XP)
+          await contentService.markLessonComplete(user.id, activeLesson.id);
+          // Дополнительные очки за выполненное ДЗ (50 XP)
+          try {
+              await supabase.rpc('increment_xp', { x_val: 50 });
+              
+              // Сохраняем факт решения ДЗ
+              await supabase
+                  .from('homework_submissions')
+                  .insert({
+                      user_id: user.id,
+                      lesson_id: activeLesson.id,
+                      xp_awarded: 50
+                  });
+              
+              setIsHomeworkCompleted(true);
+              showToast('Отлично! Задание принято. +50 XP', 'success');
+              
+              // Обновляем данные пользователя, чтобы сразу увидеть новый уровень и XP
+              await refreshUser();
+          } catch (e) {
+              console.warn('Failed to increment XP for homework:', e);
+          }
+          await loadData();
+      } catch (e) {
+          console.warn('Failed to finalize homework reward:', e);
+      }
   };
 
   const getVideoComponent = (url?: string) => {
