@@ -370,7 +370,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               ) : (
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
                       {leaderboard.map((user, index) => {
-                          const isCurrentUser = user.id === initialUser.id;
+                          const isCurrentUser = user.id === currentUser.id;
                           const rank = index + 1;
                           const medalColor = rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-zinc-400' : rank === 3 ? 'text-amber-600' : 'text-zinc-700';
                           
