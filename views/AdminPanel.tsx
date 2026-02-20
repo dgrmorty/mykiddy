@@ -167,31 +167,54 @@ export const AdminPanel: React.FC = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Пробуем получить пользователей из auth.users через RPC или напрямую из profiles
+            // Получаем всех пользователей из auth.users (если доступно)
+            let authUsers: any[] = [];
+            try {
+                const { data: authData, error: authError } = await supabase.auth.admin?.listUsers();
+                if (!authError && authData?.users) {
+                    authUsers = authData.users;
+                }
+            } catch (e) {
+                console.warn('[AdminPanel] Cannot access auth.admin.listUsers, using profiles only');
+            }
+            
+            // Получаем профили из базы
             const { data: profilesData, error: profilesError } = await supabase
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
             
             if (profilesError) {
-                // Если profiles не работает, пробуем через auth
-                console.warn('[AdminPanel] Profiles error, trying auth.users:', profilesError);
-                const { data: authData, error: authError } = await supabase.auth.admin?.listUsers();
-                if (authError) throw authError;
-                if (authData) {
-                    setUsersList(authData.users.map((u: any) => ({
+                console.warn('[AdminPanel] Profiles error:', profilesError);
+            }
+            
+            // Создаем Map для быстрого поиска профилей по ID
+            const profilesMap = new Map();
+            if (profilesData) {
+                profilesData.forEach(p => profilesMap.set(p.id, p));
+            }
+            
+            // Объединяем данные: если есть auth.users, используем их, иначе только profiles
+            let usersToShow: User[] = [];
+            
+            if (authUsers.length > 0) {
+                // Используем auth.users как основной источник, дополняем данными из profiles
+                usersToShow = authUsers.map((u: any) => {
+                    const profile = profilesMap.get(u.id);
+                    return {
                         id: u.id,
-                        email: u.email || '',
-                        name: u.user_metadata?.name || u.email?.split('@')[0] || 'Пользователь',
-                        role: u.user_metadata?.role || 'Student',
-                        avatar: u.user_metadata?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.user_metadata?.name || 'U')}&background=random`,
-                        level: 1,
-                        xp: 0,
-                        isApproved: u.user_metadata?.is_approved === true
-                    })));
-                }
+                        email: u.email || profile?.email || '',
+                        name: profile?.name || u.user_metadata?.name || u.email?.split('@')[0] || 'Пользователь',
+                        role: profile?.role || u.user_metadata?.role || 'Student',
+                        avatar: profile?.avatar || u.user_metadata?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || u.email?.split('@')[0] || 'U')}&background=random`,
+                        level: profile?.level || 1,
+                        xp: profile?.xp || 0,
+                        isApproved: profile?.is_approved ?? false
+                    };
+                });
             } else if (profilesData) {
-                setUsersList(profilesData.map(u => ({ 
+                // Если auth.users недоступен, используем только profiles
+                usersToShow = profilesData.map(u => ({ 
                     id: u.id,
                     email: u.email || '',
                     name: u.name || 'Анонимный пользователь',
@@ -200,8 +223,17 @@ export const AdminPanel: React.FC = () => {
                     level: u.level || 0,
                     xp: u.xp || 0,
                     isApproved: u.is_approved === true
-                })));
+                }));
             }
+            
+            // Сортируем по дате создания (новые сначала)
+            usersToShow.sort((a, b) => {
+                const aCreated = authUsers.find((u: any) => u.id === a.id)?.created_at || '';
+                const bCreated = authUsers.find((u: any) => u.id === b.id)?.created_at || '';
+                return bCreated.localeCompare(aCreated);
+            });
+            
+            setUsersList(usersToShow);
         } catch (error: any) {
             console.error('[AdminPanel] Users fetch error:', error);
             showToast("Не удалось загрузить список пользователей. Попробуйте позже", "error");
