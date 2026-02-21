@@ -35,8 +35,8 @@ export const CourseDetail: React.FC = () => {
 
   const playerRef = useRef<HTMLDivElement>(null);
 
-  const loadData = async () => {
-      setLoading(true);
+  const loadData = async (silent = false) => {
+      if (!silent) setLoading(true);
       try {
           const data = await contentService.getCourses(user.id);
           setCourses(data || []);
@@ -55,12 +55,22 @@ export const CourseDetail: React.FC = () => {
       } catch (err) {
           console.error("[CourseDetail] Load Error:", err);
       } finally {
-          setLoading(false);
+          if (!silent) setLoading(false);
       }
   };
 
   useEffect(() => {
     loadData();
+  }, [user.id]);
+
+  // При возврате на вкладку тихо подтягиваем свежие курсы (прогресс, пройденные уроки) без экрана загрузки
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !user.id) return;
+      loadData(true);
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [user.id]);
 
   useEffect(() => {
@@ -253,7 +263,7 @@ export const CourseDetail: React.FC = () => {
                     )}
                 </div>
             )}
-            <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"}>
+            <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"} transparentContainer>
                 <div className="flex flex-col md:flex-row gap-4 h-full md:items-center md:justify-center transition-all duration-700 ease-out p-4 md:p-0">
                     {/* Левая модалка - отправка ДЗ */}
                     <div className={`p-6 md:p-10 flex flex-col min-h-0 bg-zinc-950 border border-white/5 rounded-[2rem] md:rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>

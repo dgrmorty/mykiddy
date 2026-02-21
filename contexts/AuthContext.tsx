@@ -26,6 +26,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const loadingRef = React.useRef(true);
+  const userRef = React.useRef<User>(user);
+  userRef.current = user;
 
   const setAuthLoading = (val: boolean) => {
     setIsLoading(val);
@@ -65,8 +67,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const fetchProfile = async (userId: string, authUser?: any) => {
-    setAuthLoading(true);
+  const fetchProfile = async (userId: string, authUser?: any, options?: { silent?: boolean }) => {
+    // Никогда не показываем глобальную загрузку при обновлении профиля того же пользователя
+    // (возврат на вкладку, обновление токена и т.д.) — только при первом входе.
+    const isSameUser = userRef.current?.id && userRef.current.id === userId;
+    if (!options?.silent && !isSameUser) setAuthLoading(true);
     
     // Таймаут для запроса к базе данных
     const dbTimeout = new Promise((_, reject) => 
@@ -169,8 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (session?.user && mounted) {
-          console.log("[Auth] Session found, fetching profile...");
-          await fetchProfile(session.user.id, session.user);
+          // Сразу показываем приложение с данными из сессии — без ожидания профиля из БД.
+          // Так при возврате из другого приложения (в т.ч. после перезагрузки вкладки) не будет экрана загрузки.
+          setUser(mapAuthToUser(session.user));
+          setAuthLoading(false);
+          fetchProfile(session.user.id, session.user, { silent: true }).catch(() => {});
         } else if (mounted) {
           console.log("[Auth] No session found.");
           setUser(GUEST_USER);
@@ -192,10 +200,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!mounted) return;
       
+      // При возврате в приложение (TOKEN_REFRESHED) не показываем глобальную загрузку — пользователь не теряет место в уроке
+      const currentUser = userRef.current;
+      const isSilentRefresh = event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED';
+      const alreadySameUser = session?.user && currentUser.id && currentUser.id === session.user.id;
+      const silent = isSilentRefresh && !!alreadySameUser;
+      
       if (session?.user) {
-        console.log("[Auth] User authenticated, fetching profile...");
+        if (silent) {
+          console.log("[Auth] Silent profile refresh (return to app)");
+        } else {
+          console.log("[Auth] User authenticated, fetching profile...");
+        }
         try {
-          await fetchProfile(session.user.id, session.user);
+          await fetchProfile(session.user.id, session.user, silent ? { silent: true } : undefined);
         } catch (err) {
           console.error("[Auth] Error in onAuthStateChange:", err);
           // Даже при ошибке устанавливаем пользователя из сессии
@@ -215,10 +233,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // При возврате на вкладку — тихо подтягиваем свежий профиль (уровень, XP и т.д.) без экрана загрузки
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !mounted) return;
+      const uid = userRef.current?.id;
+      if (!uid) return;
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted || !session?.user || session.user.id !== uid) return;
+        fetchProfile(session.user.id, session.user, { silent: true }).catch(() => {});
+      });
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
       mounted = false;
       clearTimeout(globalSafetyTimer);
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [mapAuthToUser]);
 
