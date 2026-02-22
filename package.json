@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "server": "node server.js",
     "android:init": "npm install @capacitor/android && npx cap add android",
-    "android:build": "npm run build && npx cap sync && npx cap open android"
+    "android:build": "npm run build && npx cap sync && npx cap open android",
+    "apk": "npm run build && npx cap sync android && chmod +x android/gradlew && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -40,7 +41,7 @@
     "vite": "^5.1.4"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0 <22.0.0"
   },
   "author": "Kiddy Elite Team",
   "license": "ISC"
