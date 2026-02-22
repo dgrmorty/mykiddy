@@ -30,6 +30,7 @@ export const AdminPanel: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
     
     // Состояния для редактирования
     const [editing, setEditing] = useState<EditingState>({ type: null, id: null });
@@ -164,14 +165,38 @@ export const AdminPanel: React.FC = () => {
         }
     };
 
+    const handleDeleteUser = async (u: User) => {
+        if (u.id === user.id) {
+            showToast('Нельзя удалить самого себя', 'error');
+            return;
+        }
+        if (!window.confirm(`Удалить пользователя ${u.name || u.email} из приложения и базы? Это действие нельзя отменить.`)) return;
+        setDeletingUserId(u.id);
+        try {
+            const { data, error } = await supabase.rpc('delete_user_by_admin', { target_user_id: u.id });
+            if (error) throw error;
+            const result = data as { ok?: boolean; error?: string };
+            if (result?.ok) {
+                setUsersList(prev => prev.filter(x => x.id !== u.id));
+                showToast('Пользователь удалён', 'success');
+            } else {
+                showToast(result?.error || 'Не удалось удалить', 'error');
+            }
+        } catch (e: any) {
+            showToast(e?.message || 'Ошибка удаления пользователя', 'error');
+        } finally {
+            setDeletingUserId(null);
+        }
+    };
+
     const fetchUsers = async () => {
         setLoading(true);
         try {
             // Пробуем получить всех пользователей через RPC функцию
             const { data: rpcUsers, error: rpcError } = await supabase.rpc('get_all_users');
             
-            if (!rpcError && rpcUsers && rpcUsers.length > 0) {
-                // Используем данные из RPC функции (объединение auth.users + profiles)
+            if (!rpcError && Array.isArray(rpcUsers)) {
+                // Используем данные из RPC (все из auth.users + profiles), в т.ч. только что зарегистрировавшихся
                 setUsersList(rpcUsers.map((u: any) => ({
                     id: u.id,
                     email: u.email || '',
@@ -222,9 +247,13 @@ export const AdminPanel: React.FC = () => {
         if (!file) return;
         
         if (type === 'cover' || type === 'logo') {
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-            if (!validTypes.includes(file.type)) {
-                showToast('Неподдерживаемый формат изображения. Используйте JPG, PNG, GIF или WEBP', 'error');
+            const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            const validExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            const mimeOk = validMimes.includes(file.type);
+            const extOk = ext && validExts.includes(ext);
+            if (!mimeOk && !extOk) {
+                showToast('Используйте изображение: JPG, PNG, GIF или WEBP', 'error');
                 e.target.value = '';
                 return;
             }
@@ -642,14 +671,14 @@ export const AdminPanel: React.FC = () => {
                                     type="file"
                                     ref={courseFileRef}
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                     onChange={e => handleUpload(e, 'cover')}
                                 />
                                 <input
                                     type="file"
                                     ref={editCourseFileRef}
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                     onChange={e => handleUpload(e, 'cover', courseForm.id)}
                                 />
                             </div>
@@ -949,12 +978,21 @@ export const AdminPanel: React.FC = () => {
                                                 <p className="text-zinc-700 text-[8px] mt-1">{u.role}</p>
                                             </div>
                                         </div>
-                                        <div className="pr-4">
+                                        <div className="pr-4 flex items-center gap-1">
                                             <button
                                                 onClick={() => toggleUserApproval(u)}
                                                 className={`p-2 rounded-lg transition-all ${u.isApproved ? 'text-green-500' : 'text-zinc-700 hover:text-white'}`}
+                                                title={u.isApproved ? 'Заблокировать' : 'Одобрить'}
                                             >
                                                 {u.isApproved ? <Unlock size={16}/> : <Lock size={16}/>}
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteUser(u)}
+                                                disabled={deletingUserId === u.id || u.id === user.id}
+                                                className="p-2 rounded-lg text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                                                title={u.id === user.id ? 'Нельзя удалить себя' : 'Удалить пользователя'}
+                                            >
+                                                {deletingUserId === u.id ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16}/>}
                                             </button>
                                         </div>
                                     </Card>
@@ -972,7 +1010,7 @@ export const AdminPanel: React.FC = () => {
                             <label className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Логотип академии</label>
                             <div className="relative group aspect-square w-40 bg-black border border-zinc-800 rounded-3xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-kiddy-primary transition-colors" onClick={() => logoFileRef.current?.click()}>
                                 {uploading ? <Loader2 className="animate-spin text-zinc-700" size={32} /> : globalSettings.logo_url ? <img src={globalSettings.logo_url} className="w-full h-full object-contain p-4" alt="Logo" /> : <div className="text-center p-4"><ImageIcon size={32} className="text-zinc-700 mx-auto mb-2" /><p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Загрузить</p></div>}
-                                <input type="file" ref={logoFileRef} className="hidden" accept="image/*" onChange={e => handleUpload(e, 'logo')} />
+                                <input type="file" ref={logoFileRef} className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={e => handleUpload(e, 'logo')} />
                             </div>
                         </div>
                         <div className="space-y-2">

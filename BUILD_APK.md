@@ -166,3 +166,49 @@ npx cap run android --livereload
 # Проверка версии Capacitor
 npx cap --version
 ```
+
+---
+
+## Как поменять иконку приложения (картинку ярлыка на планшете)
+
+### Вариант 1: Через Android Studio (проще всего)
+
+1. Подготовьте **одну картинку** для иконки: **1024×1024 px**, PNG, без прозрачности (или с прозрачностью — как нужно).
+2. Откройте проект: `npx cap open android`.
+3. В Android Studio: **правый клик по папке `app`** → **New** → **Image Asset**.
+4. В окне **Asset Type** выберите **Launcher Icons (Adaptive and Legacy)**.
+5. В поле **Path** нажмите на папку и выберите ваш PNG (1024×1024).
+6. Настройте обрезку (Trim, Resize), если нужно, нажмите **Next**, затем **Finish**.
+7. Android Studio сам перезапишет все размеры в `mipmap-*`. Дальше соберите APK заново (см. «Шаг 6» выше).
+
+### Вариант 2: Вручную заменить PNG
+
+Иконки лежат в папках:
+
+- `android/app/src/main/res/mipmap-mdpi/` (48×48)
+- `android/app/src/main/res/mipmap-hdpi/` (72×72)
+- `android/app/src/main/res/mipmap-xhdpi/` (96×96)
+- `android/app/src/main/res/mipmap-xxhdpi/` (144×144)
+- `android/app/src/main/res/mipmap-xxxhdpi/` (192×192)
+
+В каждой папке есть файлы:
+
+- `ic_launcher.png`
+- `ic_launcher_round.png`
+- `ic_launcher_foreground.png`
+
+Нужно **заменить эти PNG** на свои того же размера (или сгенерировать из одной картинки 1024×1024 через [Android Asset Studio](https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html)).
+
+После замены: **Build → Clean Project**, затем **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
+
+### Вариант 3: Capacitor Assets (из одной картинки)
+
+```bash
+# Установка (один раз)
+npx @capacitor/assets generate --iconBackgroundColor '#050505' --iconBackgroundColorDark '#050505'
+
+# Положите иконку resources/icon.png (1024×1024), затем:
+npx @capacitor/assets generate
+```
+
+Скрипт сгенерирует все размеры и при необходимости обновит ресурсы в `android/`. Дальше: `npx cap sync android` и сборка APK в Android Studio.

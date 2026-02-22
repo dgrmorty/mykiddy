@@ -32,8 +32,10 @@ export const CourseDetail: React.FC = () => {
   const [lessonCompleting, setLessonCompleting] = useState(false);
   const [isHomeworkCompleted, setIsHomeworkCompleted] = useState(false);
   const [lastAnswerWasGood, setLastAnswerWasGood] = useState(false);
+  const [closingCourse, setClosingCourse] = useState<Course | null>(null);
 
   const playerRef = useRef<HTMLDivElement>(null);
+  const courseForModal = activeCourse || closingCourse;
 
   const loadData = async (silent = false) => {
       if (!silent) setLoading(true);
@@ -72,6 +74,11 @@ export const CourseDetail: React.FC = () => {
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [user.id]);
+
+  // При входе в урок или смене урока — модалку ДЗ не показываем (убираем «выскакивание»)
+  useEffect(() => {
+    setIsHomeworkOpen(false);
+  }, [activeLesson?.id]);
 
   useEffect(() => {
     if (activeLesson && playerRef.current) {
@@ -340,7 +347,7 @@ export const CourseDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
               <Card key={course.id} noPadding className="group cursor-pointer bg-black border-zinc-900/50 hover:border-kiddy-primary/30 transition-all overflow-hidden rounded-[2.5rem] flex flex-col h-full" onClick={() => setActiveCourse(course)}>
-                <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" /></div>
+                <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" /></div>
                 <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
                     <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-primary transition-colors">{course.title}</h3><p className="text-zinc-500 text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
                     <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden"><div className="h-full bg-kiddy-primary transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
@@ -349,9 +356,14 @@ export const CourseDetail: React.FC = () => {
             ))}
           </div>
       )}
-      {activeCourse && !activeLesson && (
-        <Modal isOpen={!!activeCourse} onClose={() => setActiveCourse(null)} maxWidth="max-w-4xl">
-            <div className="flex flex-col h-full bg-zinc-950"><div className="relative h-64 md:h-80 shrink-0"><img src={activeCourse.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => setActiveCourse(null)} className="absolute top-8 right-8 p-3 bg-black/50 backdrop-blur-md rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{activeCourse.title}</h2><p className="text-zinc-400 mt-2 max-w-lg">{activeCourse.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{activeCourse.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-zinc-900" /><h3 className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-zinc-900" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => !lesson.locked && setActiveLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-zinc-950/20 border-zinc-900/50 opacity-40 cursor-not-allowed' : 'bg-black border-zinc-900 cursor-pointer hover:border-kiddy-primary/50 hover:bg-zinc-900/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-zinc-900 text-zinc-500 group-hover:bg-kiddy-primary group-hover:text-white'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
+      {!activeLesson && courseForModal && (
+        <Modal
+          isOpen={!!activeCourse}
+          onClose={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
+          onClosed={() => setClosingCourse(null)}
+          maxWidth="max-w-4xl"
+        >
+            <div className="flex flex-col h-full bg-zinc-950"><div className="relative h-64 md:h-80 shrink-0"><img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/50 backdrop-blur-md rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{courseForModal.title}</h2><p className="text-zinc-400 mt-2 max-w-lg">{courseForModal.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{courseForModal.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-zinc-900" /><h3 className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-zinc-900" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => !lesson.locked && setActiveLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-zinc-950/20 border-zinc-900/50 opacity-40 cursor-not-allowed' : 'bg-black border-zinc-900 cursor-pointer hover:border-kiddy-primary/50 hover:bg-zinc-900/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-zinc-900 text-zinc-500 group-hover:bg-kiddy-primary group-hover:text-white'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
         </Modal>
       )}
     </div>

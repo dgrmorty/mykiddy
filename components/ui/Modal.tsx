@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-const EXIT_DURATION_MS = 280;
+const EXIT_DURATION_MS = 200;
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,6 +9,8 @@ interface ModalProps {
   maxWidth?: string;
   /** Убрать фон контейнера — контент сам рисует карточки (избегаем эффекта «двойной модалки») */
   transparentContainer?: boolean;
+  /** Вызывается после завершения анимации закрытия (чтобы родитель мог убрать контент и размонтировать) */
+  onClosed?: () => void;
 }
 
 export const Modal: React.FC<ModalProps> = ({ 
@@ -16,7 +18,8 @@ export const Modal: React.FC<ModalProps> = ({
   onClose, 
   children, 
   maxWidth = 'max-w-2xl',
-  transparentContainer = false
+  transparentContainer = false,
+  onClosed
 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const wasOpenRef = useRef(false);
@@ -31,9 +34,12 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (!isExiting) return;
-    const t = setTimeout(() => setIsExiting(false), EXIT_DURATION_MS);
+    const t = setTimeout(() => {
+      setIsExiting(false);
+      onClosed?.();
+    }, EXIT_DURATION_MS);
     return () => clearTimeout(t);
-  }, [isExiting]);
+  }, [isExiting, onClosed]);
 
   useEffect(() => {
     if (isOpen || isExiting) {
@@ -64,17 +70,17 @@ export const Modal: React.FC<ModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6">
-      {/* Backdrop с глубоким блюром + анимация появления/исчезновения */}
+    <div className="fixed inset-0 z-[200] min-h-screen flex items-center justify-center p-4 md:p-6">
+      {/* Backdrop: появление — анимация, закрытие — простой fade */}
       <div 
-        className={`absolute inset-0 bg-black/80 backdrop-blur-xl cursor-pointer ${isExiting ? 'animate-backdrop-exit' : 'animate-backdrop-enter'}`}
+        className={`absolute inset-0 bg-black/80 backdrop-blur-xl cursor-pointer transition-opacity duration-200 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'} ${!isExiting ? 'animate-backdrop-enter' : ''}`}
         onClick={onClose}
         aria-hidden
       />
       
-      {/* Окно модалки: крутая анимация входа (масштаб + сдвиг снизу) и выхода */}
+      {/* Окно: открытие — анимация, закрытие — только fade, без scale/translate */}
       <div 
-        className={`relative z-10 w-full ${maxWidth} flex flex-col h-full md:h-[85vh] overflow-y-auto md:overflow-hidden ${isExiting ? 'animate-modal-exit' : 'animate-modal-enter'} ${transparentContainer ? '' : 'bg-zinc-950 md:border md:border-white/5 md:rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)]'}`}
+        className={`relative z-10 w-full max-h-[90vh] md:max-h-[85vh] ${maxWidth} flex flex-col h-[90vh] md:h-[85vh] overflow-y-auto md:overflow-hidden transition-opacity duration-200 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'} ${!isExiting ? 'animate-modal-enter' : ''} ${transparentContainer ? '' : 'bg-zinc-950 md:border md:border-white/5 md:rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)]'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

@@ -82,10 +82,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    
+    const file = e.target.files[0];
+    const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!validMimes.includes(file.type) && !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+        showToast('Используйте изображение: JPG, PNG, GIF или WEBP', 'error');
+        e.target.value = '';
+        return;
+    }
     setUploading(true);
     try {
-        const file = e.target.files[0];
         const publicUrl = await uploadFile(file, 'avatars');
         
         if (publicUrl) {
@@ -222,7 +228,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                 type="file" 
                                 ref={fileInputRef} 
                                 className="hidden" 
-                                accept="image/*"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                 onChange={handleFileChange}
                             />
                          </div>
