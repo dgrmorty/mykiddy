@@ -1,0 +1,3 @@
+# Больше памяти для Node при сборке (Vite может падать по OOM на Railway)
+[phases.build]
+cmds = ["export NODE_OPTIONS=--max-old-space-size=2048 && npm run build"]
