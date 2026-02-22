@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
-import { askAiTutor } from '../services/geminiService';
+import { askAiTutor, getAiUsageQuota } from '../services/geminiService';
 import { Send, Bot, User as UserIcon, Loader2, Sparkles, Zap, Code, HelpCircle, Lock } from 'lucide-react';
-import { CourseType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useContent } from '../hooks/useContent';
 import { AccessGate } from '../components/AccessGate';
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
+import { supabase } from '../services/supabase';
 
 interface Message {
   id: string;
@@ -28,9 +28,22 @@ export const AiTutor: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [quota, setQuota] = useState<{ tutor_remaining: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentContext = courses[0]?.title || "Основы IT";
+
+  useEffect(() => {
+    if (isGuest) return;
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled || !session?.access_token) return;
+      getAiUsageQuota(session.access_token).then((q) => {
+        if (!cancelled) setQuota({ tutor_remaining: q.tutor_remaining });
+      });
+    });
+    return () => { cancelled = true; };
+  }, [isGuest, messages]);
 
   const handleSend = async (text: string = input) => {
     if (isGuest) { requireAuth(); return; }
@@ -44,15 +57,22 @@ export const AiTutor: React.FC = () => {
         return;
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token ?? null;
+
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: cleanInput }]);
     setInput('');
     setLoading(true);
 
     try {
-        const aiResponseText = await askAiTutor(cleanInput, currentContext);
+        const aiResponseText = await askAiTutor(cleanInput, currentContext, accessToken);
         setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: aiResponseText }]);
-    } catch (e) {
-        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: "Извините, возникла ошибка связи. Попробуйте еще раз." }]);
+        if (quota !== null && quota.tutor_remaining > 0) {
+          setQuota((q) => (q ? { tutor_remaining: q.tutor_remaining - 1 } : null));
+        }
+    } catch (e: any) {
+        const msg = e?.message || "Извините, возникла ошибка связи. Попробуйте еще раз.";
+        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: msg }]);
     } finally {
         setLoading(false);
     }
@@ -66,11 +86,16 @@ export const AiTutor: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col animate-slide-up max-w-5xl mx-auto">
-       <header className="mb-8">
+       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <h1 className="text-4xl font-display font-bold text-white tracking-tight flex items-center gap-4">
                 Ваш <span className="text-kiddy-primary">Наставник</span>
                 <Sparkles className="text-kiddy-primary/40" size={24} />
             </h1>
+            {!isGuest && quota !== null && (
+              <p className="text-zinc-500 text-sm font-medium">
+                Запросов сегодня: <span className="text-white">{quota.tutor_remaining}</span>
+              </p>
+            )}
        </header>
 
        <Card className="flex-1 flex flex-col overflow-hidden bg-zinc-950/40 border-zinc-800/60 shadow-2xl rounded-[2.5rem]" noPadding>

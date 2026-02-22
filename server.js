@@ -3,6 +3,7 @@ import path from 'path';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,19 +11,135 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Разрешаем CORS только для доверенных источников
+// Лимиты ИИ в день на пользователя (тьютор и проверка ДЗ отдельно)
+const DAILY_TUTOR_LIMIT = parseInt(process.env.AI_DAILY_TUTOR_LIMIT || '25', 10);
+const DAILY_HOMEWORK_LIMIT = parseInt(process.env.AI_DAILY_HOMEWORK_LIMIT || '15', 10);
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const hasSupabase = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+/** Создаёт Supabase-клиент от имени пользователя (JWT) для RLS */
+function supabaseForUser(accessToken) {
+    if (!hasSupabase || !accessToken) return null;
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } }
+    });
+}
+
+/** Текущая дата в формате YYYY-MM-DD по UTC */
+function todayUtc() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+/** Проверить лимит тьютора (без инкремента). */
+async function checkTutorLimit(accessToken) {
+    const supabase = supabaseForUser(accessToken);
+    if (!supabase) return { allowed: true, remaining: DAILY_TUTOR_LIMIT };
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
+    if (userError || !user) return { allowed: false, error: 'auth' };
+
+    const date = todayUtc();
+    const { data: row, error: fetchError } = await supabase
+        .from('ai_usage')
+        .select('tutor_count')
+        .eq('user_id', user.id)
+        .eq('date', date)
+        .maybeSingle();
+
+    if (fetchError) {
+        console.error('AI usage fetch error:', fetchError);
+        return { allowed: true, remaining: DAILY_TUTOR_LIMIT };
+    }
+
+    const current = row?.tutor_count ?? 0;
+    const remaining = Math.max(0, DAILY_TUTOR_LIMIT - current);
+    return { allowed: current < DAILY_TUTOR_LIMIT, remaining, userId: user.id };
+}
+
+/** Увеличить счётчик тьютора на 1 (вызывать после успешного ответа Gemini). */
+async function incrementTutorUsage(accessToken, userId) {
+    const supabase = supabaseForUser(accessToken);
+    if (!supabase || !userId) return;
+
+    const date = todayUtc();
+    const { data: row } = await supabase
+        .from('ai_usage')
+        .select('tutor_count')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .maybeSingle();
+
+    const next = (row?.tutor_count ?? 0) + 1;
+    await supabase.from('ai_usage').upsert(
+        { user_id: userId, date, tutor_count: next },
+        { onConflict: 'user_id,date' }
+    );
+}
+
+/** Проверить лимит проверки ДЗ (без инкремента). */
+async function checkHomeworkLimit(accessToken) {
+    const supabase = supabaseForUser(accessToken);
+    if (!supabase) return { allowed: true, remaining: DAILY_HOMEWORK_LIMIT };
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
+    if (userError || !user) return { allowed: false, error: 'auth' };
+
+    const date = todayUtc();
+    const { data: row, error: fetchError } = await supabase
+        .from('ai_usage')
+        .select('homework_count')
+        .eq('user_id', user.id)
+        .eq('date', date)
+        .maybeSingle();
+
+    if (fetchError) {
+        console.error('AI usage fetch error:', fetchError);
+        return { allowed: true, remaining: DAILY_HOMEWORK_LIMIT };
+    }
+
+    const current = row?.homework_count ?? 0;
+    const remaining = Math.max(0, DAILY_HOMEWORK_LIMIT - current);
+    return { allowed: current < DAILY_HOMEWORK_LIMIT, remaining, userId: user.id };
+}
+
+/** Увеличить счётчик проверки ДЗ на 1 (после успешной проверки). */
+async function incrementHomeworkUsage(accessToken, userId) {
+    const supabase = supabaseForUser(accessToken);
+    if (!supabase || !userId) return;
+
+    const date = todayUtc();
+    const { data: row } = await supabase
+        .from('ai_usage')
+        .select('homework_count')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .maybeSingle();
+
+    const next = (row?.homework_count ?? 0) + 1;
+    await supabase.from('ai_usage').upsert(
+        { user_id: userId, date, homework_count: next },
+        { onConflict: 'user_id,date' }
+    );
+}
+
+// Разрешаем CORS для веба и для приложения в телефоне/планшете (Capacitor)
 const allowedOrigins = [
     'https://mykiddy-production.up.railway.app',
     'http://localhost:5173',
     'http://localhost:5174',
     'capacitor://localhost',
-    'ionic://localhost'
+    'ionic://localhost',
+    'https://localhost',
+    'http://localhost'
 ];
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // мобильные webview / curl
+        if (!origin) return callback(null, true); // мобильные webview (Origin часто пустой)
         if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (origin.startsWith('capacitor://') || origin.startsWith('ionic://') || origin === 'https://localhost' || origin === 'http://localhost') return callback(null, true);
         console.warn('[CORS] Blocked origin:', origin);
         return callback(new Error('Not allowed by CORS'));
     }
@@ -58,9 +175,52 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Квота ИИ на сегодня (тьютор + проверка ДЗ) — для отображения в UI
+app.get('/api/ai-usage', async (req, res) => {
+    const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (!hasSupabase || !accessToken) {
+        return res.json({ tutor_remaining: DAILY_TUTOR_LIMIT, homework_remaining: DAILY_HOMEWORK_LIMIT });
+    }
+    try {
+        const [tutor, homework] = await Promise.all([
+            checkTutorLimit(accessToken),
+            checkHomeworkLimit(accessToken)
+        ]);
+        if (tutor.error === 'auth' || homework.error === 'auth') {
+            return res.status(401).json({ error: "auth" });
+        }
+        res.json({
+            tutor_remaining: tutor.remaining ?? DAILY_TUTOR_LIMIT,
+            homework_remaining: homework.remaining ?? DAILY_HOMEWORK_LIMIT
+        });
+    } catch (e) {
+        console.error('AI usage endpoint error:', e);
+        res.json({ tutor_remaining: DAILY_TUTOR_LIMIT, homework_remaining: DAILY_HOMEWORK_LIMIT });
+    }
+});
+
 app.post('/api/ai-tutor', async (req, res) => {
     if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
+    const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (hasSupabase && !accessToken) {
+        return res.status(401).json({ error: "Войдите в аккаунт, чтобы пользоваться наставником." });
+    }
+    let tutorUserId = null;
     try {
+        if (hasSupabase && accessToken) {
+            const limit = await checkTutorLimit(accessToken);
+            if (limit.error === 'auth') {
+                return res.status(401).json({ error: "Сессия истекла. Обновите страницу и войдите снова." });
+            }
+            if (!limit.allowed) {
+                return res.status(429).json({
+                    error: "Лимит запросов к наставнику на сегодня исчерпан. Попробуйте завтра.",
+                    code: "AI_DAILY_LIMIT"
+                });
+            }
+            tutorUserId = limit.userId;
+        }
+
         const { question, context } = req.body;
 
         // Базовая валидация входных данных
@@ -81,6 +241,10 @@ app.post('/api/ai-tutor', async (req, res) => {
                 Контекст: ${context}.`
             },
         });
+
+        if (hasSupabase && accessToken && tutorUserId) {
+            await incrementTutorUsage(accessToken, tutorUserId);
+        }
         res.json({ text: response.text });
     } catch (error) {
         console.error("AI Request Failed:", error);
@@ -90,7 +254,26 @@ app.post('/api/ai-tutor', async (req, res) => {
 
 app.post('/api/check-homework', async (req, res) => {
     if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
+    const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (hasSupabase && !accessToken) {
+        return res.status(401).json({ error: "Войдите в аккаунт, чтобы отправить задание на проверку." });
+    }
+    let homeworkUserId = null;
     try {
+        if (hasSupabase && accessToken) {
+            const limit = await checkHomeworkLimit(accessToken);
+            if (limit.error === 'auth') {
+                return res.status(401).json({ error: "Сессия истекла. Обновите страницу и войдите снова." });
+            }
+            if (!limit.allowed) {
+                return res.status(429).json({
+                    error: "Лимит проверок домашних заданий на сегодня исчерпан. Попробуйте завтра.",
+                    code: "AI_DAILY_LIMIT"
+                });
+            }
+            homeworkUserId = limit.userId;
+        }
+
         const { task, studentAnswer } = req.body;
         
         if (!task || !studentAnswer) {
@@ -147,6 +330,9 @@ ${answerStr}
                 Язык: РУССКИЙ.`
             }
         });
+        if (hasSupabase && accessToken && homeworkUserId) {
+            await incrementHomeworkUsage(accessToken, homeworkUserId);
+        }
         res.json({ text: response.text });
     } catch (error) {
         console.error("Homework Check Failed:", error);

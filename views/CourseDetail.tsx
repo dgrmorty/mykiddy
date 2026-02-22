@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Course, Lesson } from '../types';
 import { checkHomework } from '../services/geminiService';
-import { contentService } from '../services/contentService';
+import { contentService, invalidateCoursesCache } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
 import { AccessGate } from '../components/AccessGate';
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
@@ -37,7 +37,8 @@ export const CourseDetail: React.FC = () => {
   const playerRef = useRef<HTMLDivElement>(null);
   const courseForModal = activeCourse || closingCourse;
 
-  const loadData = async (silent = false) => {
+  const loadData = async (silent = false, forceRefresh = false) => {
+      if (forceRefresh) invalidateCoursesCache();
       if (!silent) setLoading(true);
       try {
           const data = await contentService.getCourses(user.id);
@@ -65,10 +66,13 @@ export const CourseDetail: React.FC = () => {
     loadData();
   }, [user.id]);
 
-  // При возврате на вкладку тихо подтягиваем свежие курсы (прогресс, пройденные уроки) без экрана загрузки
+  // При возврате на вкладку тихо подтягиваем курсы не чаще раза в 90 сек (кэш в contentService)
+  const lastVisibilityLoadRef = useRef(0);
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !user.id) return;
+      if (Date.now() - lastVisibilityLoadRef.current < 90000) return;
+      lastVisibilityLoadRef.current = Date.now();
       loadData(true);
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
@@ -109,7 +113,7 @@ export const CourseDetail: React.FC = () => {
       setLessonCompleting(true);
       try {
           const success = await contentService.markLessonComplete(user.id, activeLesson.id);
-          if (success) await loadData();
+          if (success) await loadData(false, true);
       } finally {
           setLessonCompleting(false);
       }
@@ -132,7 +136,8 @@ export const CourseDetail: React.FC = () => {
     if (injectionError) { setSecurityError(injectionError); return; }
     setIsChecking(true);
     try {
-        const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer);
+        const { data: { session } } = await supabase.auth.getSession();
+        const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer, session?.access_token ?? null);
         setAiFeedback(feedback);
         
         // Оцениваем ответ; пока XP начисляются сразу, но логика вынесена в отдельную функцию,
@@ -151,8 +156,8 @@ export const CourseDetail: React.FC = () => {
             // Если ответ не очень хороший, даем мотивирующую обратную связь
             showToast('Проверьте комментарии наставника', 'info');
         }
-    } catch (e) {
-        setAiFeedback("Не удалось проверить задание. Попробуйте еще раз.");
+    } catch (e: any) {
+        setAiFeedback(e?.message || "Не удалось проверить задание. Попробуйте еще раз.");
     } finally {
         setIsChecking(false);
     }
@@ -186,7 +191,7 @@ export const CourseDetail: React.FC = () => {
           } catch (e) {
               console.warn('Failed to increment XP for homework:', e);
           }
-          await loadData();
+          await loadData(false, true);
       } catch (e) {
           console.warn('Failed to finalize homework reward:', e);
       }
