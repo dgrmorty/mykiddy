@@ -1,0 +1,13 @@
+# Не нужны для деплоя на Railway (только Node + статика из dist)
+android/
+node_modules/
+.git/
+.railway/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# dist создаётся при npm run build
+dist/
