@@ -134,12 +134,28 @@ const allowedOrigins = [
     'https://localhost',
     'http://localhost'
 ];
+// Дополнительные origin из переменной (через запятую), например для кастомного домена
+const extraOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+function isOriginAllowed(origin) {
+    if (!origin) return true; // мобильные webview (Origin часто пустой)
+    if (allowedOrigins.includes(origin) || extraOrigins.includes(origin)) return true;
+    if (origin.startsWith('capacitor://') || origin.startsWith('ionic://')) return true;
+    if (origin === 'https://localhost' || origin === 'http://localhost') return true;
+    // Любой поддомен Railway (разные деплои/регионы)
+    try {
+        const u = new URL(origin);
+        if (u.hostname.endsWith('.railway.app') && (u.protocol === 'https:' || u.protocol === 'http:')) return true;
+    } catch (_) {}
+    return false;
+}
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // мобильные webview (Origin часто пустой)
-        if (allowedOrigins.includes(origin)) return callback(null, true);
-        if (origin.startsWith('capacitor://') || origin.startsWith('ionic://') || origin === 'https://localhost' || origin === 'http://localhost') return callback(null, true);
+        if (isOriginAllowed(origin)) return callback(null, true);
         console.warn('[CORS] Blocked origin:', origin);
         return callback(new Error('Not allowed by CORS'));
     }
