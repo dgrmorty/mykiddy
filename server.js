@@ -1,6 +1,8 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
@@ -153,6 +155,10 @@ function isOriginAllowed(origin) {
     return false;
 }
 
+app.use(helmet({
+    contentSecurityPolicy: false, // CSP задаётся в index.html для SPA
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors({
     origin: (origin, callback) => {
         if (isOriginAllowed(origin)) return callback(null, true);
@@ -161,6 +167,23 @@ app.use(cors({
     }
 }));
 app.use(express.json());
+
+// Rate limit: общий для API (120 запросов в минуту с IP)
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    message: { error: 'Слишком много запросов. Подождите минуту.', code: 'RATE_LIMIT' },
+    standardHeaders: true
+});
+app.use('/api', apiLimiter);
+
+// Жёстче лимит для ИИ-эндпоинтов (40 запросов за 15 мин с IP)
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 40,
+    message: { error: 'Слишком много запросов к ИИ. Попробуйте позже.', code: 'AI_RATE_LIMIT' },
+    standardHeaders: true
+});
 
 // ВАЖНО: В продакшене мы отдаем файлы из папки dist (сборка Vite)
 // Это заставляет сервер искать index.html и JS файлы именно там
@@ -181,6 +204,18 @@ const initAI = () => {
 };
 
 const ai = initAI();
+
+// Проверка на prompt injection (серверная дублирующая проверка)
+function isPromptInjection(text) {
+    if (typeof text !== 'string') return true;
+    const lower = text.toLowerCase();
+    const dangerous = [
+        'ignore previous instructions',
+        'system prompt', 'you are now', 'forget everything',
+        'disregard', 'override', 'new instructions', 'act as'
+    ];
+    return dangerous.some(p => lower.includes(p));
+}
 
 // Здоровье системы
 app.get('/api/health', (req, res) => {
@@ -203,7 +238,7 @@ app.get('/api/ai-usage', async (req, res) => {
             checkHomeworkLimit(accessToken)
         ]);
         if (tutor.error === 'auth' || homework.error === 'auth') {
-            return res.status(401).json({ error: "auth" });
+            return res.status(401).json({ error: "Сессия истекла. Войдите снова.", code: "AUTH_REQUIRED" });
         }
         res.json({
             tutor_remaining: tutor.remaining ?? DAILY_TUTOR_LIMIT,
@@ -215,18 +250,18 @@ app.get('/api/ai-usage', async (req, res) => {
     }
 });
 
-app.post('/api/ai-tutor', async (req, res) => {
-    if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
+app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
+    if (!ai) return res.status(503).json({ error: "Сервис временно недоступен", code: "SERVICE_UNAVAILABLE" });
     const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
     if (hasSupabase && !accessToken) {
-        return res.status(401).json({ error: "Войдите в аккаунт, чтобы пользоваться наставником." });
+        return res.status(401).json({ error: "Войдите в аккаунт, чтобы пользоваться наставником.", code: "AUTH_REQUIRED" });
     }
     let tutorUserId = null;
     try {
         if (hasSupabase && accessToken) {
             const limit = await checkTutorLimit(accessToken);
             if (limit.error === 'auth') {
-                return res.status(401).json({ error: "Сессия истекла. Обновите страницу и войдите снова." });
+                return res.status(401).json({ error: "Сессия истекла. Обновите страницу и войдите снова.", code: "AUTH_REQUIRED" });
             }
             if (!limit.allowed) {
                 return res.status(429).json({
@@ -241,13 +276,16 @@ app.post('/api/ai-tutor', async (req, res) => {
 
         // Базовая валидация входных данных
         if (typeof question !== 'string' || question.trim().length === 0) {
-            return res.status(400).json({ error: "Вопрос не должен быть пустым" });
+            return res.status(400).json({ error: "Вопрос не должен быть пустым", code: "VALIDATION_ERROR" });
         }
         if (question.length > 4000) {
-            return res.status(400).json({ error: "Вопрос слишком длинный. Попробуйте сократить формулировку." });
+            return res.status(400).json({ error: "Вопрос слишком длинный. Попробуйте сократить формулировку.", code: "VALIDATION_ERROR" });
+        }
+        if (isPromptInjection(question)) {
+            return res.status(400).json({ error: "Запрос заблокирован политикой безопасности.", code: "VALIDATION_ERROR" });
         }
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.0-flash',
             contents: question,
             config: {
                 systemInstruction: `Ты — ИИ-тьютор Kiddy. Помогаешь детям (8-14 лет) осваивать программирование и 3D. 
@@ -264,22 +302,22 @@ app.post('/api/ai-tutor', async (req, res) => {
         res.json({ text: response.text });
     } catch (error) {
         console.error("AI Request Failed:", error);
-        res.status(500).json({ error: "Сервис временно недоступен. Попробуйте позже" });
+        res.status(500).json({ error: "Сервис временно недоступен. Попробуйте позже.", code: "SERVER_ERROR" });
     }
 });
 
-app.post('/api/check-homework', async (req, res) => {
+app.post('/api/check-homework', aiLimiter, async (req, res) => {
     if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
     const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
     if (hasSupabase && !accessToken) {
-        return res.status(401).json({ error: "Войдите в аккаунт, чтобы отправить задание на проверку." });
+        return res.status(401).json({ error: "Войдите в аккаунт, чтобы отправить задание на проверку.", code: "AUTH_REQUIRED" });
     }
     let homeworkUserId = null;
     try {
         if (hasSupabase && accessToken) {
             const limit = await checkHomeworkLimit(accessToken);
             if (limit.error === 'auth') {
-                return res.status(401).json({ error: "Сессия истекла. Обновите страницу и войдите снова." });
+                return res.status(401).json({ error: "Сессия истекла. Обновите страницу и войдите снова.", code: "AUTH_REQUIRED" });
             }
             if (!limit.allowed) {
                 return res.status(429).json({
@@ -300,9 +338,12 @@ app.post('/api/check-homework', async (req, res) => {
         const answerStr = String(studentAnswer);
 
         if (taskStr.length > 4000 || answerStr.length > 8000) {
-            return res.status(400).json({ error: "Ответ или задание слишком длинные. Попробуйте сократить текст." });
+            return res.status(400).json({ error: "Ответ или задание слишком длинные. Попробуйте сократить текст.", code: "VALIDATION_ERROR" });
         }
-        
+        if (isPromptInjection(taskStr) || isPromptInjection(answerStr)) {
+            return res.status(400).json({ error: "Текст заблокирован политикой безопасности.", code: "VALIDATION_ERROR" });
+        }
+
         const prompt = `Ты проверяешь домашнее задание в IT-школе Kiddy для детей 8-14 лет.
 
 ЗАДАНИЕ ИЗ УРОКА:
@@ -332,7 +373,7 @@ ${answerStr}
 Язык: РУССКИЙ.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.0-flash',
             contents: prompt,
             config: {
                 systemInstruction: `Ты — ИИ-тьютор Kiddy, который проверяет домашние задания для детей 8-14 лет. 
@@ -352,7 +393,7 @@ ${answerStr}
         res.json({ text: response.text });
     } catch (error) {
         console.error("Homework Check Failed:", error);
-        res.status(500).json({ error: "Не удалось проверить задание. Попробуйте позже" });
+        res.status(500).json({ error: "Не удалось проверить задание. Попробуйте позже.", code: "SERVER_ERROR" });
     }
 });
 

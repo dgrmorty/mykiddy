@@ -1,25 +1,23 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-const EXIT_DURATION_MS = 200;
+const EXIT_DURATION_MS = 400;
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
   maxWidth?: string;
-  /** Убрать фон контейнера — контент сам рисует карточки (избегаем эффекта «двойной модалки») */
   transparentContainer?: boolean;
-  /** Вызывается после завершения анимации закрытия (чтобы родитель мог убрать контент и размонтировать) */
   onClosed?: () => void;
 }
 
-export const Modal: React.FC<ModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  children, 
-  maxWidth = 'max-w-2xl',
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  children,
+  maxWidth = 'max-w-md',
   transparentContainer = false,
-  onClosed
+  onClosed,
 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const wasOpenRef = useRef(false);
@@ -54,9 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
-      }
+      if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1);
     }
     return () => {
       document.body.style.position = '';
@@ -71,16 +67,13 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[200] min-h-screen flex items-center justify-center p-4 md:p-6">
-      {/* Backdrop: появление — анимация, закрытие — простой fade */}
-      <div 
-        className={`absolute inset-0 bg-black/80 backdrop-blur-xl cursor-pointer transition-opacity duration-200 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'} ${!isExiting ? 'animate-backdrop-enter' : ''}`}
+      <div
+        className={`absolute inset-0 bg-black/60 backdrop-blur-xl cursor-pointer transition-all duration-400 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
         onClick={onClose}
         aria-hidden
       />
-      
-      {/* Окно: открытие — анимация, закрытие — только fade, без scale/translate */}
-      <div 
-        className={`relative z-10 w-full max-h-[90vh] md:max-h-[85vh] ${maxWidth} flex flex-col h-[90vh] md:h-[85vh] overflow-y-auto md:overflow-hidden transition-opacity duration-200 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'} ${!isExiting ? 'animate-modal-enter' : ''} ${transparentContainer ? '' : 'bg-zinc-950 md:border md:border-white/5 md:rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)]'}`}
+      <div
+        className={`relative z-10 w-full max-h-[90vh] overflow-y-auto custom-scrollbar ${maxWidth} transition-all duration-400 cubic-bezier(0.175, 0.885, 0.32, 1.1) ${isExiting ? 'opacity-0 translate-y-8 scale-95 filter blur-sm' : 'opacity-100 translate-y-0 scale-100 animate-reveal-up'} ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.04] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)]'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

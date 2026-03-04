@@ -69,3 +69,14 @@ export interface UserProgress {
   lesson_id: string;
   completed_at: string;
 }
+
+export interface ScheduleEvent {
+  id: string;
+  day_of_week: number; // 1=Пн ... 7=Вс
+  time_start: string;
+  time_end?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  sort_order?: number;
+}

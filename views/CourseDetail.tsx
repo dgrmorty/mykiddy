@@ -4,17 +4,20 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     X, ArrowLeft, PenTool, Sparkles, Send, Loader2, 
-    Maximize2, Minimize2, MonitorPlay, Zap, FileText, CheckCircle, Lock
+    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock
 } from 'lucide-react';
 import { Course, Lesson } from '../types';
 import { checkHomework } from '../services/geminiService';
-import { contentService, invalidateCoursesCache } from '../services/contentService';
+import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
 import { AccessGate } from '../components/AccessGate';
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
 import { useContentContext } from '../contexts/ContentContext';
 import { supabase } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
+
+import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
+import { AnimatedLearningScene } from '../components/ui/AnimatedLearningScene';
 
 export const CourseDetail: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -23,6 +26,8 @@ export const CourseDetail: React.FC = () => {
   
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(true);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isHomeworkOpen, setIsHomeworkOpen] = useState(false);
   const [homeworkAnswer, setHomeworkAnswer] = useState('');
@@ -33,18 +38,29 @@ export const CourseDetail: React.FC = () => {
   const [isHomeworkCompleted, setIsHomeworkCompleted] = useState(false);
   const [lastAnswerWasGood, setLastAnswerWasGood] = useState(false);
   const [closingCourse, setClosingCourse] = useState<Course | null>(null);
+  
+  // Анимация перехода в урок
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const playerRef = useRef<HTMLDivElement>(null);
   const courseForModal = activeCourse || closingCourse;
 
+  const handleOpenLesson = (lesson: Lesson) => {
+    if (lesson.locked) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+        setActiveLesson(lesson);
+        setIsTransitioning(false);
+    }, 1200);
+  };
+
   const loadData = async (silent = false, forceRefresh = false) => {
       if (forceRefresh) invalidateCoursesCache();
-      if (!silent) setLoading(true);
+      if (!silent) { setLoading(true); setLoadError(null); }
       try {
           const data = await contentService.getCourses(user.id);
           setCourses(data || []);
-          
-          // Синхронизируем состояние если есть активный курс
+          setLoadError(null);
           if (activeCourse) {
               const updatedCourse = (data || []).find(c => c.id === activeCourse.id);
               if (updatedCourse) {
@@ -57,6 +73,9 @@ export const CourseDetail: React.FC = () => {
           }
       } catch (err) {
           console.error("[CourseDetail] Load Error:", err);
+          if (err instanceof CoursesLoadError) setLoadError('Не удалось загрузить. Повторите позже.');
+          else setLoadError('Не удалось загрузить. Повторите позже.');
+          setCourses([]);
       } finally {
           if (!silent) setLoading(false);
       }
@@ -85,24 +104,24 @@ export const CourseDetail: React.FC = () => {
   }, [activeLesson?.id]);
 
   useEffect(() => {
+    if (activeLesson) setVideoLoading(true);
+  }, [activeLesson?.id]);
+
+  useEffect(() => {
     if (activeLesson && playerRef.current) {
         playerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     
     // Проверяем статус ДЗ при смене урока
     if (activeLesson?.id && user.id) {
-        supabase
+        void supabase
             .from('homework_submissions')
             .select('id')
             .eq('user_id', user.id)
             .eq('lesson_id', activeLesson.id)
             .single()
-            .then(({ data }) => {
-                setIsHomeworkCompleted(!!data);
-            })
-            .catch(() => {
-                setIsHomeworkCompleted(false);
-            });
+            .then(({ data }) => setIsHomeworkCompleted(!!data))
+            .then(() => {}, () => setIsHomeworkCompleted(false));
     } else {
         setIsHomeworkCompleted(false);
     }
@@ -198,7 +217,7 @@ export const CourseDetail: React.FC = () => {
   };
 
   const getVideoComponent = (url?: string) => {
-    if (!url) return <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950"><MonitorPlay size={48} className="text-zinc-800 mb-4" /><p className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Видео недоступно</p></div>;
+    if (!url) return <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#121212]"><MonitorPlay size={48} className="text-zinc-800 mb-4" /><p className="text-kiddy-textMuted font-bold uppercase tracking-widest text-[10px]">Видео недоступно</p></div>;
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
         let id = '';
@@ -207,51 +226,102 @@ export const CourseDetail: React.FC = () => {
             else if (url.includes('youtu.be/')) id = url.split('youtu.be/')[1].split('?')[0];
             else id = url.split('/').pop() || '';
         } catch (e) {}
-        return <iframe src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0`} title="Lesson Video" className="w-full h-full absolute inset-0 border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />;
+        return (
+          <>
+            {videoLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#121212] z-10">
+                <div className="w-10 h-10 border-2 border-white/20 border-t-kiddy-cherry rounded-full animate-spin" />
+              </div>
+            )}
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0`}
+              title="Lesson Video"
+              className="w-full h-full absolute inset-0 border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+              onLoad={() => setVideoLoading(false)}
+            />
+          </>
+        );
     }
-    return <video controls className="w-full h-full absolute inset-0 bg-black"><source src={url} type="video/mp4" /></video>;
+    return (
+      <>
+        {videoLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+            <div className="w-10 h-10 border-2 border-white/20 border-t-kiddy-cherry rounded-full animate-spin" />
+          </div>
+        )}
+        <video
+          controls
+          className="w-full h-full absolute inset-0 bg-black"
+          preload="metadata"
+          onCanPlay={() => setVideoLoading(false)}
+          onLoadedData={() => setVideoLoading(false)}
+        >
+          <source src={url} type="video/mp4" />
+        </video>
+      </>
+    );
   };
 
   if (loading && courses.length === 0) return (
-    <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <Loader2 className="animate-spin text-kiddy-primary" size={40} />
-        <p className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest">Загружаем знания...</p>
+    <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <AnimatedEmptyState message="Загружаем знания..." />
     </div>
   );
+
+  if (loadError && courses.length === 0) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <p className="text-kiddy-textSecondary font-medium">{loadError}</p>
+      <button onClick={() => loadData(false, true)} className="btn-cta px-6 py-3 rounded-full text-sm font-bold">
+        Повторить
+      </button>
+    </div>
+  );
+
+  const activeModule = activeCourse?.modules?.find((m) => m.lessons.some((l) => l.id === activeLesson?.id));
 
   if (activeLesson && activeCourse) {
     return (
         <div className="flex flex-col h-full animate-slide-up relative" ref={playerRef}>
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-6">
-                    <button onClick={() => setActiveLesson(null)} className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all"><ArrowLeft size={20} /></button>
-                    <div><h4 className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">{activeCourse.title}</h4><h2 className="text-2xl font-display font-bold text-white tracking-tight">{activeLesson.title}</h2></div>
+                    <button onClick={() => setActiveLesson(null)} className="p-3 bg-[#181818] border border-[#282828] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all"><ArrowLeft size={20} /></button>
+                    <div>
+                      <nav className="text-kiddy-textMuted text-xs font-medium mb-1 flex items-center gap-1.5 flex-wrap">
+                        <span>{activeCourse.title}</span>
+                        {activeModule && <><span aria-hidden>/</span><span>{activeModule.title}</span></>}
+                        {activeLesson && <><span aria-hidden>/</span><span className="text-white">{activeLesson.title}</span></>}
+                      </nav>
+                      <h2 className="text-2xl font-display font-bold text-white tracking-tight">{activeLesson.title}</h2>
+                    </div>
                 </div>
                 <div className="flex gap-2">
-                    {!activeLesson.isCompleted ? <button onClick={handleCompleteLesson} disabled={lessonCompleting} className="px-6 py-3 bg-white text-black font-bold rounded-2xl hover:bg-kiddy-primary hover:text-white transition-all flex items-center gap-2">{lessonCompleting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}<span className="hidden md:inline">Завершить урок</span></button> : <div className="px-6 py-3 bg-green-500/10 text-green-500 border border-green-500/20 font-bold rounded-2xl flex items-center gap-2"><CheckCircle size={18} /><span className="hidden md:inline">Пройдено</span></div>}
-                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
+                    {!activeLesson.isCompleted ? <button onClick={handleCompleteLesson} disabled={lessonCompleting} className="px-6 py-3 bg-white text-black font-bold rounded-2xl hover:bg-kiddy-cherry hover:text-white transition-all flex items-center gap-2">{lessonCompleting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}<span className="hidden md:inline">Завершить урок</span></button> : <div className="px-6 py-3 bg-green-500/10 text-green-500 border border-green-500/20 font-bold rounded-2xl flex items-center gap-2"><CheckCircle size={18} /><span className="hidden md:inline">Пройдено</span></div>}
+                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-[#181818] border border-[#282828] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
                 </div>
             </div>
             {!user.isApproved ? <AccessGate /> : (
                 <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
-                    <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-zinc-800 shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
+                    <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-[#282828] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
                     {!isTheaterMode && (
                         <div className="space-y-6">
-                            <Card className="bg-kiddy-primary/5 border-kiddy-primary/20 p-8 flex flex-col justify-between h-fit">
+                            <Card className="bg-kiddy-cherry/5 border-kiddy-cherry/20 p-8 flex flex-col justify-between h-fit">
                                 <div>
-                                    <div className="w-12 h-12 bg-kiddy-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-kiddy-primary/20">
-                                        <Zap className="text-kiddy-primary" size={24} />
+                                    <div className="w-12 h-12 bg-kiddy-cherry/10 rounded-2xl flex items-center justify-center mb-6 border border-kiddy-cherry/20">
+                                        <Zap className="text-kiddy-cherry" size={24} />
                                     </div>
                                     <h3 className="text-white font-bold text-lg mb-3">Практика</h3>
                                     {activeLesson.homeworkTask ? (
                                         <div className="mb-6">
-                                            <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">Задание:</p>
-                                            <div className="bg-black/50 border border-zinc-800 rounded-xl p-4 mb-4">
+                                            <p className="text-kiddy-textSecondary text-xs font-bold uppercase tracking-widest mb-3">Задание:</p>
+                                            <div className="bg-black/50 border border-[#282828] rounded-xl p-4 mb-4">
                                                 <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-zinc-500 text-sm leading-relaxed mb-10">Задание не задано для этого урока.</p>
+                                        <p className="text-kiddy-textMuted text-sm leading-relaxed mb-10">Задание не задано для этого урока.</p>
                                     )}
                                 </div>
                                 {activeLesson.homeworkTask && (
@@ -263,7 +333,7 @@ export const CourseDetail: React.FC = () => {
                                         ) : (
                                             <button 
                                                 onClick={() => setIsHomeworkOpen(true)} 
-                                                className="w-full py-4 bg-kiddy-primary text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
+                                                className="w-full py-4 bg-kiddy-cherry text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
                                             >
                                                 <PenTool size={18} /> Сдать работу
                                             </button>
@@ -278,11 +348,11 @@ export const CourseDetail: React.FC = () => {
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"} transparentContainer>
                 <div className="flex flex-col md:flex-row gap-4 h-full md:items-center md:justify-center transition-all duration-700 ease-out p-4 md:p-0">
                     {/* Левая модалка - отправка ДЗ */}
-                    <div className={`p-6 md:p-10 flex flex-col min-h-0 bg-zinc-950 border border-white/5 rounded-[2rem] md:rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
+                    <div className={`p-6 md:p-10 flex flex-col min-h-0 bg-[#121212] border border-white/5 rounded-[2rem] md:rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
                         <h2 className="text-xl md:text-2xl font-display font-bold text-white mb-4 md:mb-6">Ваше решение</h2>
                         {activeLesson?.homeworkTask && (
-                            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-                                <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
+                            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-[#181818]/50 border border-[#282828] rounded-xl">
+                                <p className="text-kiddy-textSecondary text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
                                 <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                             </div>
                         )}
@@ -295,20 +365,20 @@ export const CourseDetail: React.FC = () => {
                                     e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 }, 300);
                             }}
-                            className="min-h-[200px] md:min-h-0 md:flex-1 bg-black border border-zinc-800 p-4 md:p-6 rounded-xl md:rounded-2xl text-white outline-none focus:border-kiddy-primary transition-all font-mono text-sm resize-none" 
+                            className="min-h-[200px] md:min-h-0 md:flex-1 bg-black border border-[#282828] p-4 md:p-6 rounded-xl md:rounded-2xl text-white outline-none focus:border-kiddy-cherry transition-all font-mono text-sm resize-none" 
                             placeholder="Вставьте ваш код или текст..." 
                         />
                         {securityError && (
                             <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
                         )}
                         <div className="mt-4 md:mt-8 flex gap-3 md:gap-4 flex-shrink-0">
-                            <button onClick={() => setIsHomeworkOpen(false)} className="px-6 md:px-8 py-3 md:py-4 bg-zinc-900 text-white font-bold rounded-xl text-sm md:text-base">
+                            <button onClick={() => setIsHomeworkOpen(false)} className="px-6 md:px-8 py-3 md:py-4 bg-[#181818] text-white font-bold rounded-xl text-sm md:text-base">
                                 Закрыть
                             </button>
                         <button 
                             onClick={handleCheckHomework} 
                             disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted} 
-                            className="flex-1 py-3 md:py-4 bg-kiddy-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
+                            className="flex-1 py-3 md:py-4 bg-kiddy-cherry text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                         >
                             {isChecking ? <Loader2 className="animate-spin" size={20} /> : isHomeworkCompleted ? <><CheckCircle size={18} /> Уже решено</> : <><Send size={18} /> Проверить</>}
                         </button>
@@ -317,17 +387,17 @@ export const CourseDetail: React.FC = () => {
                     
                     {/* Правая модалка - ответ нейронки */}
                     {aiFeedback && (
-                        <div className="p-6 md:p-10 flex flex-col min-h-[300px] md:min-h-0 md:h-full bg-zinc-950 border border-white/5 rounded-[2rem] md:rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
+                        <div className="p-6 md:p-10 flex flex-col min-h-[300px] md:min-h-0 md:h-full bg-[#121212] border border-white/5 rounded-[2rem] md:rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
                             <div className="flex items-center justify-between mb-4 md:mb-6 flex-shrink-0">
                                 <h2 className="text-xl md:text-2xl font-display font-bold text-white flex items-center gap-2">
-                                    <Sparkles size={20} md:size={24} className="text-kiddy-primary" />
+                                    <Sparkles size={24} className="text-kiddy-cherry" />
                                     Ответ от наставника
                                 </h2>
                                 <button 
                                     onClick={() => setAiFeedback(null)} 
-                                    className="p-2 hover:bg-zinc-900 rounded-lg transition-colors"
+                                    className="p-2 hover:bg-[#181818] rounded-lg transition-colors"
                                 >
-                                    <X size={20} className="text-zinc-400" />
+                                    <X size={20} className="text-kiddy-textSecondary" />
                                 </button>
                             </div>
                             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
@@ -345,17 +415,22 @@ export const CourseDetail: React.FC = () => {
 
   return (
     <div className="animate-slide-up space-y-12">
-      <header><h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">Библиотека <span className="text-kiddy-primary">Курсов</span></h1><p className="text-zinc-500 mt-2 font-medium">Ваш путь к мастерству в IT.</p></header>
+      <header><h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">Библиотека <span className="text-kiddy-cherry">Курсов</span></h1><p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p></header>
       {courses.length === 0 ? (
-          <div className="py-20 text-center space-y-4 opacity-50"><div className="bg-zinc-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800"><FileText className="text-zinc-500" /></div><p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Курсы загружаются или временно недоступны</p><button onClick={loadData} className="px-6 py-2 bg-zinc-800 rounded-lg text-xs font-bold text-white hover:bg-zinc-700">Переподключиться</button></div>
+          <div className="py-20 flex flex-col items-center justify-center space-y-4">
+            <AnimatedEmptyState message={loadError || "Курсы загружаются или временно недоступны"} />
+            <button onClick={() => loadData(false, true)} className="px-6 py-2 bg-[#181818] border border-[#282828] rounded-xl text-xs font-bold text-white hover:bg-[#2a2a2a] transition-colors">
+              Повторить
+            </button>
+          </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
-              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-zinc-900/50 hover:border-kiddy-primary/30 transition-all overflow-hidden rounded-[2.5rem] flex flex-col h-full" onClick={() => setActiveCourse(course)}>
+              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-[#282828]/50 hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full" onClick={() => setActiveCourse(course)}>
                 <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" /></div>
                 <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
-                    <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-primary transition-colors">{course.title}</h3><p className="text-zinc-500 text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
-                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden"><div className="h-full bg-kiddy-primary transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
+                    <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-cherry transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
+                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1 w-full bg-[#181818] rounded-full overflow-hidden"><div className="h-full bg-kiddy-cherry transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
                 </div>
               </Card>
             ))}
@@ -368,8 +443,23 @@ export const CourseDetail: React.FC = () => {
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-4xl"
         >
-            <div className="flex flex-col h-full bg-zinc-950"><div className="relative h-64 md:h-80 shrink-0"><img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/50 backdrop-blur-md rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{courseForModal.title}</h2><p className="text-zinc-400 mt-2 max-w-lg">{courseForModal.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{courseForModal.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-zinc-900" /><h3 className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-zinc-900" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => !lesson.locked && setActiveLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-zinc-950/20 border-zinc-900/50 opacity-40 cursor-not-allowed' : 'bg-black border-zinc-900 cursor-pointer hover:border-kiddy-primary/50 hover:bg-zinc-900/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-zinc-900 text-zinc-500 group-hover:bg-kiddy-primary group-hover:text-white'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
+            <div className="flex flex-col h-full bg-[#121212]"><div className="relative h-64 md:h-80 shrink-0"><img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/80 backdrop-blur-sm rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{courseForModal.title}</h2><p className="text-kiddy-textSecondary mt-2 max-w-lg">{courseForModal.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{courseForModal.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-[#181818]" /><h3 className="text-kiddy-textMuted font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-[#181818]" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => handleOpenLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-[#121212]/20 border-[#282828]/50 opacity-40 cursor-not-allowed' : 'bg-black border-[#282828] cursor-pointer hover:border-kiddy-cherry/50 hover:bg-[#181818]/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-[#181818] text-kiddy-textMuted group-hover:bg-kiddy-cherry group-hover:text-white transition-colors duration-300'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-kiddy-textMuted uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
         </Modal>
+      )}
+      
+      {/* Экран загрузки / перехода в урок */}
+      {isTransitioning && (
+        <div className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-kiddy-base/90 backdrop-blur-xl transition-opacity duration-500" style={{ animation: 'fade-in-out 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
+          <AnimatedLearningScene />
+          <style>{`
+            @keyframes fade-in-out {
+              0% { opacity: 0; }
+              15% { opacity: 1; }
+              85% { opacity: 1; filter: brightness(1); }
+              100% { opacity: 0; filter: brightness(0); }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CardProps {
@@ -7,35 +6,37 @@ interface CardProps {
   noPadding?: boolean;
   hoverEffect?: boolean;
   glow?: boolean;
+  hero?: boolean;
   onClick?: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ 
-  children, 
-  className = '', 
-  noPadding = false, 
+export const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
+  noPadding = false,
   hoverEffect = false,
   glow = false,
-  onClick
-}) => {
-  return (
-    <div 
-      onClick={onClick}
+  hero = false,
+  onClick,
+}) => (
+  <div
+    onClick={onClick}
+    role={onClick ? 'button' : undefined}
       className={`
-        relative overflow-hidden
-        bg-[#09090b] 
-        border border-zinc-800/60 
-        rounded-2xl 
-        transition-all duration-300
-        ${noPadding ? '' : 'p-6'}
-        ${hoverEffect ? 'hover:border-kiddy-primary/50 hover:bg-[#121214] group cursor-pointer' : ''}
-        ${glow ? 'shadow-[0_0_30px_-10px_rgba(190,18,60,0.25)]' : ''}
+        card-premium relative overflow-hidden group flex flex-col
+        ${noPadding ? '' : 'p-6 md:p-8'}
+        ${hoverEffect ? 'cursor-pointer' : ''}
         ${className}
       `}
     >
-      {/* Top subtle glow line */}
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-zinc-700/30 to-transparent opacity-50" />
+      {hero && (
+        <div className="absolute inset-0 bg-gradient-to-br from-kiddy-cherryDim to-transparent opacity-50 pointer-events-none" />
+      )}
+      {glow && (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-kiddy-cherryGlow blur-[64px] opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-500" />
+      )}
+    <div className={`relative z-10 w-full h-full ${className.includes('flex') ? 'flex' : ''} ${className.includes('flex-col') ? 'flex-col' : ''} ${className.includes('justify-end') ? 'justify-end' : ''} ${className.includes('justify-center') ? 'justify-center' : ''} ${className.includes('items-center') ? 'items-center' : ''}`}>
       {children}
     </div>
-  );
-};
+  </div>
+);

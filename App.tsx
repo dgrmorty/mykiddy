@@ -8,7 +8,6 @@ import { Profile } from './views/Profile';
 import { Schedule } from './views/Schedule';
 import { AiTutor } from './views/AiTutor';
 import { AdminPanel } from './views/AdminPanel';
-import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
@@ -37,8 +36,8 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-        <div className="min-h-screen bg-kiddy-base flex items-center justify-center">
-            <Loader2 className="animate-spin text-kiddy-primary" size={40} />
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#050505' }}>
+            <div className="rounded-full border-2 border-white/20 border-t-[#e6002b] animate-spin" style={{ width: 40, height: 40 }} />
         </div>
     );
   }

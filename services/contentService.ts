@@ -1,37 +1,69 @@
-
 import { supabase } from './supabase';
-import { Course, Lesson, Module } from '../types';
+import { Course } from '../types';
+import { withTimeout } from '../utils/withTimeout';
+
+const CACHE_TTL_MS = 90 * 1000;
+const FETCH_TIMEOUT_MS = 8000; // 8 с для медленного интернета
+
+let coursesCache: { key: string; data: Course[]; ts: number } | null = null;
+
+function getCachedCourses(userId?: string): Course[] | null {
+  if (!coursesCache) return null;
+  const key = userId || 'guest';
+  if (coursesCache.key !== key || Date.now() - coursesCache.ts > CACHE_TTL_MS) return null;
+  return coursesCache.data;
+}
+
+function setCachedCourses(userId: string | undefined, data: Course[]) {
+  coursesCache = { key: userId || 'guest', data, ts: Date.now() };
+}
+
+export function invalidateCoursesCache() {
+  coursesCache = null;
+}
+
+/** Ошибка загрузки курсов (таймаут или сбой БД) — показывать «Не удалось загрузить. Повторите позже.» */
+export class CoursesLoadError extends Error {
+  constructor(message: string = 'Не удалось загрузить курсы. Повторите позже.') {
+    super(message);
+    this.name = 'CoursesLoadError';
+  }
+}
 
 export const contentService = {
-  
   async getCourses(userId?: string): Promise<Course[]> {
-    // Создаем промис с таймаутом 3 секунды
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('DATABASE_TIMEOUT')), 3000)
-    );
+    const cached = getCachedCourses(userId);
+    if (cached) return cached;
 
-    try {
-      console.log('[ContentService] Fetching courses...');
-      
-      // Запускаем гонку: либо данные из БД, либо таймаут
-      const dbRequest = supabase
-        .from('courses')
-        .select(`
+    const dbRequest = supabase
+      .from('courses')
+      .select(`
+        *,
+        modules (
           *,
-          modules (
-            *,
-            lessons (*)
-          )
-        `)
-        .order('created_at', { ascending: true });
+          lessons (*)
+        )
+      `)
+      .order('created_at', { ascending: true });
 
-      const result: any = await Promise.race([dbRequest, timeoutPromise]);
-      const { data: dbCourses, error } = result;
+    const result: any = await withTimeout(
+      dbRequest as unknown as Promise<unknown>,
+      FETCH_TIMEOUT_MS,
+      'Courses fetch'
+    ).catch((e) => {
+      console.error('[ContentService] Timeout or network error:', e);
+      throw new CoursesLoadError();
+    });
 
-      if (error || !dbCourses || dbCourses.length === 0) {
-        console.warn('[ContentService] DB Empty or Error, returning empty array');
-        return []; // Возвращаем пустой массив вместо моковых данных
-      }
+    const { data: dbCourses, error } = result;
+
+    if (error) {
+      console.warn('[ContentService] DB Error:', error);
+      throw new CoursesLoadError();
+    }
+    if (!dbCourses || dbCourses.length === 0) {
+      return [];
+    }
 
       let completedLessonIds: Set<string> = new Set();
       if (userId) {
@@ -104,12 +136,8 @@ export const contentService = {
         };
       });
 
-      return courses;
-
-    } catch (e) {
-      console.error('[ContentService] Critical error or timeout, returning empty array:', e);
-      return []; // Возвращаем пустой массив вместо моковых данных
-    }
+    setCachedCourses(userId, courses);
+    return courses;
   },
 
   async markLessonComplete(userId: string, lessonId: string): Promise<boolean> {

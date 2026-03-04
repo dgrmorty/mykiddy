@@ -3,8 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#050505" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com; connect-src 'self' https: wss:; img-src 'self' data: https:; frame-src 'self' https://www.youtube-nocookie.com; base-uri 'self'; form-action 'self';" />
     <title>Kiddy | IT-Школа будущего</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" crossorigin />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,100 +16,227 @@
           extend: {
             colors: {
               kiddy: {
-                base: '#000000',
-                surface: '#09090b',
-                surfaceHighlight: '#18181b',
-                primary: '#be123c',
-                primaryGlow: '#e11d48',
-                accent: '#38bdf8',
-                muted: '#52525b',
-                text: '#fafafa'
+                base: '#050505',
+                surface: '#0a0a0a',
+                surfaceElevated: '#121212',
+                surfaceHighlight: '#1a1a1a',
+                border: 'rgba(255,255,255,0.04)',
+                borderStrong: 'rgba(255,255,255,0.08)',
+                cherry: '#e6002b',
+                cherryHover: '#ff1a45',
+                cherryGlow: 'rgba(230,0,43,0.3)',
+                cherryDim: 'rgba(230,0,43,0.1)',
+                text: '#ffffff',
+                textSecondary: '#a1a1aa',
+                textMuted: '#52525b',
               }
             },
             fontFamily: {
-              display: ['Orbitron', 'sans-serif'],
-              sans: ['Inter', 'sans-serif'],
-              mono: ['Fira Code', 'monospace']
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['Inter', 'system-ui', 'sans-serif'],
             },
-            animation: {
-              'slide-up': 'slide-up 0.5s ease-out forwards',
-              'glow-pulse': 'glow-pulse 2s infinite'
+            fontSize: {
+              'display-xl': ['4rem', { lineHeight: '1.05', letterSpacing: '-0.04em', fontWeight: '800' }],
+              'display-lg': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '800' }],
+              'display-md': ['2rem', { lineHeight: '1.15', letterSpacing: '-0.02em', fontWeight: '700' }],
+              'body-lg': ['1.125rem', { lineHeight: '1.6', fontWeight: '500' }],
+              'body': ['1rem', { lineHeight: '1.6', fontWeight: '400' }],
+              'body-sm': ['0.875rem', { lineHeight: '1.6', fontWeight: '400' }],
+              'caption': ['0.75rem', { lineHeight: '1.5', fontWeight: '500', letterSpacing: '0.01em' }],
+            },
+            boxShadow: {
+              'depth': '0 8px 32px -8px rgba(0,0,0,0.8), 0 1px 0 0 rgba(255,255,255,0.04) inset',
+              'cherry-glow': '0 0 32px -8px rgba(230,0,43,0.4)',
+            },
+            transitionTimingFunction: {
+              'entrance': 'cubic-bezier(0.16, 1, 0.3, 1)',
+              'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.1)',
+              'smooth': 'cubic-bezier(0.25, 0.1, 0.25, 1)',
             },
             keyframes: {
-              'slide-up': {
-                '0%': { transform: 'translateY(20px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' }
+              'fade-in': { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+              'reveal-up': { 
+                '0%': { opacity: '0', transform: 'translateY(24px) scale(0.98)', filter: 'blur(4px)' }, 
+                '100%': { opacity: '1', transform: 'translateY(0) scale(1)', filter: 'blur(0)' } 
               },
-              'glow-pulse': {
-                '0%, 100%': { opacity: '0.5' },
-                '50%': { opacity: '1' }
+              'scale-in': { 
+                '0%': { opacity: '0', transform: 'scale(0.95)' }, 
+                '100%': { opacity: '1', transform: 'scale(1)' } 
               },
-              'slide-in-right': {
-                '0%': { transform: 'translateX(100%)', opacity: '0' },
-                '100%': { transform: 'translateX(0)', opacity: '1' }
-              },
-              'bounce-left': {
-                '0%': { transform: 'translateX(0)' },
-                '30%': { transform: 'translateX(-20px)' },
-                '60%': { transform: 'translateX(10px)' },
-                '100%': { transform: 'translateX(0)' }
-              },
-              'modal-enter': {
-                '0%': { transform: 'scale(0.88) translateY(24px)', opacity: '0' },
-                '100%': { transform: 'scale(1) translateY(0)', opacity: '1' }
-              },
-              'modal-exit': {
-                '0%': { transform: 'scale(1) translateY(0)', opacity: '1' },
-                '100%': { transform: 'scale(0.94) translateY(16px)', opacity: '0' }
-              },
-              'backdrop-enter': {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' }
-              },
-              'backdrop-exit': {
-                '0%': { opacity: '1' },
-                '100%': { opacity: '0' }
-              }
+              'shimmer': { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
+              'draw-svg': { 'to': { strokeDashoffset: '0' } }
             },
             animation: {
-              'slide-up': 'slide-up 0.5s ease-out forwards',
-              'glow-pulse': 'glow-pulse 2s infinite',
-              'slide-in-right': 'slide-in-right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-              'bounce-left': 'bounce-left 0.6s ease-out forwards',
-              'modal-enter': 'modal-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-              'modal-exit': 'modal-exit 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              'backdrop-enter': 'backdrop-enter 0.35s ease-out forwards',
-              'backdrop-exit': 'backdrop-exit 0.25s ease-out forwards'
-            }
+              'fade-in': 'fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'reveal-up': 'reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'scale-in': 'scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'shimmer': 'shimmer 2.5s ease-in-out infinite',
+              'draw-svg': 'draw-svg 2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            },
           }
         }
-      }
+      };
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
-      body { background-color: #000000; color: #fafafa; margin: 0; overflow-x: hidden; }
+      :root {
+        --kiddy-cherry: #e6002b;
+        --kiddy-bg: #050505;
+        --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      
+      * { box-sizing: border-box; }
+      html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      
+      body {
+        margin: 0;
+        background-color: var(--kiddy-bg);
+        background-image: 
+          radial-gradient(circle at 50% 0%, rgba(230,0,43,0.03) 0%, transparent 50%),
+          radial-gradient(circle at 100% 100%, rgba(255,255,255,0.01) 0%, transparent 50%);
+        background-attachment: fixed;
+        color: #ffffff;
+        font-family: 'Inter', system-ui, sans-serif;
+        min-height: 100vh;
+      }
+
+      /* Scrollbar */
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f3f; }
+
+      /* CTA Button - Tactile, glowing */
+      .btn-cta {
+        position: relative;
+        background-color: var(--kiddy-cherry);
+        color: #ffffff;
+        border-radius: 9999px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        transition: transform 0.3s var(--ease-spring), background-color 0.3s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+      }
+      .btn-cta::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+        pointer-events: none;
+      }
+      .btn-cta:hover {
+        transform: scale(1.02) translateY(-1px);
+        background-color: #ff1a45;
+        box-shadow: 0 8px 24px -6px rgba(230,0,43,0.4);
+      }
+      .btn-cta:active { 
+        transform: scale(0.96); 
+        box-shadow: 0 2px 8px -2px rgba(230,0,43,0.4);
+      }
+
+      /* Secondary Button */
+      .btn-secondary {
+        background-color: rgba(255,255,255,0.04);
+        color: #ffffff;
+        border: 1px solid rgba(255,255,255,0.04);
+        border-radius: 9999px;
+        font-weight: 600;
+        transition: transform 0.3s var(--ease-spring), background-color 0.3s ease, border-color 0.3s ease;
+      }
+      .btn-secondary:hover {
+        background-color: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.1);
+        transform: scale(1.02);
+      }
+      .btn-secondary:active { transform: scale(0.96); }
+
+      /* Cards - Glassmorphism, Deep */
+      .card-premium {
+        background-color: rgba(18, 18, 18, 0.6);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.03);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px -8px rgba(0,0,0,0.5);
+        transition: transform 0.4s var(--ease-entrance), background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+      }
+      .card-premium:hover { 
+        background-color: rgba(26, 26, 26, 0.8);
+        border-color: rgba(255,255,255,0.08);
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px -12px rgba(0,0,0,0.8);
+      }
+
+      /* Inputs - Animated Focus */
+      .input-premium {
+        background-color: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        color: #ffffff;
+        transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .input-premium:hover {
+        background-color: rgba(255,255,255,0.05);
+      }
+      .input-premium:focus {
+        outline: none;
+        background-color: rgba(255,255,255,0.05);
+        border-color: var(--kiddy-cherry);
+        box-shadow: 0 0 0 4px rgba(230,0,43,0.1);
+      }
+
+      /* Nav Active - Smooth Text */
+      .nav-active {
+        background-color: rgba(255,255,255,0.04);
+        color: #ffffff !important;
+      }
+
+      /* SVG Animations */
+      .svg-line {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: draw-svg 1.5s var(--ease-entrance) forwards;
+      }
       
-      /* Красивый скролл для ответа нейронки */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
+      @keyframes draw-svg {
+        to { stroke-dashoffset: 0; }
       }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #18181b;
-        border-radius: 4px;
+
+      /* Skeleton */
+      .skeleton {
+        background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite linear;
+        border-radius: 8px;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #be123c;
-        border-radius: 4px;
+
+      /* Stagger: only transform (no opacity) so content is always visible even if animation fails */
+      @keyframes reveal-up {
+        0% { transform: translateY(20px) scale(0.99); }
+        100% { transform: translateY(0) scale(1); }
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #9f1239;
+      @keyframes scale-in {
+        0% { transform: scale(0.98); }
+        100% { transform: scale(1); }
       }
+      .stagger-1 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.05s; }
+      .stagger-2 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.1s; }
+      .stagger-3 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.15s; }
+      .stagger-4 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.2s; }
+      .stagger-5 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.25s; }
     </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body data-theme="kiddy">
+    <div id="root">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050505;color:#fff;font-family:system-ui,sans-serif;">
+        <div style="width:40px;height:40px;border:2px solid rgba(255,255,255,0.2);border-top-color:#e6002b;border-radius:50%;animation:root-spin 0.8s linear infinite;"></div>
+        <p style="margin-top:16px;font-size:14px;color:#a1a1aa;">Загрузка...</p>
+      </div>
+    </div>
+    <style>@keyframes root-spin{to{transform:rotate(360deg);}}</style>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

@@ -1,10 +1,9 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://twaepaurydscpcgfgtuc.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3YWVwYXVyeWRzY3BjZ2ZndHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDgzMTEsImV4cCI6MjA4NjU4NDMxMX0.OGx8wd7CvslrgEEVZV7voWGvnl6BsxiPMIWVi79H-Yo';
+// Предпочтительно задавать в .env (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Fallback только для локальной разработки.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || 'https://twaepaurydscpcgfgtuc.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3YWVwYXVyeWRzY3BjZ2ZndHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDgzMTEsImV4cCI6MjA4NjU4NDMxMX0.OGx8wd7CvslrgEEVZV7voWGvnl6BsxiPMIWVi79H-Yo';
 
-// Создаем клиент с настройками для лучшей обработки ошибок
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -21,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Функция для проверки подключения к Supabase
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    const { error } = await supabase.from('profiles').select('count').limit(1);
     return !error;
   } catch (e) {
     console.error('[Supabase] Connection check failed:', e);

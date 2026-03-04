@@ -1,55 +1,139 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
-import { Video, MapPin } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
+import { Calendar, MapPin, Clock } from 'lucide-react';
+import type { ScheduleEvent } from '../types';
 
-const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const DAY_NAMES = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+const DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+/** Текущий день недели: 1 = Пн, 7 = Вс */
+const getCurrentDayNum = () => {
+  const d = new Date().getDay(); // 0=Вс, 1=Пн, ... 6=Сб
+  return d === 0 ? 7 : d;
+};
 
 export const Schedule: React.FC = () => {
-  return (
-    <div className="animate-slide-up space-y-8">
-      <header>
-        <h1 className="text-3xl font-display font-bold text-white">Академический Календарь</h1>
-        <p className="text-zinc-500">Синхронизируй свое время для максимальной эффективности.</p>
-      </header>
+  const [events, setEvents] = useState<ScheduleEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const currentDay = getCurrentDayNum();
 
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-        {DAYS.map((day, index) => (
-            <div key={day} className={`flex flex-col gap-3 min-h-[300px] ${index < 5 ? 'lg:col-span-1' : 'lg:col-span-1 opacity-50'}`}>
-                <div className="text-center pb-2 border-b border-zinc-800">
-                    <span className="text-sm font-bold text-zinc-500 uppercase">{day}</span>
-                    <div className={`mt-2 w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold ${index === 2 ? 'bg-kiddy-primary text-white' : 'text-zinc-300'}`}>
-                        {12 + index}
-                    </div>
-                </div>
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('schedule_events')
+          .select('*')
+          .order('day_of_week')
+          .order('sort_order')
+          .order('time_start');
+        if (!error) setEvents(data || []);
+      } catch (_) {}
+      setLoading(false);
+    };
+    load();
+  }, []);
 
-                {index === 2 && (
-                    <Card className="bg-kiddy-primary/10 border-kiddy-primary/30 p-3 cursor-pointer hover:bg-kiddy-primary/20" noPadding>
-                        <div className="p-3">
-                            <span className="text-xs font-bold text-kiddy-primary mb-1 block">17:00 - 18:30</span>
-                            <h4 className="font-bold text-white text-sm leading-tight">Advanced Python Logic</h4>
-                            <div className="flex items-center gap-1 mt-2 text-zinc-400 text-xs">
-                                <Video size={12} />
-                                <span>Zoom Live</span>
-                            </div>
-                        </div>
-                    </Card>
-                )}
+  const eventsByDay: Record<number, ScheduleEvent[]> = {};
+  for (let i = 1; i <= 7; i++) eventsByDay[i] = [];
+  events.forEach((e) => {
+    if (e.day_of_week >= 1 && e.day_of_week <= 7) eventsByDay[e.day_of_week].push(e);
+  });
 
-                {index === 5 && (
-                    <Card className="bg-zinc-800 border-zinc-700 p-3" noPadding>
-                        <div className="p-3">
-                            <span className="text-xs font-bold text-zinc-400 mb-1 block">10:00 - 13:00</span>
-                            <h4 className="font-bold text-zinc-300 text-sm leading-tight">Подготовка к Хакатону</h4>
-                            <div className="flex items-center gap-1 mt-2 text-zinc-500 text-xs">
-                                <MapPin size={12} />
-                                <span>Кампус Комната 404</span>
-                            </div>
-                        </div>
-                    </Card>
-                )}
-            </div>
-        ))}
+  if (loading) {
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <AnimatedEmptyState message="Загружаем расписание" />
       </div>
+    );
+  }
+
+  return (
+    <div className="animate-slide-up max-w-3xl mx-auto pb-20">
+      {/* Текущий день — крупно, в стиле Apple Notes */}
+      <div className="mb-10">
+        <p className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-[0.3em] mb-1">Сегодня</p>
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-white tracking-tight">
+          {DAY_NAMES[currentDay - 1]}
+        </h1>
+      </div>
+
+      {/* События на сегодня — блок-заметки */}
+      <section className="space-y-4">
+        <h2 className="text-kiddy-textMuted text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+          <Calendar size={14} /> События на сегодня
+        </h2>
+        {eventsByDay[currentDay].length === 0 ? (
+          <Card className="bg-[#121212]/60 border border-[#282828]/80 rounded-2xl p-8 text-center min-h-[300px] flex items-center justify-center">
+            <AnimatedEmptyState message="На сегодня событий нет" />
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {eventsByDay[currentDay].map((ev) => (
+              <Card
+                key={ev.id}
+                className="bg-[#121212]/60 border border-[#282828]/80 rounded-2xl p-5 hover:border-zinc-700/80 transition-colors"
+                noPadding
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-14 text-right">
+                    <span className="text-kiddy-cherry font-mono font-bold text-sm">{ev.time_start}</span>
+                    {ev.time_end && <span className="text-kiddy-textMuted font-mono text-xs block">{ev.time_end}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-bold text-lg leading-tight">{ev.title}</h3>
+                    {ev.description && <p className="text-kiddy-textSecondary text-sm mt-1.5 leading-relaxed whitespace-pre-wrap">{ev.description}</p>}
+                    {ev.location && (
+                      <p className="text-kiddy-textMuted text-xs mt-2 flex items-center gap-1.5">
+                        <MapPin size={12} /> {ev.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Вся неделя — компактно */}
+      <section className="mt-12">
+        <h2 className="text-kiddy-textMuted text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+          <Clock size={14} /> Неделя
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => (
+            <div
+              key={dayNum}
+              className={`rounded-2xl border p-4 transition-colors ${
+                dayNum === currentDay
+                  ? 'bg-kiddy-cherry/10 border-kiddy-cherry/30'
+                  : 'bg-[#121212]/40 border-[#282828]/80'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className={`font-bold text-sm ${dayNum === currentDay ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary'}`}>
+                  {DAY_SHORT[dayNum - 1]}
+                </span>
+                {dayNum === currentDay && <span className="text-[10px] text-kiddy-cherry font-bold uppercase">Сегодня</span>}
+              </div>
+              <div className="space-y-1.5">
+                {eventsByDay[dayNum].length === 0 ? (
+                  <p className="text-zinc-600 text-xs">—</p>
+                ) : (
+                  eventsByDay[dayNum].slice(0, 3).map((ev) => (
+                    <p key={ev.id} className="text-zinc-300 text-xs truncate">
+                      {ev.time_start} {ev.title}
+                    </p>
+                  ))
+                )}
+                {eventsByDay[dayNum].length > 3 && <p className="text-kiddy-textMuted text-xs">+{eventsByDay[dayNum].length - 3}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

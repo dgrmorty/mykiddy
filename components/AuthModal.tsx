@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Modal } from './ui/Modal';
-import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
@@ -9,9 +9,21 @@ interface AuthModalProps {
   onSuccess: () => void;
 }
 
+const inputClass = "input-premium w-full pl-12 pr-4 py-4 text-sm font-medium";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+function validatePassword(p: string): string | null {
+  if (p.length < MIN_PASSWORD_LENGTH) return `Пароль не менее ${MIN_PASSWORD_LENGTH} символов`;
+  if (!/[a-zA-Z]/.test(p)) return 'Добавьте буквы в пароль';
+  if (!/[0-9]/.test(p)) return 'Добавьте цифры в пароль';
+  return null;
+}
+
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const { refreshUser } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -24,114 +36,135 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     setLoading(true);
     setError(null);
     try {
+      if (forgotPassword) {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/#/` });
+        if (err) throw err;
+        setError(null);
+        setError('Проверьте почту: мы отправили ссылку для сброса пароля.');
+        setForgotPassword(false);
+        setLoading(false);
+        return;
+      }
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
+        const pwError = validatePassword(password);
+        if (pwError) { setError(pwError); setLoading(false); return; }
+        const { data, error: err } = await supabase.auth.signUp({
           email, password, options: { data: { name: name || 'Ученик', role: 'Student' } }
         });
-        if (error) throw error;
-        // При регистрации ждем немного, чтобы сессия установилась
-        if (data?.session) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        if (err) throw err;
+        if (data?.session) await new Promise(r => setTimeout(r, 500));
+        if (data?.user && !data.session) setError('Проверьте почту: письмо с подтверждением отправлено.');
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        // При логине ждем немного, чтобы сессия установилась
-        if (data?.session) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) throw err;
+        if (data?.session) await new Promise(r => setTimeout(r, 500));
       }
-      // Обновляем состояние пользователя
-      try {
-        await refreshUser();
-      } catch (e) {
-        console.warn("[AuthModal] Refresh user failed, but continuing:", e);
+      if (!forgotPassword) {
+        try { await refreshUser(); } catch (_) {}
+        setTimeout(onSuccess, 300);
       }
-      
-      // Даем время AuthContext обновить состояние
-      setTimeout(() => {
-        onSuccess();
-      }, 300);
     } catch (err: any) {
-      console.error("[AuthModal] Auth error:", err);
-      // Преобразуем технические ошибки в понятные сообщения
       let userMessage = 'Произошла ошибка. Попробуйте еще раз';
-      if (err.message === 'Invalid login credentials' || err.message?.includes('Invalid')) {
-        userMessage = 'Неверный email или пароль';
-      } else if (err.message?.includes('Email') && err.message?.includes('already')) {
-        userMessage = 'Пользователь с таким email уже существует';
-      } else if (err.message?.includes('password') || err.message?.includes('Password')) {
-        userMessage = 'Пароль слишком короткий (минимум 6 символов)';
-      } else if (err.message?.includes('email') || err.message?.includes('Email')) {
-        userMessage = 'Неверный формат email';
-      } else if (err.message?.includes('Database error') || err.message?.includes('saving new user')) {
-        userMessage = 'Не удалось создать аккаунт. Попробуйте позже';
-      }
+      if (err.message === 'Invalid login credentials' || err.message?.includes('Invalid')) userMessage = 'Неверный email или пароль';
+      else if (err.message?.includes('Email') && err.message?.includes('already')) userMessage = 'Пользователь с таким email уже существует';
+      else if (err.message?.includes('password') || err.message?.includes('Password')) userMessage = 'Пароль не менее 8 символов, буквы и цифры';
+      else if (err.message?.includes('email') || err.message?.includes('Email')) userMessage = 'Неверный формат email';
+      else if (err.message?.includes('Database error') || err.message?.includes('saving new user')) userMessage = 'Не удалось создать аккаунт. Попробуйте позже';
       setError(userMessage);
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="max-w-md">
-        <div className="p-10 flex flex-col h-full">
-            <div className="mb-8">
-                <h2 className="text-3xl font-display font-bold text-white tracking-tight mb-2">
-                    {isSignUp ? 'Регистрация' : 'Авторизация'}
-                </h2>
-                <p className="text-zinc-600 uppercase text-[10px] font-bold tracking-[0.3em]">Идентификация в системе</p>
-            </div>
-            
-            <form onSubmit={handleAuth} className="space-y-4">
-                {isSignUp && (
-                    <div className="relative">
-                        <User className="absolute left-4 top-3.5 text-zinc-600" size={18} />
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-4 py-3 rounded-xl outline-none text-sm transition-all" placeholder="Имя" />
-                    </div>
-                )}
-                <div className="relative">
-                    <Mail className="absolute left-4 top-3.5 text-zinc-600" size={18} />
-                    <input 
-                        type="email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-4 py-3 rounded-xl outline-none text-sm transition-all" 
-                        placeholder="Email" 
-                    />
-                </div>
-                <div className="relative">
-                    <Lock className="absolute left-4 top-3.5 text-zinc-600" size={18} />
-                    <input 
-                        type={showPassword ? 'text' : 'password'} 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        className="w-full bg-black border border-zinc-800 focus:border-kiddy-primary text-white pl-11 pr-10 py-3 rounded-xl outline-none text-sm transition-all" 
-                        placeholder="Пароль" 
-                    />
-                    <button
-                        type="button"
-                        className="absolute right-3 top-2.5 text-zinc-600 hover:text-zinc-300 p-1 rounded-lg"
-                        onMouseDown={() => setShowPassword(true)}
-                        onMouseUp={() => setShowPassword(false)}
-                        onMouseLeave={() => setShowPassword(false)}
-                        onTouchStart={() => setShowPassword(true)}
-                        onTouchEnd={() => setShowPassword(false)}
-                        aria-label="Показать пароль"
-                    >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-                {error && <div className="p-3 bg-red-950/20 text-red-500 text-xs text-center border border-red-900/30 rounded-lg font-bold">{error}</div>}
-                <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-kiddy-primary to-rose-700 text-white font-bold py-4 rounded-xl mt-4 hover:shadow-[0_0_20px_rgba(190,18,60,0.4)] disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                    {loading ? <Loader2 size={20} className="animate-spin" /> : <>{isSignUp ? 'Создать' : 'Войти'} <ArrowRight size={18} /></>}
-                </button>
-            </form>
-            <div className="mt-8 text-center">
-                <button onClick={() => setIsSignUp(!isSignUp)} className="text-zinc-600 hover:text-white text-[10px] font-bold uppercase tracking-widest">
-                    {isSignUp ? 'Уже есть аккаунт?' : 'Создать новый аккаунт'}
-                </button>
-            </div>
+    <Modal isOpen={true} onClose={onClose} maxWidth="max-w-[420px]">
+      <div className="p-8 md:p-10 relative overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-64 h-64 bg-kiddy-cherryGlow rounded-full blur-[80px] opacity-30 pointer-events-none" />
+        
+        <div className="mb-10 text-center relative z-10">
+          <h2 className="font-display font-bold text-4xl text-white tracking-tighter mb-3">
+            {forgotPassword ? 'Восстановление пароля' : isSignUp ? 'Регистрация' : 'Вход'}
+          </h2>
+          <p className="text-sm text-kiddy-textSecondary">
+            {forgotPassword ? 'Введите email — отправим ссылку для сброса' : 'Для доступа к платформе'}
+          </p>
         </div>
+
+        <form onSubmit={handleAuth} className="space-y-4 relative z-10">
+          {isSignUp && !forgotPassword && (
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Ваше Имя" />
+            </div>
+          )}
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="Электронная почта" required />
+          </div>
+          {!forgotPassword && (
+          <div className="relative group">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputClass} pr-12`}
+              placeholder={isSignUp ? 'Пароль (не менее 8 символов, буквы и цифры)' : 'Пароль'}
+              required={!forgotPassword}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-kiddy-textMuted hover:text-white transition-colors"
+              onMouseDown={() => setShowPassword(true)}
+              onMouseUp={() => setShowPassword(false)}
+              onMouseLeave={() => setShowPassword(false)}
+              onTouchStart={() => setShowPassword(true)}
+              onTouchEnd={() => setShowPassword(false)}
+              aria-label="Показать пароль"
+            >
+              {showPassword ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
+            </button>
+          </div>
+          )}
+          
+          {!forgotPassword && !isSignUp && (
+            <p className="text-right">
+              <button type="button" onClick={() => { setForgotPassword(true); setError(null); }} className="text-xs text-kiddy-textMuted hover:text-white transition-colors">
+                Забыли пароль?
+              </button>
+            </p>
+          )}
+          {forgotPassword && (
+            <p className="text-right">
+              <button type="button" onClick={() => setForgotPassword(false)} className="text-xs text-kiddy-textMuted hover:text-white transition-colors">
+                Вернуться к входу
+              </button>
+            </p>
+          )}
+          
+          {error && (
+            <div className="animate-reveal-up py-3 px-4 rounded-xl bg-kiddy-cherryDim border border-kiddy-cherry/20 text-sm text-kiddy-cherry font-medium text-center">
+              {error}
+            </div>
+          )}
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-cta w-full flex items-center justify-center gap-2 py-4 mt-8 disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={20} className="animate-spin" /> : <>{forgotPassword ? 'Отправить ссылку' : isSignUp ? 'Создать аккаунт' : 'Продолжить'}</>}
+          </button>
+        </form>
+
+        {!forgotPassword && (
+        <p className="mt-8 text-center relative z-10">
+          <button type="button" onClick={() => { setIsSignUp(!isSignUp); setError(null); }} className="text-sm font-medium text-kiddy-textSecondary hover:text-white transition-colors">
+            {isSignUp ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Регистрация'}
+          </button>
+        </p>
+        )}
+      </div>
     </Modal>
   );
 };

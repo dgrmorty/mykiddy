@@ -17,21 +17,26 @@ export const sanitizeInput = (text: string): string => {
     return sanitized.trim();
 };
 
+const INJECTION_MESSAGE = "Обнаружена попытка перехвата инструкций ИИ. Действие заблокировано.";
+
+const INJECTION_PATTERNS = [
+    /ignore previous instructions/gi,
+    /system prompt/gi,
+    /you are now/gi,
+    /forget everything/gi,
+    /disregard/gi,
+    /override/gi,
+    /new instructions/gi,
+    /act as/gi
+];
+
 /**
  * Validates if the input is suspiciously like a prompt injection attempt
  */
 export const isPotentialInjection = (text: string): string | null => {
-    const patterns = [
-        /ignore previous instructions/gi,
-        /system prompt/gi,
-        /you are now/gi,
-        /forget everything/gi
-    ];
-    
-    for (const pattern of patterns) {
-        if (pattern.test(text)) {
-            return "Обнаружена попытка перехвата инструкций ИИ. Действие заблокировано.";
-        }
+    if (!text || typeof text !== 'string') return null;
+    for (const pattern of INJECTION_PATTERNS) {
+        if (pattern.test(text)) return INJECTION_MESSAGE;
     }
     return null;
 };

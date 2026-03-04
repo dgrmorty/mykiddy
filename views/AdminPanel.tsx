@@ -3,16 +3,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/ui/Card';
 import { supabase, uploadFile } from '../services/supabase';
 import { 
-    Plus, Database, Layers, FileText, Loader2, Trash2, Video, 
-    Image as ImageIcon, Upload, Shield, Lock, Unlock, Settings as SettingsIcon,
-    Edit2, Save, X, ChevronRight, ChevronDown, Search, User as UserIcon
+    Plus, Loader2, Trash2, Video, Image as ImageIcon, Upload, Shield, Lock, Unlock,
+    Edit2, X, ChevronRight, ChevronDown, Search, Calendar
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Course, User, Role } from '../types';
+import { User, Role, ScheduleEvent } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 
-type AdminView = 'content' | 'users' | 'settings';
+type AdminView = 'content' | 'users' | 'schedule' | 'settings';
 
 interface EditingState {
     type: 'course' | 'module' | 'lesson' | null;
@@ -41,6 +40,8 @@ export const AdminPanel: React.FC = () => {
     const [courseForm, setCourseForm] = useState({ title: '', description: '', cover_image: '', id: '' });
     const [moduleForm, setModuleForm] = useState({ title: '', course_id: '', id: '' });
     const [lessonForm, setLessonForm] = useState({ title: '', description: '', video_url: '', homework_task: '', module_id: '', id: '' });
+    const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
+    const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
 
     const courseFileRef = useRef<HTMLInputElement>(null);
     const lessonVideoRef = useRef<HTMLInputElement>(null);
@@ -52,6 +53,7 @@ export const AdminPanel: React.FC = () => {
     useEffect(() => {
         if (currentView === 'content') fetchContent();
         if (currentView === 'users') fetchUsers();
+        if (currentView === 'schedule') fetchSchedule();
         if (currentView === 'settings') fetchSettings();
     }, [currentView]);
 
@@ -94,12 +96,17 @@ export const AdminPanel: React.FC = () => {
     const fetchContent = async () => {
         setLoading(true);
         try {
-            // Сначала пробуем получить курсы
             const { data: coursesData, error: coursesError } = await supabase
                 .from('courses')
-                .select('*')
+                .select(`
+                    *,
+                    modules (
+                        *,
+                        lessons (*)
+                    )
+                `)
                 .order('created_at', { ascending: false });
-            
+
             if (coursesError) {
                 console.error('[AdminPanel] Courses fetch error:', coursesError);
                 showToast('Не удалось загрузить курсы. Попробуйте обновить страницу', "error");
@@ -107,55 +114,21 @@ export const AdminPanel: React.FC = () => {
                 setLoading(false);
                 return;
             }
-            
-            if (!coursesData || coursesData.length === 0) {
-                setCourses([]);
-                setLoading(false);
-                return;
-            }
-            
-            // Затем для каждого курса получаем модули и уроки
-            const coursesWithContent = await Promise.all(
-                coursesData.map(async (course: any) => {
-                    const { data: modulesData } = await supabase
-                        .from('modules')
-                        .select('*')
-                        .eq('course_id', course.id)
-                        .order('created_at', { ascending: true });
-                    
-                    if (modulesData && modulesData.length > 0) {
-                        const modulesWithLessons = await Promise.all(
-                            modulesData.map(async (module: any) => {
-                                const { data: lessonsData } = await supabase
-                                    .from('lessons')
-                                    .select('*')
-                                    .eq('module_id', module.id)
-                                    .order('created_at', { ascending: true });
-                                
-                                return {
-                                    ...module,
-                                    lessons: lessonsData || []
-                                };
-                            })
-                        );
-                        
-                        return {
-                            ...course,
-                            modules: modulesWithLessons
-                        };
-                    }
-                    
-                    return {
-                        ...course,
-                        modules: []
-                    };
-                })
-            );
-            
+
+            const coursesWithContent = (coursesData || []).map((course: any) => {
+                const sortedModules = (course.modules || []).sort((a: any, b: any) =>
+                    new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+                ).map((module: any) => ({
+                    ...module,
+                    lessons: (module.lessons || []).sort((a: any, b: any) =>
+                        new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+                    )
+                }));
+                return { ...course, modules: sortedModules };
+            });
+
             setCourses(coursesWithContent);
-            if (coursesWithContent.length === 0) {
-                showToast("Каталог пуст. Создайте первый курс!", "info");
-            }
+            if (coursesWithContent.length === 0) showToast("Каталог пуст. Создайте первый курс!", "info");
         } catch (error: any) {
             console.error('[AdminPanel] Content fetch error:', error);
             showToast('Не удалось загрузить каталог. Попробуйте обновить страницу', "error");
@@ -240,6 +213,47 @@ export const AdminPanel: React.FC = () => {
             setUsersList([]);
         }
         setLoading(false);
+    };
+
+    const fetchSchedule = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase.from('schedule_events').select('*').order('day_of_week').order('sort_order').order('time_start');
+            if (!error) setScheduleEvents(data || []);
+        } catch (_) { setScheduleEvents([]); }
+        setLoading(false);
+    };
+
+    const handleAddScheduleEvent = async () => {
+        if (!scheduleForm.title.trim()) { showToast('Введите название события', 'error'); return; }
+        try {
+            const { error } = await supabase.from('schedule_events').insert({
+                day_of_week: scheduleForm.day_of_week,
+                time_start: scheduleForm.time_start,
+                time_end: scheduleForm.time_end || null,
+                title: scheduleForm.title.trim(),
+                description: scheduleForm.description.trim() || null,
+                location: scheduleForm.location.trim() || null
+            });
+            if (error) throw error;
+            showToast('Событие добавлено', 'success');
+            setScheduleForm({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
+            fetchSchedule();
+        } catch (e: any) {
+            showToast(e?.message || 'Ошибка добавления', 'error');
+        }
+    };
+
+    const handleDeleteScheduleEvent = async (id: string) => {
+        if (!window.confirm('Удалить событие?')) return;
+        try {
+            const { error } = await supabase.from('schedule_events').delete().eq('id', id);
+            if (error) throw error;
+            showToast('Событие удалено', 'success');
+            fetchSchedule();
+        } catch (e: any) {
+            showToast(e?.message || 'Ошибка удаления', 'error');
+        }
     };
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'video' | 'logo', targetId?: string) => {
@@ -593,17 +607,18 @@ export const AdminPanel: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen animate-slide-up space-y-4 pb-10 overflow-hidden">
-            <header className="flex justify-between items-center border-b border-zinc-900 pb-4 shrink-0">
+            <header className="flex justify-between items-center border-b border-[#282828] pb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-kiddy-primary/10 border border-kiddy-primary/20 rounded-lg">
-                        <Shield className="text-kiddy-primary" size={20} />
+                    <div className="p-2 bg-kiddy-cherry/10 border border-kiddy-cherry/20 rounded-lg">
+                        <Shield className="text-kiddy-cherry" size={20} />
                     </div>
                     <h1 className="text-xl font-display font-bold text-white uppercase tracking-tighter italic">Панель управления</h1>
                 </div>
-                <div className="flex bg-zinc-900 p-1 rounded-xl border border-white/5 shadow-inner">
-                    <button onClick={() => setCurrentView('content')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'content' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-400'}`}>КОНТЕНТ</button>
-                    <button onClick={() => setCurrentView('users')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'users' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-400'}`}>ПОЛЬЗОВАТЕЛИ</button>
-                    <button onClick={() => setCurrentView('settings')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'settings' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-400'}`}>НАСТРОЙКИ</button>
+                <div className="flex bg-[#181818] p-1 rounded-xl border border-white/5 shadow-inner">
+                    <button onClick={() => setCurrentView('content')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'content' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>КОНТЕНТ</button>
+                    <button onClick={() => setCurrentView('users')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'users' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>ПОЛЬЗОВАТЕЛИ</button>
+                    <button onClick={() => setCurrentView('schedule')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'schedule' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>РАСПИСАНИЕ</button>
+                    <button onClick={() => setCurrentView('settings')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'settings' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>НАСТРОЙКИ</button>
                 </div>
             </header>
 
@@ -615,12 +630,12 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
                     {/* Форма создания/редактирования курса */}
                     <div ref={courseFormRef}>
-                        <Card className={`bg-zinc-950/40 border-zinc-900 p-6 transition-all ${editing.type === 'course' ? 'border-kiddy-primary ring-2 ring-kiddy-primary/20 shadow-lg shadow-kiddy-primary/10' : ''}`}>
+                        <Card className={`bg-[#121212]/40 border-[#282828] p-6 transition-all ${editing.type === 'course' ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/20 shadow-lg shadow-kiddy-cherry/10' : ''}`}>
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-white font-bold text-sm uppercase tracking-widest">
                                     {editing.type === 'course' ? (
                                         <span className="flex items-center gap-2">
-                                            <Edit2 size={16} className="text-kiddy-primary" />
+                                            <Edit2 size={16} className="text-kiddy-cherry" />
                                             Редактировать курс
                                         </span>
                                     ) : (
@@ -633,7 +648,7 @@ export const AdminPanel: React.FC = () => {
                                             setEditing({ type: null, id: null });
                                             setCourseForm({ title: '', description: '', cover_image: '', id: '' });
                                         }}
-                                        className="text-zinc-500 hover:text-white transition-colors"
+                                        className="text-kiddy-textMuted hover:text-white transition-colors"
                                         title="Отменить редактирование"
                                     >
                                         <X size={18} />
@@ -645,20 +660,20 @@ export const AdminPanel: React.FC = () => {
                                 value={courseForm.title}
                                 onChange={e => setCourseForm({...courseForm, title: e.target.value})}
                                 placeholder="Название курса"
-                                className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-kiddy-primary"
+                                className="w-full bg-black border border-[#282828] p-3 rounded-lg text-white outline-none focus:border-kiddy-cherry"
                             />
                             <textarea
                                 value={courseForm.description}
                                 onChange={e => setCourseForm({...courseForm, description: e.target.value})}
                                 placeholder="Описание курса"
-                                className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-kiddy-primary min-h-[100px]"
+                                className="w-full bg-black border border-[#282828] p-3 rounded-lg text-white outline-none focus:border-kiddy-cherry min-h-[100px]"
                             />
                             <div className="flex gap-2">
                                 <input
                                     value={courseForm.cover_image}
                                     onChange={e => setCourseForm({...courseForm, cover_image: e.target.value})}
                                     placeholder="URL обложки или загрузите файл"
-                                    className="flex-1 bg-black border border-zinc-800 p-3 rounded-lg text-zinc-400 outline-none focus:border-kiddy-primary"
+                                    className="flex-1 bg-black border border-[#282828] p-3 rounded-lg text-kiddy-textSecondary outline-none focus:border-kiddy-cherry"
                                 />
                                 <button
                                     onClick={() => editing.type === 'course' ? editCourseFileRef.current?.click() : courseFileRef.current?.click()}
@@ -683,12 +698,12 @@ export const AdminPanel: React.FC = () => {
                                 />
                             </div>
                             {courseForm.cover_image && (
-                                <img src={courseForm.cover_image} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-zinc-800" />
+                                <img src={courseForm.cover_image} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-[#282828]" />
                             )}
                             <div className="flex gap-2">
                                 {editing.type === 'course' ? (
                                     <>
-                                        <button onClick={handleUpdateCourse} className="flex-1 py-2 bg-kiddy-primary text-white text-sm font-bold rounded-lg hover:bg-rose-600">
+                                        <button onClick={handleUpdateCourse} className="flex-1 py-2 bg-kiddy-cherry text-white text-sm font-bold rounded-lg hover:bg-rose-600">
                                             Сохранить
                                         </button>
                                         <button onClick={() => { setEditing({ type: null, id: null }); setCourseForm({ title: '', description: '', cover_image: '', id: '' }); }} className="px-4 py-2 bg-zinc-800 text-white text-sm font-bold rounded-lg hover:bg-zinc-700">
@@ -696,7 +711,7 @@ export const AdminPanel: React.FC = () => {
                                         </button>
                                     </>
                                 ) : (
-                                    <button onClick={handleCreateCourse} className="flex-1 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-kiddy-primary hover:text-white">
+                                    <button onClick={handleCreateCourse} className="flex-1 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-kiddy-cherry hover:text-white">
                                         Создать курс
                                     </button>
                                 )}
@@ -708,12 +723,12 @@ export const AdminPanel: React.FC = () => {
                     {/* Список курсов */}
                     <div className="space-y-4">
                         {courses.map(course => (
-                            <Card key={course.id} className="bg-zinc-950/40 border-zinc-900 overflow-hidden">
+                            <Card key={course.id} className="bg-[#121212]/40 border-[#282828] overflow-hidden">
                                 <div className="p-4 flex items-center justify-between">
                                     <div className="flex items-center gap-4 flex-1">
                                         <button
                                             onClick={() => toggleCourseExpanded(course.id)}
-                                            className="text-zinc-500 hover:text-white"
+                                            className="text-kiddy-textMuted hover:text-white"
                                         >
                                             {expandedCourses.has(course.id) ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                                         </button>
@@ -722,7 +737,7 @@ export const AdminPanel: React.FC = () => {
                                         )}
                                         <div className="flex-1">
                                             <h3 className="text-white font-bold">{course.title}</h3>
-                                            <p className="text-zinc-500 text-xs mt-1 line-clamp-1">{course.description}</p>
+                                            <p className="text-kiddy-textMuted text-xs mt-1 line-clamp-1">{course.description}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -730,7 +745,7 @@ export const AdminPanel: React.FC = () => {
                                             onClick={() => handleEditCourse(course)}
                                             className={`p-2 rounded-lg transition-all ${
                                                 editing.type === 'course' && editing.id === course.id
-                                                    ? 'bg-kiddy-primary text-white'
+                                                    ? 'bg-kiddy-cherry text-white'
                                                     : 'bg-zinc-800 hover:bg-zinc-700 text-white'
                                             }`}
                                             title="Редактировать курс"
@@ -747,16 +762,16 @@ export const AdminPanel: React.FC = () => {
                                 </div>
 
                                 {expandedCourses.has(course.id) && (
-                                    <div className="px-4 pb-4 space-y-4 border-t border-zinc-900 mt-4 pt-4">
+                                    <div className="px-4 pb-4 space-y-4 border-t border-[#282828] mt-4 pt-4">
                                         {/* Форма создания модуля */}
-                                        <div className="bg-black/50 p-4 rounded-lg border border-zinc-800">
-                                            <h4 className="text-zinc-400 text-xs font-bold uppercase mb-3">Добавить модуль</h4>
+                                        <div className="bg-black/50 p-4 rounded-lg border border-[#282828]">
+                                            <h4 className="text-kiddy-textSecondary text-xs font-bold uppercase mb-3">Добавить модуль</h4>
                                             <div className="flex gap-2">
                                                 <input
                                                     value={moduleForm.title}
                                                     onChange={e => setModuleForm({...moduleForm, title: e.target.value, course_id: course.id})}
                                                     placeholder="Название модуля"
-                                                    className="flex-1 bg-zinc-900 border border-zinc-800 p-2 rounded-lg text-white text-sm outline-none focus:border-kiddy-primary"
+                                                    className="flex-1 bg-[#181818] border border-[#282828] p-2 rounded-lg text-white text-sm outline-none focus:border-kiddy-cherry"
                                                 />
                                                 <button
                                                     onClick={() => handleCreateModule(course.id)}
@@ -769,12 +784,12 @@ export const AdminPanel: React.FC = () => {
 
                                         {/* Список модулей */}
                                         {course.modules?.map((module: any) => (
-                                            <div key={module.id} className="bg-black/30 p-4 rounded-lg border border-zinc-900">
+                                            <div key={module.id} className="bg-black/30 p-4 rounded-lg border border-[#282828]">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => toggleModuleExpanded(module.id)}
-                                                            className="text-zinc-500 hover:text-white"
+                                                            className="text-kiddy-textMuted hover:text-white"
                                                         >
                                                             {expandedModules.has(module.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                                         </button>
@@ -797,14 +812,14 @@ export const AdminPanel: React.FC = () => {
                                                 </div>
 
                                                 {editing.type === 'module' && editing.id === module.id && (
-                                                    <div className="bg-zinc-900/50 p-3 rounded-lg mb-3 space-y-2">
+                                                    <div className="bg-[#181818]/50 p-3 rounded-lg mb-3 space-y-2">
                                                         <input
                                                             value={moduleForm.title}
                                                             onChange={e => setModuleForm({...moduleForm, title: e.target.value})}
-                                                            className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-sm"
+                                                            className="w-full bg-black border border-[#282828] p-2 rounded text-white text-sm"
                                                         />
                                                         <div className="flex gap-2">
-                                                            <button onClick={handleUpdateModule} className="flex-1 py-1.5 bg-kiddy-primary text-white text-xs font-bold rounded">
+                                                            <button onClick={handleUpdateModule} className="flex-1 py-1.5 bg-kiddy-cherry text-white text-xs font-bold rounded">
                                                                 Сохранить
                                                             </button>
                                                             <button onClick={() => setEditing({ type: null, id: null })} className="px-3 py-1.5 bg-zinc-800 text-white text-xs font-bold rounded">
@@ -817,27 +832,27 @@ export const AdminPanel: React.FC = () => {
                                                 {expandedModules.has(module.id) && (
                                                     <div className="space-y-3">
                                                         {/* Форма создания урока */}
-                                                        <div className="bg-zinc-900/30 p-3 rounded border border-zinc-800">
-                                                            <h5 className="text-zinc-500 text-[10px] font-bold uppercase mb-2">Добавить урок</h5>
+                                                        <div className="bg-[#181818]/30 p-3 rounded border border-[#282828]">
+                                                            <h5 className="text-kiddy-textMuted text-[10px] font-bold uppercase mb-2">Добавить урок</h5>
                                                             <div className="space-y-2">
                                                                 <input
                                                                     value={lessonForm.title}
                                                                     onChange={e => setLessonForm({...lessonForm, title: e.target.value, module_id: module.id})}
                                                                     placeholder="Название урока"
-                                                                    className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-xs"
+                                                                    className="w-full bg-black border border-[#282828] p-2 rounded text-white text-xs"
                                                                 />
                                                                 <textarea
                                                                     value={lessonForm.description}
                                                                     onChange={e => setLessonForm({...lessonForm, description: e.target.value})}
                                                                     placeholder="Описание"
-                                                                    className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-xs min-h-[60px]"
+                                                                    className="w-full bg-black border border-[#282828] p-2 rounded text-white text-xs min-h-[60px]"
                                                                 />
                                                                 <div className="flex gap-2">
                                                                     <input
                                                                         value={lessonForm.video_url}
                                                                         onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})}
                                                                         placeholder="URL видео"
-                                                                        className="flex-1 bg-black border border-zinc-800 p-2 rounded text-zinc-400 text-xs"
+                                                                        className="flex-1 bg-black border border-[#282828] p-2 rounded text-kiddy-textSecondary text-xs"
                                                                     />
                                                                     <button
                                                                         onClick={() => lessonVideoRef.current?.click()}
@@ -852,11 +867,11 @@ export const AdminPanel: React.FC = () => {
                                                                     value={lessonForm.homework_task}
                                                                     onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})}
                                                                     placeholder="Домашнее задание (это задание будет использоваться ИИ для проверки)"
-                                                                    className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-xs min-h-[80px]"
+                                                                    className="w-full bg-black border border-[#282828] p-2 rounded text-white text-xs min-h-[80px]"
                                                                 />
                                                                 <button
                                                                     onClick={() => handleCreateLesson(module.id)}
-                                                                    className="w-full py-2 bg-kiddy-primary text-white text-xs font-bold rounded hover:bg-rose-600"
+                                                                    className="w-full py-2 bg-kiddy-cherry text-white text-xs font-bold rounded hover:bg-rose-600"
                                                                 >
                                                                     Создать урок
                                                                 </button>
@@ -865,24 +880,24 @@ export const AdminPanel: React.FC = () => {
 
                                                         {/* Список уроков */}
                                                         {module.lessons?.map((lesson: any) => (
-                                                            <div key={lesson.id} className="bg-zinc-900/50 p-3 rounded border border-zinc-800">
+                                                            <div key={lesson.id} className="bg-[#181818]/50 p-3 rounded border border-[#282828]">
                                                                 {editing.type === 'lesson' && editing.id === lesson.id ? (
                                                                     <div className="space-y-2">
                                                                         <input
                                                                             value={lessonForm.title}
                                                                             onChange={e => setLessonForm({...lessonForm, title: e.target.value})}
-                                                                            className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-xs"
+                                                                            className="w-full bg-black border border-[#282828] p-2 rounded text-white text-xs"
                                                                         />
                                                                         <textarea
                                                                             value={lessonForm.description}
                                                                             onChange={e => setLessonForm({...lessonForm, description: e.target.value})}
-                                                                            className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-xs min-h-[60px]"
+                                                                            className="w-full bg-black border border-[#282828] p-2 rounded text-white text-xs min-h-[60px]"
                                                                         />
                                                                         <div className="flex gap-2">
                                                                             <input
                                                                                 value={lessonForm.video_url}
                                                                                 onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})}
-                                                                                className="flex-1 bg-black border border-zinc-800 p-2 rounded text-zinc-400 text-xs"
+                                                                                className="flex-1 bg-black border border-[#282828] p-2 rounded text-kiddy-textSecondary text-xs"
                                                                             />
                                                                             <button
                                                                                 onClick={() => editLessonVideoRef.current?.click()}
@@ -897,10 +912,10 @@ export const AdminPanel: React.FC = () => {
                                                                             value={lessonForm.homework_task}
                                                                             onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})}
                                                                             placeholder="Домашнее задание"
-                                                                            className="w-full bg-black border border-zinc-800 p-2 rounded text-white text-xs min-h-[80px]"
+                                                                            className="w-full bg-black border border-[#282828] p-2 rounded text-white text-xs min-h-[80px]"
                                                                         />
                                                                         <div className="flex gap-2">
-                                                                            <button onClick={handleUpdateLesson} className="flex-1 py-1.5 bg-kiddy-primary text-white text-xs font-bold rounded">
+                                                                            <button onClick={handleUpdateLesson} className="flex-1 py-1.5 bg-kiddy-cherry text-white text-xs font-bold rounded">
                                                                                 Сохранить
                                                                             </button>
                                                                             <button onClick={() => setEditing({ type: null, id: null })} className="px-3 py-1.5 bg-zinc-800 text-white text-xs font-bold rounded">
@@ -913,7 +928,7 @@ export const AdminPanel: React.FC = () => {
                                                                         <div className="flex-1">
                                                                             <h5 className="text-white font-bold text-xs">{lesson.title}</h5>
                                                                             {lesson.homework_task && (
-                                                                                <p className="text-zinc-500 text-[10px] mt-1 line-clamp-1">Задание: {lesson.homework_task}</p>
+                                                                                <p className="text-kiddy-textMuted text-[10px] mt-1 line-clamp-1">Задание: {lesson.homework_task}</p>
                                                                             )}
                                                                         </div>
                                                                         <div className="flex gap-2">
@@ -950,12 +965,12 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
                     <div className="flex items-center gap-4">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600" size={18} />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-kiddy-textMuted" size={18} />
                             <input
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 placeholder="Поиск пользователей..."
-                                className="w-full bg-black border border-zinc-800 pl-10 pr-4 py-3 rounded-lg text-white outline-none focus:border-kiddy-primary"
+                                className="w-full bg-black border border-[#282828] pl-10 pr-4 py-3 rounded-lg text-white outline-none focus:border-kiddy-cherry"
                             />
                         </div>
                     </div>
@@ -963,18 +978,18 @@ export const AdminPanel: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredUsers.length === 0 ? (
                                 <div className="col-span-full text-center py-10">
-                                    <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">
+                                    <p className="text-kiddy-textMuted font-bold uppercase text-xs tracking-widest">
                                         {searchQuery ? 'Пользователи не найдены' : 'Не удалось загрузить список пользователей'}
                                     </p>
                                 </div>
                             ) : (
                                 filteredUsers.map(u => (
-                                    <Card key={u.id} className="bg-black border-zinc-800 p-0 flex items-center justify-between group overflow-hidden shadow-xl" noPadding>
+                                    <Card key={u.id} className="bg-black border-[#282828] p-0 flex items-center justify-between group overflow-hidden shadow-xl" noPadding>
                                         <div className="p-4 flex items-center gap-4 flex-1">
-                                            <img src={u.avatar} className="w-12 h-12 rounded-full border border-zinc-800 object-cover" alt=""/>
+                                            <img src={u.avatar} className="w-12 h-12 rounded-full border border-[#282828] object-cover" alt=""/>
                                             <div className="min-w-0 flex-1">
                                                 <h4 className="text-white font-bold text-sm truncate">{u.name}</h4>
-                                                <p className="text-zinc-600 text-[9px] uppercase tracking-tighter truncate">{u.email || 'БЕЗ_EMAIL'}</p>
+                                                <p className="text-kiddy-textMuted text-[9px] uppercase tracking-tighter truncate">{u.email || 'БЕЗ_EMAIL'}</p>
                                                 <p className="text-zinc-700 text-[8px] mt-1">{u.role}</p>
                                             </div>
                                         </div>
@@ -989,7 +1004,7 @@ export const AdminPanel: React.FC = () => {
                                             <button
                                                 onClick={() => handleDeleteUser(u)}
                                                 disabled={deletingUserId === u.id || u.id === user.id}
-                                                className="p-2 rounded-lg text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                                                className="p-2 rounded-lg text-kiddy-textMuted hover:text-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50"
                                                 title={u.id === user.id ? 'Нельзя удалить себя' : 'Удалить пользователя'}
                                             >
                                                 {deletingUserId === u.id ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16}/>}
@@ -1003,21 +1018,82 @@ export const AdminPanel: React.FC = () => {
                 </div>
             )}
 
+            {!loading && currentView === 'schedule' && (
+                <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                    <Card className="bg-[#121212]/40 border-[#282828] p-6 shrink-0">
+                        <h2 className="text-white font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2"><Calendar size={16} /> Добавить событие</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">День недели</label>
+                                <select value={scheduleForm.day_of_week} onChange={e => setScheduleForm({ ...scheduleForm, day_of_week: +e.target.value })} className="w-full bg-black border border-[#282828] rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-kiddy-cherry">
+                                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Начало</label>
+                                    <input type="text" value={scheduleForm.time_start} onChange={e => setScheduleForm({ ...scheduleForm, time_start: e.target.value })} placeholder="10:00" className="w-full bg-black border border-[#282828] rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-kiddy-cherry" />
+                                </div>
+                                <div>
+                                    <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Конец</label>
+                                    <input type="text" value={scheduleForm.time_end} onChange={e => setScheduleForm({ ...scheduleForm, time_end: e.target.value })} placeholder="11:00" className="w-full bg-black border border-[#282828] rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-kiddy-cherry" />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Название</label>
+                                <input type="text" value={scheduleForm.title} onChange={e => setScheduleForm({ ...scheduleForm, title: e.target.value })} placeholder="Урок Python" className="w-full bg-black border border-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:border-kiddy-cherry" />
+                            </div>
+                            <div>
+                                <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Описание (необяз.)</label>
+                                <textarea value={scheduleForm.description} onChange={e => setScheduleForm({ ...scheduleForm, description: e.target.value })} placeholder="Тема урока..." rows={2} className="w-full bg-black border border-[#282828] rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-kiddy-cherry resize-none" />
+                            </div>
+                            <div>
+                                <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Место / ссылка (необяз.)</label>
+                                <input type="text" value={scheduleForm.location} onChange={e => setScheduleForm({ ...scheduleForm, location: e.target.value })} placeholder="Zoom или адрес" className="w-full bg-black border border-[#282828] rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-kiddy-cherry" />
+                            </div>
+                        </div>
+                        <button onClick={handleAddScheduleEvent} className="mt-4 px-6 py-3 bg-kiddy-cherry text-white font-bold rounded-xl hover:bg-rose-700 transition-all flex items-center gap-2">
+                            <Plus size={18} /> Добавить событие
+                        </button>
+                    </Card>
+                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                        <h3 className="text-kiddy-textMuted text-xs font-bold uppercase tracking-widest mb-3">Все события</h3>
+                        <div className="space-y-2">
+                            {scheduleEvents.length === 0 ? (
+                                <p className="text-kiddy-textMuted text-sm">Событий пока нет. Добавьте выше.</p>
+                            ) : (
+                                scheduleEvents.sort((a, b) => a.day_of_week - b.day_of_week || (a.time_start || '').localeCompare(b.time_start || '')).map((ev) => (
+                                    <div key={ev.id} className="flex items-center justify-between gap-4 py-3 px-4 bg-[#121212]/60 border border-[#282828] rounded-xl">
+                                        <div>
+                                            <span className="text-kiddy-textMuted text-xs font-bold mr-2">{[ 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс' ][ev.day_of_week - 1]}</span>
+                                            <span className="text-kiddy-cherry font-mono text-sm">{ev.time_start}{ev.time_end ? ` – ${ev.time_end}` : ''}</span>
+                                            <span className="text-white font-bold ml-2">{ev.title}</span>
+                                            {ev.location && <span className="text-kiddy-textMuted text-xs block mt-0.5">{ev.location}</span>}
+                                        </div>
+                                        <button onClick={() => handleDeleteScheduleEvent(ev.id)} className="p-2 text-kiddy-textMuted hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {!loading && currentView === 'settings' && (
-                <div className="flex-1 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-10 overflow-y-auto no-scrollbar">
+                <div className="flex-1 bg-[#121212]/40 border border-[#282828] rounded-2xl p-10 overflow-y-auto no-scrollbar">
                     <div className="max-w-2xl space-y-10">
                         <div className="space-y-4">
-                            <label className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Логотип академии</label>
-                            <div className="relative group aspect-square w-40 bg-black border border-zinc-800 rounded-3xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-kiddy-primary transition-colors" onClick={() => logoFileRef.current?.click()}>
-                                {uploading ? <Loader2 className="animate-spin text-zinc-700" size={32} /> : globalSettings.logo_url ? <img src={globalSettings.logo_url} className="w-full h-full object-contain p-4" alt="Logo" /> : <div className="text-center p-4"><ImageIcon size={32} className="text-zinc-700 mx-auto mb-2" /><p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Загрузить</p></div>}
+                            <label className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Логотип академии</label>
+                            <div className="relative group aspect-square w-40 bg-black border border-[#282828] rounded-3xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-kiddy-cherry transition-colors" onClick={() => logoFileRef.current?.click()}>
+                                {uploading ? <Loader2 className="animate-spin text-zinc-700" size={32} /> : globalSettings.logo_url ? <img src={globalSettings.logo_url} className="w-full h-full object-contain p-4" alt="Logo" /> : <div className="text-center p-4"><ImageIcon size={32} className="text-zinc-700 mx-auto mb-2" /><p className="text-[9px] text-kiddy-textMuted font-bold uppercase tracking-widest">Загрузить</p></div>}
                                 <input type="file" ref={logoFileRef} className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={e => handleUpload(e, 'logo')} />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Название организации</label>
-                            <input value={globalSettings.school_name} onChange={e => setGlobalSettings({...globalSettings, school_name: e.target.value})} className="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-display font-bold outline-none focus:border-kiddy-primary transition-all" placeholder="Напр: Kiddy IT Academy"/>
+                            <label className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Название организации</label>
+                            <input value={globalSettings.school_name} onChange={e => setGlobalSettings({...globalSettings, school_name: e.target.value})} className="w-full bg-black border border-[#282828] p-4 rounded-xl text-white font-display font-bold outline-none focus:border-kiddy-cherry transition-all" placeholder="Напр: Kiddy IT Academy"/>
                         </div>
-                        <button onClick={handleSaveSettings} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-kiddy-primary hover:text-white transition-all shadow-xl">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+                        <button onClick={handleSaveSettings} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-kiddy-cherry hover:text-white transition-all shadow-xl">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
                     </div>
                 </div>
             )}

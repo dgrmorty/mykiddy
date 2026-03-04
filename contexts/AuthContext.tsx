@@ -5,7 +5,13 @@ import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
 import { AuthModal } from '../components/AuthModal';
 
-const ADMIN_EMAILS = ['knazar002@gmail.com'];
+// Список админов: в .env обязательно задать VITE_ADMIN_EMAILS=email1@example.com,email2@example.com
+// В продакшене без этой переменной админов не будет.
+const _adminFromEnv = (import.meta.env.VITE_ADMIN_EMAILS || '')
+  .split(',')
+  .map((s: string) => s.trim().toLowerCase())
+  .filter(Boolean);
+const ADMIN_EMAILS = _adminFromEnv;
 
 interface AuthContextType {
   user: User;
@@ -23,10 +29,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User>(GUEST_USER);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const loadingRef = React.useRef(true);
+  const loadingRef = React.useRef(false);
   const userRef = React.useRef<User>(user);
+  const lastProfileRefreshRef = React.useRef(0);
   userRef.current = user;
 
   const setAuthLoading = (val: boolean) => {
@@ -233,14 +240,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // При возврате на вкладку — тихо подтягиваем свежий профиль (уровень, XP и т.д.) без экрана загрузки
+    // При возврате на вкладку — тихо подтягиваем профиль не чаще раза в 3 мин (меньше трафика)
+    const PROFILE_REFRESH_THROTTLE_MS = 3 * 60 * 1000;
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !mounted) return;
       const uid = userRef.current?.id;
       if (!uid) return;
+      if (Date.now() - lastProfileRefreshRef.current < PROFILE_REFRESH_THROTTLE_MS) return;
+      lastProfileRefreshRef.current = Date.now();
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!mounted || !session?.user || session.user.id !== uid) return;
-        fetchProfile(session.user.id, session.user, { silent: true }).catch(() => {});
+        fetchProfile(session.user.id, session.user, { silent: true }).then(() => {}).catch(() => {});
       });
     };
     document.addEventListener('visibilitychange', onVisibilityChange);

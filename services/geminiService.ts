@@ -66,62 +66,76 @@ async function askAiTutorOnce(question: string, context: string, accessToken?: s
   return data.text || "Не удалось получить ответ от сервера.";
 }
 
+const SERVER_DOWN_MSG = 'Сервер недоступен. Убедитесь, что приложение запущено на Railway, или попробуйте позже.';
+
+function isNetworkOrServerError(e: any): boolean {
+  const msg = (e?.message || '').toLowerCase();
+  return e?.name === 'AbortError' || msg.includes('fetch') || msg.includes('network') || msg === 'failed to fetch';
+}
+
 export const askAiTutor = async (question: string, context: string, accessToken?: string | null): Promise<string> => {
   try {
     return await askAiTutorOnce(question, context, accessToken);
   } catch (error: any) {
     console.error("AI Service Error:", error);
-    // Одна повторная попытка при сетевой ошибке или таймауте (часто помогает на мобильном интернете)
-    if (error?.name === 'AbortError' || error?.message?.includes('fetch') || error?.message?.includes('Network')) {
+    if (isNetworkOrServerError(error)) {
       try {
         return await askAiTutorOnce(question, context, accessToken);
       } catch (retryError: any) {
         if (retryError?.name === 'AbortError') {
           throw new Error("Сервер не успел ответить. Попробуйте ещё раз через минуту.");
         }
-        throw new Error(retryError?.message || "Не удалось связаться с сервером. Попробуйте позже или проверьте соединение.");
+        throw new Error(isNetworkOrServerError(retryError) ? SERVER_DOWN_MSG : (retryError?.message || SERVER_DOWN_MSG));
       }
+    }
+    const msg = error?.message || '';
+    if (msg.toLowerCase() === 'failed to fetch' || msg.includes('Load failed')) {
+      throw new Error(SERVER_DOWN_MSG);
     }
     throw new Error(error?.message || "Не удалось связаться с сервером. Попробуйте позже.");
   }
 };
 
-const HOMEWORK_TIMEOUT_MS = 60000; // 60 сек — проверка ДЗ через ИИ может занимать время
+const HOMEWORK_TIMEOUT_MS = 60000;
+
+async function checkHomeworkOnce(task: string, studentAnswer: string, accessToken?: string | null): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), HOMEWORK_TIMEOUT_MS);
+  try {
+    const response = await fetch(getApiUrl('api/check-homework'), {
+      method: 'POST',
+      headers: aiHeaders(accessToken),
+      body: JSON.stringify({ task, studentAnswer }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 429) throw new Error(errorData.error || "Лимит проверок на сегодня исчерпан. Попробуйте завтра.");
+      if (response.status === 401) throw new Error(errorData.error || "Войдите в аккаунт.");
+      throw new Error("Не удалось проверить задание. Попробуйте позже.");
+    }
+    const data = await response.json();
+    return data.text || "Не удалось проанализировать ответ. Попробуйте еще раз.";
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export const checkHomework = async (task: string, studentAnswer: string, accessToken?: string | null): Promise<string> => {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), HOMEWORK_TIMEOUT_MS);
-
-    const response = await fetch(getApiUrl('api/check-homework'), {
-        method: 'POST',
-        headers: aiHeaders(accessToken),
-        body: JSON.stringify({ task, studentAnswer }),
-        signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 429) {
-            throw new Error(errorData.error || "Лимит проверок на сегодня исчерпан. Попробуйте завтра.");
-        }
-        if (response.status === 401) {
-            throw new Error(errorData.error || "Войдите в аккаунт.");
-        }
-        throw new Error("Не удалось проверить задание. Попробуйте позже.");
-    }
-
-    const data = await response.json();
-    const text = data.text || "Не удалось проанализировать ответ. Попробуйте еще раз.";
-    return text;
+    return await checkHomeworkOnce(task, studentAnswer, accessToken);
   } catch (error: any) {
-    console.error("Homework Service Error:", error);
-    if (error?.name === 'AbortError') {
-        throw new Error("Сервер не успел ответить (таймаут). Попробуйте ещё раз через минуту.");
+    if (isNetworkOrServerError(error)) {
+      await new Promise((r) => setTimeout(r, 2500)); // пауза перед повтором
+      try {
+        return await checkHomeworkOnce(task, studentAnswer, accessToken);
+      } catch (retryError: any) {
+        if (retryError?.name === 'AbortError') throw new Error("Сервер не успел ответить (таймаут). Попробуйте ещё раз через минуту.");
+        throw new Error(isNetworkOrServerError(retryError) ? SERVER_DOWN_MSG : (retryError?.message || "Не удалось отправить задание. Попробуйте позже."));
+      }
     }
-    // Бросаем ошибку, чтобы в CourseDetail не начислялись XP при сбое отправки
+    if (error?.name === 'AbortError') throw new Error("Сервер не успел ответить (таймаут). Попробуйте ещё раз через минуту.");
     throw new Error(error?.message || "Не удалось отправить задание. Проверьте интернет или попробуйте позже.");
   }
 };

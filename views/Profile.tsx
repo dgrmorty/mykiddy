@@ -4,9 +4,8 @@ import { User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
-    Award, Zap, Settings, Bell, Lock, Crown, Fingerprint, 
-    ChevronRight, Edit2, Save, X, Loader2, Camera, Target, 
-    LogOut, AlertTriangle, Trophy, Medal, Star
+    Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Save, X, Loader2, Camera, Target, 
+    LogOut, AlertTriangle, Trophy, Medal
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { SKILL_DATA } from '../constants';
@@ -48,16 +47,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, email')
+        .select('id, name, avatar, xp, level')
         .order('xp', { ascending: false })
         .limit(50);
-      
       if (error) throw error;
-      
       if (data) {
         setLeaderboard(data.map(u => ({
           id: u.id,
-          email: u.email || '',
+          email: '',
           name: u.name || 'Анонимный',
           role: 'Student' as any,
           avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
@@ -204,7 +201,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         <div className="relative z-20 h-full flex flex-col justify-center px-8 md:px-16">
             <div className="flex flex-col md:flex-row items-center gap-8">
                 <div className="relative group/avatar">
-                    <div className="absolute inset-0 bg-kiddy-primary blur-3xl opacity-20 animate-pulse" />
+                    <div className="absolute inset-0 bg-kiddy-cherry blur-3xl opacity-20 animate-pulse" />
                     <div className="w-28 h-28 md:w-32 md:h-32 rounded-full border-2 border-white/10 relative z-10 shadow-2xl overflow-hidden bg-black">
                          <img 
                             src={editAvatar || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`} 
@@ -213,7 +210,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         />
                         {(uploading || saving) && (
                              <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
-                                <Loader2 className="animate-spin text-kiddy-primary" size={32} />
+                                <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
                              </div>
                         )}
                     </div>
@@ -243,15 +240,15 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
                 <div className="flex-1 text-center md:text-left space-y-2 w-full md:w-auto">
                     <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
-                        <Crown className="text-kiddy-primary" size={16} />
-                        <span className="text-kiddy-primary text-[10px] font-bold uppercase tracking-[0.4em]">Верифицированный профиль</span>
+                        <Crown className="text-kiddy-cherry" size={16} />
+                        <span className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.4em]">Верифицированный профиль</span>
                     </div>
                     
                     {isEditing ? (
                         <input 
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="bg-black/40 border-b-2 border-kiddy-primary text-4xl md:text-6xl font-display font-bold text-white outline-none w-full italic px-4 py-2 rounded-t-xl"
+                            className="bg-black/40 border-b-2 border-kiddy-cherry text-4xl md:text-6xl font-display font-bold text-white outline-none w-full italic px-4 py-2 rounded-t-xl"
                             placeholder="Имя пользователя"
                             autoFocus
                         />
@@ -261,7 +258,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         </h1>
                     )}
 
-                    <div className="flex flex-col md:flex-row items-center gap-4 text-zinc-500 font-mono text-[10px] uppercase tracking-widest">
+                    <div className="flex flex-col md:flex-row items-center gap-4 text-kiddy-textMuted font-mono text-[10px] uppercase tracking-widest">
                         <span className="flex items-center gap-2"><Fingerprint size={12} /> ID: {currentUser.id.substring(0, 8).toUpperCase()}</span>
                     </div>
                 </div>
@@ -269,10 +266,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 <div className="absolute top-6 right-6 md:relative md:top-auto md:right-auto md:ml-auto">
                     {isEditing ? (
                         <div className="flex gap-2">
-                            <button onClick={() => setIsEditing(false)} disabled={saving} className="p-3 bg-zinc-900 rounded-xl text-zinc-400 hover:text-white transition-all">
+                            <button onClick={() => setIsEditing(false)} disabled={saving} className="p-3 bg-[#181818] rounded-xl text-kiddy-textSecondary hover:text-white transition-all">
                                 <X size={20} />
                             </button>
-                            <button onClick={handleSave} disabled={saving || uploading} className="p-3 bg-kiddy-primary rounded-xl text-white hover:bg-rose-600 transition-all shadow-lg shadow-kiddy-primary/20">
+                            <button onClick={handleSave} disabled={saving || uploading} className="p-3 bg-kiddy-cherry rounded-xl text-white hover:bg-rose-600 transition-all shadow-lg shadow-kiddy-cherry/20">
                                 {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                             </button>
                         </div>
@@ -288,10 +285,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="md:col-span-2 bg-zinc-950/40 border-zinc-800/50 backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
+        <Card className="md:col-span-2 bg-[#121212]/40 border-[#282828]/50 backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
                 <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
-                    <Target size={16} className="text-kiddy-primary" />
+                    <Target size={16} className="text-kiddy-cherry" />
                     Матрица компетенций
                 </h3>
             </div>
@@ -306,39 +303,39 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
         </Card>
 
-        <Card className="bg-zinc-950/40 border-zinc-800/50 p-10 flex flex-col justify-between" noPadding>
+        <Card className="bg-[#121212]/40 border-[#282828]/50 p-10 flex flex-col justify-between" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
                     <Zap className="text-yellow-500" size={24} />
                 </div>
-                <h3 className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Очки опыта</h3>
+                <h3 className="text-kiddy-textMuted font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Очки опыта</h3>
                 <div className="text-4xl font-display font-bold text-white mb-4 italic">{currentUser.xp.toLocaleString()} <span className="text-xs text-zinc-700 not-italic">XP</span></div>
             </div>
             <div className="space-y-2">
-                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-zinc-500">
+                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-kiddy-textMuted">
                     <span>До следующего уровня</span>
                     <span>{Math.min(100, ((currentUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-[#181818] rounded-full overflow-hidden">
                     <div 
-                        className="h-full bg-gradient-to-r from-kiddy-primary to-rose-400 shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
+                        className="h-full bg-gradient-to-r from-kiddy-cherry to-rose-400 shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
                         style={{ width: `${Math.min(100, ((currentUser.xp % 100) / 100) * 100)}%` }} 
                     />
                 </div>
             </div>
         </Card>
 
-        <Card className="bg-zinc-950/40 border-zinc-800/50 p-10 flex flex-col justify-between" noPadding>
+        <Card className="bg-[#121212]/40 border-[#282828]/50 p-10 flex flex-col justify-between" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-                    <Award className="text-kiddy-primary" size={24} />
+                    <Award className="text-kiddy-cherry" size={24} />
                 </div>
-                <h3 className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Рейтинг в академии</h3>
+                <h3 className="text-kiddy-textMuted font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Рейтинг в академии</h3>
                 <div className="text-4xl font-display font-bold text-white italic">#{Math.max(1, 100 - currentUser.level)}</div>
             </div>
             <button 
               onClick={() => setIsLeaderboardOpen(true)}
-              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-primary hover:text-white transition-colors group"
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-cherry hover:text-white transition-colors group"
             >
                 Таблица лидеров <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
@@ -349,7 +346,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       <section className="pt-10 border-t border-zinc-900">
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-rose-500 hover:border-rose-500/30 transition-all font-bold group"
+            className="flex items-center gap-3 px-8 py-4 bg-[#181818]/50 border border-[#282828] rounded-2xl text-kiddy-textMuted hover:text-rose-500 hover:border-rose-500/30 transition-all font-bold group"
           >
               <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
               Выход из системы
@@ -360,33 +357,33 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       <Modal isOpen={isLeaderboardOpen} onClose={() => setIsLeaderboardOpen(false)} maxWidth="max-w-3xl">
           <div className="p-10 flex flex-col h-full">
               <div className="flex items-center gap-4 mb-8">
-                  <div className="w-16 h-16 bg-kiddy-primary/10 rounded-2xl flex items-center justify-center border border-kiddy-primary/20">
-                      <Trophy className="text-kiddy-primary" size={32} />
+                  <div className="w-16 h-16 bg-kiddy-cherry/10 rounded-2xl flex items-center justify-center border border-kiddy-cherry/20">
+                      <Trophy className="text-kiddy-cherry" size={32} />
                   </div>
                   <div>
                       <h2 className="text-3xl font-display font-bold text-white mb-1">Таблица лидеров</h2>
-                      <p className="text-zinc-500 text-xs uppercase tracking-widest">Рейтинг по очкам опыта</p>
+                      <p className="text-kiddy-textMuted text-xs uppercase tracking-widest">Рейтинг по очкам опыта</p>
                   </div>
               </div>
               
               {loadingLeaderboard ? (
                   <div className="flex-1 flex items-center justify-center">
-                      <Loader2 className="animate-spin text-kiddy-primary" size={40} />
+                      <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
                   </div>
               ) : (
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
                       {leaderboard.map((user, index) => {
                           const isCurrentUser = user.id === currentUser.id;
                           const rank = index + 1;
-                          const medalColor = rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-zinc-400' : rank === 3 ? 'text-amber-600' : 'text-zinc-700';
+                          const medalColor = rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-kiddy-textSecondary' : rank === 3 ? 'text-amber-600' : 'text-zinc-700';
                           
                           return (
                               <div
                                   key={user.id}
                                   className={`p-4 rounded-xl border transition-all ${
                                       isCurrentUser
-                                          ? 'bg-kiddy-primary/10 border-kiddy-primary/50 shadow-lg shadow-kiddy-primary/10'
-                                          : 'bg-zinc-950/50 border-zinc-800 hover:border-zinc-700'
+                                          ? 'bg-kiddy-cherry/10 border-kiddy-cherry/50 shadow-lg shadow-kiddy-cherry/10'
+                                          : 'bg-[#121212]/50 border-[#282828] hover:border-zinc-700'
                                   }`}
                               >
                                   <div className="flex items-center gap-4">
@@ -394,7 +391,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                           {rank <= 3 ? (
                                               <Medal className={medalColor} size={24} fill="currentColor" />
                                           ) : (
-                                              <span className={`text-sm font-display font-bold ${isCurrentUser ? 'text-kiddy-primary' : 'text-zinc-600'}`}>
+                                              <span className={`text-sm font-display font-bold ${isCurrentUser ? 'text-kiddy-cherry' : 'text-kiddy-textMuted'}`}>
                                                   #{rank}
                                               </span>
                                           )}
@@ -403,32 +400,32 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                       <img 
                                           src={user.avatar} 
                                           alt={user.name}
-                                          className="w-12 h-12 rounded-full border-2 border-zinc-800 object-cover"
+                                          className="w-12 h-12 rounded-full border-2 border-[#282828] object-cover"
                                       />
                                       
                                       <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2">
-                                              <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-kiddy-primary' : 'text-white'}`}>
+                                              <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-kiddy-cherry' : 'text-white'}`}>
                                                   {user.name}
                                               </h4>
                                               {isCurrentUser && (
-                                                  <span className="px-2 py-0.5 bg-kiddy-primary/20 text-kiddy-primary text-[9px] font-bold rounded uppercase">
+                                                  <span className="px-2 py-0.5 bg-kiddy-cherry/20 text-kiddy-cherry text-[9px] font-bold rounded uppercase">
                                                       Вы
                                                   </span>
                                               )}
                                           </div>
                                           <div className="flex items-center gap-4 mt-1">
-                                              <span className="text-zinc-500 text-xs">Уровень {user.level}</span>
-                                              <span className="text-zinc-600 text-xs">•</span>
-                                              <span className="text-zinc-500 text-xs">{user.xp.toLocaleString()} XP</span>
+                                              <span className="text-kiddy-textMuted text-xs">Уровень {user.level}</span>
+                                              <span className="text-kiddy-textMuted text-xs">•</span>
+                                              <span className="text-kiddy-textMuted text-xs">{user.xp.toLocaleString()} XP</span>
                                           </div>
                                       </div>
                                       
                                       <div className="text-right">
-                                          <div className={`text-2xl font-display font-bold ${isCurrentUser ? 'text-kiddy-primary' : 'text-zinc-400'}`}>
+                                          <div className={`text-2xl font-display font-bold ${isCurrentUser ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary'}`}>
                                               {user.xp.toLocaleString()}
                                           </div>
-                                          <div className="text-[9px] text-zinc-600 uppercase tracking-widest">Очков</div>
+                                          <div className="text-[9px] text-kiddy-textMuted uppercase tracking-widest">Очков</div>
                                       </div>
                                   </div>
                               </div>
@@ -438,7 +435,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       {leaderboard.length === 0 && (
                           <div className="text-center py-20">
                               <Trophy className="text-zinc-800 mx-auto mb-4" size={48} />
-                              <p className="text-zinc-600 text-sm font-bold uppercase tracking-widest">Лидерборд пуст</p>
+                              <p className="text-kiddy-textMuted text-sm font-bold uppercase tracking-widest">Лидерборд пуст</p>
                           </div>
                       )}
                   </div>
@@ -453,13 +450,13 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                   <AlertTriangle className="text-rose-500" size={40} />
               </div>
               <h2 className="text-2xl font-display font-bold text-white mb-4">Завершить сеанс?</h2>
-              <p className="text-zinc-500 text-sm mb-10 leading-relaxed">
+              <p className="text-kiddy-textMuted text-sm mb-10 leading-relaxed">
                   Вы уверены, что хотите выйти из аккаунта? Вам потребуется снова ввести данные для входа.
               </p>
               <div className="grid grid-cols-2 gap-4 w-full">
                   <button 
                     onClick={() => setIsLogoutModalOpen(false)}
-                    className="py-4 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all"
+                    className="py-4 bg-[#181818] text-white font-bold rounded-xl hover:bg-zinc-800 transition-all"
                   >
                       Отмена
                   </button>

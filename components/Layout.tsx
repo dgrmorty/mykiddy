@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { User, Role } from '../types';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, BookOpen, Calendar, User as UserIcon, Sparkles, Lock, Shield } from 'lucide-react';
+import { AnimatedIcon } from './ui/AnimatedIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 
@@ -16,91 +15,79 @@ export const Layout: React.FC<LayoutProps> = ({ user, onSwitchRole }) => {
   const { openAuthModal } = useAuth();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
-  
   const [logo, setLogo] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
 
   useEffect(() => {
     supabase.from('settings').select('*').eq('id', 'logo_url').single()
-        .then(({ data }) => { if(data?.value) setLogo(data.value); });
+      .then(({ data }) => { if (data?.value) setLogo(data.value); });
+  }, []);
+
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
   }, []);
 
   const handleNavClick = (e: React.MouseEvent, locked: boolean) => {
-    if (locked) {
-      e.preventDefault();
-      openAuthModal();
-    }
+    if (locked) { e.preventDefault(); openAuthModal(); }
   };
 
-  const MobileNavItem = ({ to, icon: Icon, locked, label }: { to: string, icon: any, locked: boolean, label?: string }) => (
-    <NavLink 
-        to={to} 
-        onClick={(e) => handleNavClick(e, locked)}
-        className={({isActive}) => `
-            relative flex flex-col items-center gap-1 p-2 transition-colors
-            ${isActive && !locked ? "text-kiddy-primary" : "text-zinc-500"}
-        `}
+  const MobileNavItem = ({ to, iconName, locked, label }: { to: string; iconName: any; locked: boolean; label: string }) => (
+    <NavLink
+      to={to}
+      onClick={(e) => handleNavClick(e, locked)}
+      className={({ isActive }) =>
+        `flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-300
+         ${isActive && !locked ? 'text-kiddy-cherry scale-110' : 'text-kiddy-textSecondary hover:text-white'}`
+      }
     >
-        <div className="relative">
-            <Icon size={22} />
+      {({ isActive }) => (
+        <>
+          <div className={`relative ${isActive && !locked ? 'drop-shadow-[0_0_8px_rgba(230,0,43,0.4)]' : ''}`}>
+            <AnimatedIcon name={iconName} size={22} active={isActive && !locked} />
             {locked && (
-                <div className="absolute -top-1 -right-2 bg-zinc-900 rounded-full p-[2px] border border-zinc-800">
-                    <Lock size={8} className="text-zinc-500" />
-                </div>
+              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-kiddy-surfaceElevated border border-black">
+                <AnimatedIcon name="lock" size={8} className="text-white" active={false} />
+              </span>
             )}
-        </div>
-        {label && <span className="text-[8px] font-bold uppercase tracking-tighter">{label}</span>}
+          </div>
+          <span className={`text-[10px] font-semibold tracking-wide ${isActive && !locked ? 'text-white' : ''}`}>{label}</span>
+        </>
+      )}
     </NavLink>
   );
 
   return (
-    <div className="min-h-screen bg-kiddy-base text-kiddy-text font-sans selection:bg-kiddy-primary selection:text-white">
+    <div className="min-h-screen bg-transparent text-white font-sans selection:bg-kiddy-cherry/30 selection:text-white flex flex-col md:flex-row">
+      {isOffline && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/95 text-black text-center py-2 px-4 text-sm font-semibold">
+          Нет соединения с интернетом. Часть функций недоступна.
+        </div>
+      )}
       <Sidebar currentUser={user} onSwitchRole={onSwitchRole} />
-      
-      {/* Mobile Header */}
-      <div 
-        className="md:hidden border-b border-zinc-800 flex items-center justify-between px-4 sticky top-0 bg-kiddy-base/80 backdrop-blur-md z-40"
-        style={{ 
-          paddingTop: 'max(1rem, env(safe-area-inset-top))',
-          paddingBottom: '1rem'
-        }}
-      >
-        {logo ? (
-            <img src={logo} alt="Kiddy" className="h-8 w-auto object-contain" />
-        ) : (
-            <span className="font-display font-bold text-white italic">Kiddy OS</span>
-        )}
-        <img 
-            src={user.avatar} 
-            alt="User" 
-            className="w-8 h-8 rounded-full border border-zinc-700" 
-            onClick={!isAdmin ? onSwitchRole : undefined} 
-        />
-      </div>
 
-      <main className="md:ml-64 p-4 md:p-8 max-w-7xl mx-auto min-h-screen pb-32 md:pb-8">
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 bg-kiddy-base/80 backdrop-blur-xl border-b border-white/[0.04]">
+        {logo ? <img src={logo} alt="Kiddy" className="h-7 w-auto object-contain" /> : <span className="font-display font-extrabold text-xl text-white tracking-tighter">Kiddy</span>}
+        <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" onClick={!isAdmin ? onSwitchRole : undefined} />
+      </header>
+
+      <main className="flex-1 md:ml-[260px] min-h-screen px-4 md:px-10 py-6 md:py-12 max-w-[1400px] w-full mx-auto pb-28 md:pb-12">
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <div 
-        className="md:hidden fixed bottom-0 left-0 w-full bg-kiddy-surface/95 backdrop-blur-lg border-t border-zinc-800 px-2 flex justify-around items-center z-50"
-        style={{ 
-          paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
-          paddingTop: '0.75rem'
-        }}
-      >
-        <MobileNavItem to="/" icon={Home} locked={false} label="Дом" />
-        <MobileNavItem to="/courses" icon={BookOpen} locked={isGuest} label="Курсы" />
-        <MobileNavItem to="/ai-tutor" icon={Sparkles} locked={isGuest} label="ИИ" />
-        
-        {isAdmin ? (
-            <MobileNavItem to="/admin" icon={Shield} locked={false} label="Админ" />
-        ) : (
-            <MobileNavItem to="/schedule" icon={Calendar} locked={isGuest} label="План" />
-        )}
-        
-        <MobileNavItem to="/profile" icon={UserIcon} locked={isGuest} label="Профиль" />
-      </div>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-kiddy-base/90 backdrop-blur-2xl border-t border-white/[0.04] py-3 px-2 pb-safe">
+        <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" />
+        <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" />
+        <MobileNavItem to="/ai-tutor" iconName="sparkle" locked={isGuest} label="ИИ" />
+        {isAdmin ? <MobileNavItem to="/admin" iconName="shield" locked={false} label="Админ" /> : <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />}
+        <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" />
+      </nav>
     </div>
   );
 };
