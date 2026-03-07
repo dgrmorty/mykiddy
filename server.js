@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
@@ -192,7 +193,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 const initAI = () => {
     const key = process.env.API_KEY;
     if (!key) {
-        console.warn("⚠️ API Key is missing in server environment variables!");
+        console.warn("⚠️ API_KEY не задан. ИИ-тьютор и проверка ДЗ работать не будут. Задайте API_KEY в .env (локально) или в Variables (Railway).");
         return null;
     }
     try {
@@ -204,6 +205,7 @@ const initAI = () => {
 };
 
 const ai = initAI();
+if (!ai) console.warn("Запуск без ИИ: проверьте API_KEY и перезапустите сервер.");
 
 // Проверка на prompt injection (серверная дублирующая проверка)
 function isPromptInjection(text) {
@@ -301,7 +303,13 @@ app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
         }
         res.json({ text: response.text });
     } catch (error) {
-        console.error("AI Request Failed:", error);
+        console.error("AI Tutor request failed:", error?.message || error);
+        if (error?.message?.includes('API key') || error?.message?.includes('401')) {
+            return res.status(503).json({ error: "Неверный или отсутствующий API ключ Gemini. Проверьте API_KEY на сервере.", code: "SERVICE_UNAVAILABLE" });
+        }
+        if (error?.message?.includes('429') || error?.message?.includes('quota')) {
+            return res.status(503).json({ error: "Превышена квота Google AI. Попробуйте позже или проверьте лимиты в Google AI Studio.", code: "SERVICE_UNAVAILABLE" });
+        }
         res.status(500).json({ error: "Сервис временно недоступен. Попробуйте позже.", code: "SERVER_ERROR" });
     }
 });
@@ -392,7 +400,13 @@ ${answerStr}
         }
         res.json({ text: response.text });
     } catch (error) {
-        console.error("Homework Check Failed:", error);
+        console.error("Homework check failed:", error?.message || error);
+        if (error?.message?.includes('API key') || error?.message?.includes('401')) {
+            return res.status(503).json({ error: "Неверный или отсутствующий API ключ Gemini. Проверьте API_KEY на сервере.", code: "SERVICE_UNAVAILABLE" });
+        }
+        if (error?.message?.includes('429') || error?.message?.includes('quota')) {
+            return res.status(503).json({ error: "Превышена квота Google AI. Попробуйте позже.", code: "SERVICE_UNAVAILABLE" });
+        }
         res.status(500).json({ error: "Не удалось проверить задание. Попробуйте позже.", code: "SERVER_ERROR" });
     }
 });
