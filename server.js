@@ -219,6 +219,26 @@ function isPromptInjection(text) {
     return dangerous.some(p => lower.includes(p));
 }
 
+// Вызов Gemini с fallback: сначала 2.5, при ошибке модели — 2.0
+async function generateWithFallback(contents, config) {
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    let lastError;
+    for (const model of models) {
+        try {
+            const response = await ai.models.generateContent({ model, contents, config });
+            return response;
+        } catch (e) {
+            lastError = e;
+            const msg = (e?.message ?? '').toLowerCase();
+            if (msg.includes('404') || msg.includes('not found') || msg.includes('model')) {
+                continue;
+            }
+            throw e;
+        }
+    }
+    throw lastError;
+}
+
 // Здоровье системы
 app.get('/api/health', (req, res) => {
     res.json({ 
@@ -253,7 +273,12 @@ app.get('/api/ai-usage', async (req, res) => {
 });
 
 app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
-    if (!ai) return res.status(503).json({ error: "Сервис временно недоступен", code: "SERVICE_UNAVAILABLE" });
+    if (!ai) {
+        return res.status(503).json({
+            error: "ИИ-сервис не настроен. Задайте API_KEY в .env (локально) или в Railway → Variables.",
+            code: "SERVICE_UNAVAILABLE"
+        });
+    }
     const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
     if (hasSupabase && !accessToken) {
         return res.status(401).json({ error: "Войдите в аккаунт, чтобы пользоваться наставником.", code: "AUTH_REQUIRED" });
@@ -286,36 +311,57 @@ app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
         if (isPromptInjection(question)) {
             return res.status(400).json({ error: "Запрос заблокирован политикой безопасности.", code: "VALIDATION_ERROR" });
         }
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: question,
-            config: {
-                systemInstruction: `Ты — ИИ-тьютор Kiddy. Помогаешь детям (8-14 лет) осваивать программирование и 3D. 
+        const response = await generateWithFallback(question, {
+            systemInstruction: `Ты — ИИ-тьютор Kiddy. Помогаешь детям (8-14 лет) осваивать программирование и 3D. 
                 Твой стиль: дружелюбный эксперт, вдохновляющий на созидание. 
                 Язык: РУССКИЙ. 
                 Кратко, по делу, без лишней воды.
                 Контекст: ${context}.`
-            },
         });
+
+        const text = response?.text ?? (response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+        if (!text) {
+            console.warn("AI Tutor: пустой ответ от модели", JSON.stringify(response?.candidates));
+        }
 
         if (hasSupabase && accessToken && tutorUserId) {
             await incrementTutorUsage(accessToken, tutorUserId);
         }
-        res.json({ text: response.text });
+        res.json({ text: text || 'Не удалось получить ответ. Попробуйте переформулировать вопрос.' });
     } catch (error) {
-        console.error("AI Tutor request failed:", error?.message || error);
-        if (error?.message?.includes('API key') || error?.message?.includes('401')) {
-            return res.status(503).json({ error: "Неверный или отсутствующий API ключ Gemini. Проверьте API_KEY на сервере.", code: "SERVICE_UNAVAILABLE" });
+        const msg = error?.message ?? String(error);
+        const code = error?.code ?? error?.status ?? error?.statusCode;
+        console.error("AI Tutor request failed:", msg, "code:", code, "full:", error);
+
+        if (!msg || msg.includes('API key') || msg.includes('401') || msg.includes('API_KEY') || code === 401) {
+            return res.status(503).json({
+                error: "Неверный или отсутствующий API ключ Gemini. Задайте API_KEY в Railway Variables и перезапустите сервис.",
+                code: "SERVICE_UNAVAILABLE"
+            });
         }
-        if (error?.message?.includes('429') || error?.message?.includes('quota')) {
-            return res.status(503).json({ error: "Превышена квота Google AI. Попробуйте позже или проверьте лимиты в Google AI Studio.", code: "SERVICE_UNAVAILABLE" });
+        if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || code === 429) {
+            return res.status(503).json({
+                error: "Превышена квота Google AI. Попробуйте позже или проверьте лимиты в Google AI Studio.",
+                code: "SERVICE_UNAVAILABLE"
+            });
+        }
+        if (msg.includes('404') || msg.includes('model') || msg.includes('not found')) {
+            return res.status(503).json({
+                error: "Модель ИИ временно недоступна. Попробуйте позже.",
+                code: "SERVICE_UNAVAILABLE"
+            });
         }
         res.status(500).json({ error: "Сервис временно недоступен. Попробуйте позже.", code: "SERVER_ERROR" });
     }
 });
 
 app.post('/api/check-homework', aiLimiter, async (req, res) => {
-    if (!ai) return res.status(503).json({ error: "Сервис временно недоступен" });
+    if (!ai) {
+        return res.status(503).json({
+            error: "ИИ-сервис не настроен. Задайте API_KEY в .env (локально) или в Railway → Variables.",
+            code: "SERVICE_UNAVAILABLE"
+        });
+    }
     const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
     if (hasSupabase && !accessToken) {
         return res.status(401).json({ error: "Войдите в аккаунт, чтобы отправить задание на проверку.", code: "AUTH_REQUIRED" });
@@ -380,11 +426,8 @@ ${answerStr}
 Стиль: максимально поддерживающий, дружелюбный, вдохновляющий. Хвали за старание!
 Язык: РУССКИЙ.`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: prompt,
-            config: {
-                systemInstruction: `Ты — ИИ-тьютор Kiddy, который проверяет домашние задания для детей 8-14 лет. 
+        const response = await generateWithFallback(prompt, {
+            systemInstruction: `Ты — ИИ-тьютор Kiddy, который проверяет домашние задания для детей 8-14 лет. 
                 Ты внимательно анализируешь ответ ученика на основе конкретного задания из урока.
                 Ты МАКСИМАЛЬНО поддерживающий, дружелюбный и конструктивный.
                 Ты работаешь с детьми - будь добрым и терпеливым!
@@ -393,19 +436,27 @@ ${answerStr}
                 Если есть ошибки - мягко укажи на них и предложи как исправить.
                 Всегда хвали за старание и мотивируй продолжать учиться!
                 Язык: РУССКИЙ.`
-            }
         });
+        const text = response?.text ?? (response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
         if (hasSupabase && accessToken && homeworkUserId) {
             await incrementHomeworkUsage(accessToken, homeworkUserId);
         }
-        res.json({ text: response.text });
+        res.json({ text: text || 'Не удалось получить оценку. Попробуйте ещё раз.' });
     } catch (error) {
-        console.error("Homework check failed:", error?.message || error);
-        if (error?.message?.includes('API key') || error?.message?.includes('401')) {
-            return res.status(503).json({ error: "Неверный или отсутствующий API ключ Gemini. Проверьте API_KEY на сервере.", code: "SERVICE_UNAVAILABLE" });
+        const msg = error?.message ?? String(error);
+        const code = error?.code ?? error?.status ?? error?.statusCode;
+        console.error("Homework check failed:", msg, "code:", code, "full:", error);
+        if (!msg || msg.includes('API key') || msg.includes('401') || msg.includes('API_KEY') || code === 401) {
+            return res.status(503).json({
+                error: "Неверный или отсутствующий API ключ Gemini. Задайте API_KEY в Railway Variables и перезапустите сервис.",
+                code: "SERVICE_UNAVAILABLE"
+            });
         }
-        if (error?.message?.includes('429') || error?.message?.includes('quota')) {
-            return res.status(503).json({ error: "Превышена квота Google AI. Попробуйте позже.", code: "SERVICE_UNAVAILABLE" });
+        if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || code === 429) {
+            return res.status(503).json({
+                error: "Превышена квота Google AI. Попробуйте позже.",
+                code: "SERVICE_UNAVAILABLE"
+            });
         }
         res.status(500).json({ error: "Не удалось проверить задание. Попробуйте позже.", code: "SERVER_ERROR" });
     }
