@@ -7,7 +7,7 @@ export const AnimatedLearningScene: React.FC = () => {
         <defs>
           <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#2a2a2a" />
-            <stop offset="100%" stopColor="#050505" />
+            <stop offset="100%" stopColor="#0a0a0a" />
           </linearGradient>
           
           <linearGradient id="edgeGrad" x1="0" y1="0" x2="1" y2="0">
@@ -112,13 +112,13 @@ export const AnimatedLearningScene: React.FC = () => {
             {/* Laptop Lid */}
             <g className="lid-open">
               {/* Lid Outer Shell */}
-              <rect x="140" y="110" width="520" height="310" rx="16" fill="#050505" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+              <rect x="140" y="110" width="520" height="310" rx="16" fill="#0a0a0a" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
               
               {/* Screen Bezel */}
               <rect x="143" y="113" width="514" height="304" rx="14" fill="#000" />
               
               {/* Screen Display Area */}
-              <rect x="152" y="122" width="496" height="274" rx="6" fill="#0a0a0a" />
+              <rect x="152" y="122" width="496" height="274" rx="6" fill="#0f0f0f" />
 
               {/* Screen Core Glow */}
               <rect x="152" y="122" width="496" height="274" rx="6" fill="url(#screenGlow)" className="fade-in" style={{ animationDelay: '1.2s' }} />
@@ -183,7 +183,7 @@ export const AnimatedLearningScene: React.FC = () => {
             {/* Top metallic lip */}
             <path d="M 144 420 L 656 420" stroke="url(#edgeGrad)" strokeWidth="1.5" />
             {/* Trackpad Indent */}
-            <rect x="350" y="420" width="100" height="6" fill="#050505" rx="2" />
+            <rect x="350" y="420" width="100" height="6" fill="#0a0a0a" rx="2" />
             {/* Opening Notch */}
             <rect x="375" y="420" width="50" height="2" fill="#000" rx="1" />
 

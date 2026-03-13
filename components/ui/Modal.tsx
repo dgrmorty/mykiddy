@@ -68,7 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className="fixed inset-0 z-[200] min-h-screen flex items-center justify-center p-4 md:p-6">
       <div
-        className={`absolute inset-0 bg-black/60 backdrop-blur-xl cursor-pointer transition-all duration-400 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute inset-0 bg-kiddy-base/80 backdrop-blur-xl cursor-pointer transition-all duration-400 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
         onClick={onClose}
         aria-hidden
       />

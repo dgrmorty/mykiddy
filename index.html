@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#050505" />
+    <meta name="theme-color" content="#0a0a0a" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src https://fonts.gstatic.com; connect-src 'self' https: wss:; img-src 'self' data: https:; frame-src 'self' https://www.youtube-nocookie.com; base-uri 'self'; form-action 'self';" />
     <title>Kiddy | IT-Школа будущего</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,16 +16,18 @@
           extend: {
             colors: {
               kiddy: {
-                base: '#050505',
-                surface: '#0a0a0a',
-                surfaceElevated: '#121212',
+                base: '#0a0a0a',
+                surface: '#0f0f0f',
+                surfaceElevated: '#141414',
                 surfaceHighlight: '#1a1a1a',
-                border: 'rgba(255,255,255,0.04)',
+                surfaceDark: '#121212',
+                border: 'rgba(255,255,255,0.05)',
                 borderStrong: 'rgba(255,255,255,0.08)',
                 cherry: '#e6002b',
                 cherryHover: '#ff1a45',
-                cherryGlow: 'rgba(230,0,43,0.3)',
-                cherryDim: 'rgba(230,0,43,0.1)',
+                cherryGlow: 'rgba(230,0,43,0.35)',
+                cherryDim: 'rgba(230,0,43,0.12)',
+                primary: '#e6002b',
                 text: '#ffffff',
                 textSecondary: '#a1a1aa',
                 textMuted: '#52525b',
@@ -80,7 +82,7 @@
     <style>
       :root {
         --kiddy-cherry: #e6002b;
-        --kiddy-bg: #050505;
+        --kiddy-bg: #0a0a0a;
         --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
         --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
       }
@@ -92,8 +94,8 @@
         margin: 0;
         background-color: var(--kiddy-bg);
         background-image: 
-          radial-gradient(circle at 50% 0%, rgba(230,0,43,0.03) 0%, transparent 50%),
-          radial-gradient(circle at 100% 100%, rgba(255,255,255,0.01) 0%, transparent 50%);
+          radial-gradient(circle at 50% 0%, rgba(230,0,43,0.04) 0%, transparent 45%),
+          radial-gradient(circle at 100% 100%, rgba(255,255,255,0.02) 0%, transparent 50%);
         background-attachment: fixed;
         color: #ffffff;
         font-family: 'Inter', system-ui, sans-serif;
@@ -105,8 +107,8 @@
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       .custom-scrollbar::-webkit-scrollbar { width: 6px; }
       .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f3f; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 3px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #262626; }
 
       /* CTA Button - Tactile, glowing */
       .btn-cta {
@@ -153,21 +155,21 @@
       }
       .btn-secondary:active { transform: scale(0.96); }
 
-      /* Cards - Glassmorphism, Deep */
+      /* Cards - Matte black, cherry accent on hover */
       .card-premium {
-        background-color: rgba(18, 18, 18, 0.6);
+        background-color: rgba(15, 15, 15, 0.85);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
         border-radius: 16px;
-        box-shadow: 0 8px 32px -8px rgba(0,0,0,0.5);
+        box-shadow: 0 8px 32px -8px rgba(0,0,0,0.6);
         transition: transform 0.4s var(--ease-entrance), background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
       }
       .card-premium:hover { 
-        background-color: rgba(26, 26, 26, 0.8);
+        background-color: rgba(20, 20, 20, 0.95);
         border-color: rgba(255,255,255,0.08);
+        box-shadow: 0 16px 48px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(230,0,43,0.06);
         transform: translateY(-4px);
-        box-shadow: 0 16px 48px -12px rgba(0,0,0,0.8);
       }
 
       /* Inputs - Animated Focus */
@@ -231,7 +233,7 @@
   </head>
   <body data-theme="kiddy">
     <div id="root">
-      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050505;color:#fff;font-family:system-ui,sans-serif;">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;">
         <div style="width:40px;height:40px;border:2px solid rgba(255,255,255,0.2);border-top-color:#e6002b;border-radius:50%;animation:root-spin 0.8s linear infinite;"></div>
         <p style="margin-top:16px;font-size:14px;color:#a1a1aa;">Загрузка...</p>
       </div>

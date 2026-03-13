@@ -65,7 +65,7 @@ export const Schedule: React.FC = () => {
           <Calendar size={14} /> События на сегодня
         </h2>
         {eventsByDay[currentDay].length === 0 ? (
-          <Card className="bg-[#121212]/60 border border-[#282828]/80 rounded-2xl p-8 text-center min-h-[300px] flex items-center justify-center">
+          <Card className="bg-kiddy-surfaceElevated/90 border border-white/[0.08] rounded-2xl p-8 text-center min-h-[300px] flex items-center justify-center">
             <AnimatedEmptyState message="На сегодня событий нет" />
           </Card>
         ) : (
@@ -73,7 +73,7 @@ export const Schedule: React.FC = () => {
             {eventsByDay[currentDay].map((ev) => (
               <Card
                 key={ev.id}
-                className="bg-[#121212]/60 border border-[#282828]/80 rounded-2xl p-5 hover:border-zinc-700/80 transition-colors"
+                className="bg-kiddy-surfaceElevated/90 border border-white/[0.08] rounded-2xl p-5 hover:border-white/10 transition-colors"
                 noPadding
               >
                 <div className="flex items-start gap-4">
@@ -109,7 +109,7 @@ export const Schedule: React.FC = () => {
               className={`rounded-2xl border p-4 transition-colors ${
                 dayNum === currentDay
                   ? 'bg-kiddy-cherry/10 border-kiddy-cherry/30'
-                  : 'bg-[#121212]/40 border-[#282828]/80'
+                  : 'bg-kiddy-surfaceElevated/80 border-white/[0.08]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">

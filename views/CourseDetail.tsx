@@ -217,7 +217,7 @@ export const CourseDetail: React.FC = () => {
   };
 
   const getVideoComponent = (url?: string) => {
-    if (!url) return <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#121212]"><MonitorPlay size={48} className="text-zinc-800 mb-4" /><p className="text-kiddy-textMuted font-bold uppercase tracking-widest text-[10px]">Видео недоступно</p></div>;
+    if (!url) return <div className="absolute inset-0 flex flex-col items-center justify-center bg-kiddy-surfaceElevated"><MonitorPlay size={48} className="text-zinc-800 mb-4" /><p className="text-kiddy-textMuted font-bold uppercase tracking-widest text-[10px]">Видео недоступно</p></div>;
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
         let id = '';
@@ -229,7 +229,7 @@ export const CourseDetail: React.FC = () => {
         return (
           <>
             {videoLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#121212] z-10">
+              <div className="absolute inset-0 flex items-center justify-center bg-kiddy-surfaceElevated z-10">
                 <div className="w-10 h-10 border-2 border-white/20 border-t-kiddy-cherry rounded-full animate-spin" />
               </div>
             )}
@@ -287,7 +287,7 @@ export const CourseDetail: React.FC = () => {
         <div className="flex flex-col h-full animate-slide-up relative" ref={playerRef}>
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-6">
-                    <button onClick={() => setActiveLesson(null)} className="p-3 bg-[#181818] border border-[#282828] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all"><ArrowLeft size={20} /></button>
+                    <button onClick={() => setActiveLesson(null)} className="p-3 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all"><ArrowLeft size={20} /></button>
                     <div>
                       <nav className="text-kiddy-textMuted text-xs font-medium mb-1 flex items-center gap-1.5 flex-wrap">
                         <span>{activeCourse.title}</span>
@@ -299,12 +299,12 @@ export const CourseDetail: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                     {!activeLesson.isCompleted ? <button onClick={handleCompleteLesson} disabled={lessonCompleting} className="px-6 py-3 bg-white text-black font-bold rounded-2xl hover:bg-kiddy-cherry hover:text-white transition-all flex items-center gap-2">{lessonCompleting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}<span className="hidden md:inline">Завершить урок</span></button> : <div className="px-6 py-3 bg-green-500/10 text-green-500 border border-green-500/20 font-bold rounded-2xl flex items-center gap-2"><CheckCircle size={18} /><span className="hidden md:inline">Пройдено</span></div>}
-                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-[#181818] border border-[#282828] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
+                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
                 </div>
             </div>
             {!user.isApproved ? <AccessGate /> : (
                 <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
-                    <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-[#282828] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
+                    <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-white/[0.08] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
                     {!isTheaterMode && (
                         <div className="space-y-6">
                             <Card className="bg-kiddy-cherry/5 border-kiddy-cherry/20 p-8 flex flex-col justify-between h-fit">
@@ -316,7 +316,7 @@ export const CourseDetail: React.FC = () => {
                                     {activeLesson.homeworkTask ? (
                                         <div className="mb-6">
                                             <p className="text-kiddy-textSecondary text-xs font-bold uppercase tracking-widest mb-3">Задание:</p>
-                                            <div className="bg-black/50 border border-[#282828] rounded-xl p-4 mb-4">
+                                            <div className="bg-black/50 border border-white/[0.08] rounded-xl p-4 mb-4">
                                                 <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                                             </div>
                                         </div>
@@ -333,7 +333,7 @@ export const CourseDetail: React.FC = () => {
                                         ) : (
                                             <button 
                                                 onClick={() => setIsHomeworkOpen(true)} 
-                                                className="w-full py-4 bg-kiddy-cherry text-white font-bold rounded-2xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
+                                                className="w-full py-4 bg-kiddy-cherry text-white font-bold rounded-2xl hover:bg-kiddy-cherryHover transition-all flex items-center justify-center gap-2"
                                             >
                                                 <PenTool size={18} /> Сдать работу
                                             </button>
@@ -348,10 +348,10 @@ export const CourseDetail: React.FC = () => {
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"} transparentContainer>
                 <div className="flex flex-col md:flex-row gap-4 h-full md:items-center md:justify-center transition-all duration-700 ease-out p-4 md:p-0">
                     {/* Левая модалка - отправка ДЗ */}
-                    <div className={`p-6 md:p-10 flex flex-col min-h-0 bg-[#121212] border border-white/5 rounded-[2rem] md:rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
+                    <div className={`p-6 md:p-10 flex flex-col min-h-0 bg-kiddy-surfaceElevated border border-white/5 rounded-[2rem] md:rounded-[3rem] ${aiFeedback ? 'w-full md:w-[500px] flex-shrink-0 animate-bounce-left' : 'w-full transition-all duration-700 ease-out'}`}>
                         <h2 className="text-xl md:text-2xl font-display font-bold text-white mb-4 md:mb-6">Ваше решение</h2>
                         {activeLesson?.homeworkTask && (
-                            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-[#181818]/50 border border-[#282828] rounded-xl">
+                            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-kiddy-surfaceHighlight/50 border border-white/[0.08] rounded-xl">
                                 <p className="text-kiddy-textSecondary text-xs font-bold uppercase tracking-widest mb-2">Задание:</p>
                                 <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                             </div>
@@ -365,14 +365,14 @@ export const CourseDetail: React.FC = () => {
                                     e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 }, 300);
                             }}
-                            className="min-h-[200px] md:min-h-0 md:flex-1 bg-black border border-[#282828] p-4 md:p-6 rounded-xl md:rounded-2xl text-white outline-none focus:border-kiddy-cherry transition-all font-mono text-sm resize-none" 
+                            className="min-h-[200px] md:min-h-0 md:flex-1 bg-black border border-white/[0.08] p-4 md:p-6 rounded-xl md:rounded-2xl text-white outline-none focus:border-kiddy-cherry transition-all font-mono text-sm resize-none" 
                             placeholder="Вставьте ваш код или текст..." 
                         />
                         {securityError && (
                             <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
                         )}
                         <div className="mt-4 md:mt-8 flex gap-3 md:gap-4 flex-shrink-0">
-                            <button onClick={() => setIsHomeworkOpen(false)} className="px-6 md:px-8 py-3 md:py-4 bg-[#181818] text-white font-bold rounded-xl text-sm md:text-base">
+                            <button onClick={() => setIsHomeworkOpen(false)} className="px-6 md:px-8 py-3 md:py-4 bg-kiddy-surfaceHighlight text-white font-bold rounded-xl text-sm md:text-base">
                                 Закрыть
                             </button>
                         <button 
@@ -387,7 +387,7 @@ export const CourseDetail: React.FC = () => {
                     
                     {/* Правая модалка - ответ нейронки */}
                     {aiFeedback && (
-                        <div className="p-6 md:p-10 flex flex-col min-h-[300px] md:min-h-0 md:h-full bg-[#121212] border border-white/5 rounded-[2rem] md:rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
+                        <div className="p-6 md:p-10 flex flex-col min-h-[300px] md:min-h-0 md:h-full bg-kiddy-surfaceElevated border border-white/5 rounded-[2rem] md:rounded-[3rem] w-full md:w-[500px] flex-shrink-0 animate-slide-in-right">
                             <div className="flex items-center justify-between mb-4 md:mb-6 flex-shrink-0">
                                 <h2 className="text-xl md:text-2xl font-display font-bold text-white flex items-center gap-2">
                                     <Sparkles size={24} className="text-kiddy-cherry" />
@@ -395,7 +395,7 @@ export const CourseDetail: React.FC = () => {
                                 </h2>
                                 <button 
                                     onClick={() => setAiFeedback(null)} 
-                                    className="p-2 hover:bg-[#181818] rounded-lg transition-colors"
+                                    className="p-2 hover:bg-kiddy-surfaceHighlight rounded-lg transition-colors"
                                 >
                                     <X size={20} className="text-kiddy-textSecondary" />
                                 </button>
@@ -419,18 +419,18 @@ export const CourseDetail: React.FC = () => {
       {courses.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <AnimatedEmptyState message={loadError || "Курсы загружаются или временно недоступны"} />
-            <button onClick={() => loadData(false, true)} className="px-6 py-2 bg-[#181818] border border-[#282828] rounded-xl text-xs font-bold text-white hover:bg-[#2a2a2a] transition-colors">
+            <button onClick={() => loadData(false, true)} className="px-6 py-2 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-xl text-xs font-bold text-white hover:bg-[#2a2a2a] transition-colors">
               Повторить
             </button>
           </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
-              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-[#282828]/50 hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full" onClick={() => setActiveCourse(course)}>
+              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.08]/50 hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full" onClick={() => setActiveCourse(course)}>
                 <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" /></div>
                 <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
                     <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-cherry transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
-                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1 w-full bg-[#181818] rounded-full overflow-hidden"><div className="h-full bg-kiddy-cherry transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
+                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden"><div className="h-full bg-kiddy-cherry transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
                 </div>
               </Card>
             ))}
@@ -443,7 +443,7 @@ export const CourseDetail: React.FC = () => {
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-4xl"
         >
-            <div className="flex flex-col h-full bg-[#121212]"><div className="relative h-64 md:h-80 shrink-0"><img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/80 backdrop-blur-sm rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{courseForModal.title}</h2><p className="text-kiddy-textSecondary mt-2 max-w-lg">{courseForModal.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{courseForModal.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-[#181818]" /><h3 className="text-kiddy-textMuted font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-[#181818]" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => handleOpenLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-[#121212]/20 border-[#282828]/50 opacity-40 cursor-not-allowed' : 'bg-black border-[#282828] cursor-pointer hover:border-kiddy-cherry/50 hover:bg-[#181818]/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-[#181818] text-kiddy-textMuted group-hover:bg-kiddy-cherry group-hover:text-white transition-colors duration-300'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-kiddy-textMuted uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
+            <div className="flex flex-col h-full bg-kiddy-surfaceElevated"><div className="relative h-64 md:h-80 shrink-0"><img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/80 backdrop-blur-sm rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{courseForModal.title}</h2><p className="text-kiddy-textSecondary mt-2 max-w-lg">{courseForModal.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{courseForModal.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-kiddy-surfaceHighlight" /><h3 className="text-kiddy-textMuted font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-kiddy-surfaceHighlight" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => handleOpenLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-kiddy-surfaceElevated/20 border-white/[0.08]/50 opacity-40 cursor-not-allowed' : 'bg-black border-white/[0.08] cursor-pointer hover:border-kiddy-cherry/50 hover:bg-kiddy-surfaceHighlight/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-kiddy-surfaceHighlight text-kiddy-textMuted group-hover:bg-kiddy-cherry group-hover:text-white transition-colors duration-300'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-kiddy-textMuted uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
         </Modal>
       )}
       

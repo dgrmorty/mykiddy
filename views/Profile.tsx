@@ -191,7 +191,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   return (
     <div className="animate-slide-up space-y-10 pb-20">
       <section className="relative h-72 md:h-80 w-full rounded-[3rem] overflow-hidden shadow-2xl group transition-all">
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-kiddy-base via-kiddy-base/60 to-transparent z-10" />
         <img 
           src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop" 
           className="absolute inset-0 w-full h-full object-cover grayscale opacity-30 group-hover:scale-105 transition-transform duration-1000" 
@@ -266,10 +266,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 <div className="absolute top-6 right-6 md:relative md:top-auto md:right-auto md:ml-auto">
                     {isEditing ? (
                         <div className="flex gap-2">
-                            <button onClick={() => setIsEditing(false)} disabled={saving} className="p-3 bg-[#181818] rounded-xl text-kiddy-textSecondary hover:text-white transition-all">
+                            <button onClick={() => setIsEditing(false)} disabled={saving} className="p-3 bg-kiddy-surfaceHighlight rounded-xl text-kiddy-textSecondary hover:text-white transition-all">
                                 <X size={20} />
                             </button>
-                            <button onClick={handleSave} disabled={saving || uploading} className="p-3 bg-kiddy-cherry rounded-xl text-white hover:bg-rose-600 transition-all shadow-lg shadow-kiddy-cherry/20">
+                            <button onClick={handleSave} disabled={saving || uploading} className="p-3 bg-kiddy-cherry rounded-xl text-white hover:bg-kiddy-cherryHover transition-all shadow-lg shadow-kiddy-cherry/20">
                                 {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                             </button>
                         </div>
@@ -285,7 +285,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="md:col-span-2 bg-[#121212]/40 border-[#282828]/50 backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
+        <Card className="md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
                 <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
                     <Target size={16} className="text-kiddy-cherry" />
@@ -303,7 +303,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
         </Card>
 
-        <Card className="bg-[#121212]/40 border-[#282828]/50 p-10 flex flex-col justify-between" noPadding>
+        <Card className="bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
                     <Zap className="text-yellow-500" size={24} />
@@ -316,16 +316,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <span>До следующего уровня</span>
                     <span>{Math.min(100, ((currentUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-1 w-full bg-[#181818] rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden">
                     <div 
-                        className="h-full bg-gradient-to-r from-kiddy-cherry to-rose-400 shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
+                        className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
                         style={{ width: `${Math.min(100, ((currentUser.xp % 100) / 100) * 100)}%` }} 
                     />
                 </div>
             </div>
         </Card>
 
-        <Card className="bg-[#121212]/40 border-[#282828]/50 p-10 flex flex-col justify-between" noPadding>
+        <Card className="bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
                     <Award className="text-kiddy-cherry" size={24} />
@@ -346,7 +346,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       <section className="pt-10 border-t border-zinc-900">
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-[#181818]/50 border border-[#282828] rounded-2xl text-kiddy-textMuted hover:text-rose-500 hover:border-rose-500/30 transition-all font-bold group"
+            className="flex items-center gap-3 px-8 py-4 bg-kiddy-surfaceHighlight/50 border border-white/[0.08] rounded-2xl text-kiddy-textMuted hover:text-kiddy-cherry hover:border-kiddy-cherry/30 transition-all font-bold group"
           >
               <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
               Выход из системы
@@ -383,7 +383,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                   className={`p-4 rounded-xl border transition-all ${
                                       isCurrentUser
                                           ? 'bg-kiddy-cherry/10 border-kiddy-cherry/50 shadow-lg shadow-kiddy-cherry/10'
-                                          : 'bg-[#121212]/50 border-[#282828] hover:border-zinc-700'
+                                          : 'bg-kiddy-surfaceDark/80 border-white/[0.08] hover:border-zinc-700'
                                   }`}
                               >
                                   <div className="flex items-center gap-4">
@@ -400,7 +400,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                       <img 
                                           src={user.avatar} 
                                           alt={user.name}
-                                          className="w-12 h-12 rounded-full border-2 border-[#282828] object-cover"
+                                          className="w-12 h-12 rounded-full border-2 border-white/[0.08] object-cover"
                                       />
                                       
                                       <div className="flex-1 min-w-0">
@@ -446,8 +446,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       {/* Logout Confirmation Modal */}
       <Modal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} maxWidth="max-w-md">
           <div className="p-10 flex flex-col items-center text-center">
-              <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mb-6 border border-rose-500/20">
-                  <AlertTriangle className="text-rose-500" size={40} />
+              <div className="w-20 h-20 bg-kiddy-cherryDim rounded-full flex items-center justify-center mb-6 border border-rose-500/20">
+                  <AlertTriangle className="text-kiddy-cherry" size={40} />
               </div>
               <h2 className="text-2xl font-display font-bold text-white mb-4">Завершить сеанс?</h2>
               <p className="text-kiddy-textMuted text-sm mb-10 leading-relaxed">
@@ -456,13 +456,13 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               <div className="grid grid-cols-2 gap-4 w-full">
                   <button 
                     onClick={() => setIsLogoutModalOpen(false)}
-                    className="py-4 bg-[#181818] text-white font-bold rounded-xl hover:bg-zinc-800 transition-all"
+                    className="py-4 bg-kiddy-surfaceHighlight text-white font-bold rounded-xl hover:bg-kiddy-surfaceHighlight transition-all"
                   >
                       Отмена
                   </button>
                   <button 
                     onClick={handleLogout}
-                    className="py-4 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/20"
+                    className="py-4 bg-kiddy-cherry text-white font-bold rounded-xl hover:bg-kiddy-cherryHover transition-all shadow-lg shadow-kiddy-cherry/20"
                   >
                       Выйти
                   </button>
