@@ -447,16 +447,15 @@ export const CourseDetail: React.FC = () => {
         </Modal>
       )}
       
-      {/* Экран загрузки / перехода в урок */}
       {isTransitioning && (
-        <div className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-kiddy-base/90 backdrop-blur-xl transition-opacity duration-500" style={{ animation: 'fade-in-out 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
+        <div className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-kiddy-base/95 backdrop-blur-2xl" style={{ animation: 'lessonTransition 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
           <AnimatedLearningScene />
           <style>{`
-            @keyframes fade-in-out {
+            @keyframes lessonTransition {
               0% { opacity: 0; }
-              15% { opacity: 1; }
-              85% { opacity: 1; filter: brightness(1); }
-              100% { opacity: 0; filter: brightness(0); }
+              12% { opacity: 1; }
+              80% { opacity: 1; }
+              100% { opacity: 0; }
             }
           `}</style>
         </div>

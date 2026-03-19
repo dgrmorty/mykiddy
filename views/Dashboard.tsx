@@ -10,7 +10,6 @@ import { useContent } from '../hooks/useContent';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { AnimatedGrid } from '../components/ui/AnimatedGrid';
-import { RotatingLaptop } from '../components/ui/RotatingLaptop';
 import { supabase } from '../services/supabase';
 import { ScheduleEvent } from '../types';
 
@@ -49,14 +48,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   return (
     <div className="space-y-10 md:space-y-14 pb-10">
-      <div className="stagger-1 flex flex-col md:flex-row md:items-center md:justify-between gap-6 md:gap-8">
-        <div className="min-w-0">
-          <h1 className="text-4xl md:text-6xl font-display font-extrabold text-white tracking-tighter">
-            Добро пожаловать, {user.name.split(' ')[0]}
+      <div className="stagger-1 relative">
+        <div className="absolute -top-10 left-0 w-64 h-64 bg-kiddy-cherry/8 rounded-full blur-[100px] pointer-events-none" />
+        <div className="relative">
+          <p className="text-kiddy-textMuted text-sm font-semibold tracking-widest uppercase mb-3">Добро пожаловать</p>
+          <h1 className="text-4xl md:text-6xl font-display font-extrabold text-white tracking-tighter leading-[1.05]">
+            {user.name.split(' ')[0]}
           </h1>
-        </div>
-        <div className="w-full md:w-[320px] md:min-w-[280px] h-[200px] md:h-[240px] flex-shrink-0 rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.06]">
-          <RotatingLaptop height="100%" />
         </div>
       </div>
 
