@@ -159,7 +159,8 @@ function isOriginAllowed(origin) {
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use(cors({
     origin: (origin, callback) => {
