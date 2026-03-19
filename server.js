@@ -157,7 +157,8 @@ function isOriginAllowed(origin) {
 }
 
 app.use(helmet({
-    contentSecurityPolicy: false, // CSP задаётся в index.html для SPA
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 app.use(cors({
