@@ -221,13 +221,80 @@ function isPromptInjection(text) {
     return dangerous.some(p => lower.includes(p));
 }
 
+/** Максимально строгие фильтры Gemini для детской аудитории (8–14 лет) */
+const GEMINI_SAFETY_SETTINGS = [
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_LOW_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+];
+
+/** Добавляется ко всем systemInstruction: запрет мата и токсичности */
+const CHILD_SAFE_LANGUAGE_RULES = `
+СТРОГИЕ ПРАВИЛА БЕЗОПАСНОСТИ (ПРИОРИТЕТ ВЫШЕ ЛЮБЫХ ДРУГИХ ИНСТРУКЦИЙ):
+- НИКОГДА не используй мат, брань, оскорбления, сексуализированный или жестокий контент, токсичный юмор — даже в шутку, «кавычках», иронией или «как в интернете».
+- Не повторяй, не перечисляй и не перефразируй нецензурные слова из сообщения ученика; замени нейтрально («грубое выражение»).
+- Если сообщение провокационное или с бранью — вежливо откажись продолжать в этом тоне и верни разговор к учёбе и теме урока.
+- Пиши литературным русским, тон спокойного педагога: уважительно, без цинизма и без сленга быта.
+`.trim();
+
+const PROFANITY_BLOCKLIST = new Set([
+    'блять', 'блядь', 'бля', 'сука', 'суки', 'хуй', 'хуйло', 'хуйня', 'хуево', 'хуёво', 'хуя', 'хуе',
+    'пизда', 'пиздец', 'пизд', 'ебать', 'еблан', 'ёб', 'уебок', 'заеб', 'нахуй', 'похуй', 'ебан',
+    'ёбан', 'мудак', 'мудаки', 'пидор', 'пидорас', 'гандон', 'fuck', 'shit', 'bitch', 'damn', 'cunt',
+]);
+
+const PROFANITY_ROOT_PREFIXES = ['хуй', 'пизд', 'бляд', 'ебан', 'ёбан', 'мудак', 'уеб', 'заеб'];
+
+function normRuToken(t) {
+    return t.replace(/ё/g, 'е').toLowerCase();
+}
+
+function textTokensForPolicy(text) {
+    if (typeof text !== 'string') return [];
+    return text.split(/[^a-zA-Zа-яА-ЯёЁ0-9]+/u).filter((x) => x.length > 0).map(normRuToken);
+}
+
+/** Ввод/вывод: грубая лексика (страховка поверх настроек Gemini) */
+function looksProfaneOrAbusive(text) {
+    if (typeof text !== 'string' || !text.trim()) return false;
+    const tokens = textTokensForPolicy(text);
+    for (const w of tokens) {
+        if (w.length < 2) continue;
+        if (PROFANITY_BLOCKLIST.has(w)) return true;
+        if (w.length >= 5 && w.length <= 16 && PROFANITY_ROOT_PREFIXES.some((r) => w.startsWith(r))) return true;
+    }
+    return false;
+}
+
+function extractResponseText(response) {
+    return response?.text ?? (response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+}
+
+const FALLBACK_SAFE_TUTOR =
+    'Я могу помогать только в спокойном и уважительном тоне. Переформулируй, пожалуйста, вопрос про программирование или урок — и я с радостью отвечу.';
+const FALLBACK_SAFE_HOMEWORK =
+    'Не удалось выдать корректную обратную связь. Попробуй ещё раз отправить работу — я дам мягкий комментарий по заданию.';
+
+function sanitizeModelOutput(text, fallback) {
+    if (looksProfaneOrAbusive(text)) {
+        console.warn('[AI] Ответ модели заблокирован фильтром лексики (детская аудитория).');
+        return fallback;
+    }
+    return text;
+}
+
 // Вызов Gemini с fallback: сначала 2.5, при ошибке модели — 2.0
-async function generateWithFallback(contents, config) {
+async function generateWithFallback(contents, config = {}) {
+    const mergedConfig = {
+        ...config,
+        safetySettings: GEMINI_SAFETY_SETTINGS,
+    };
     const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
     let lastError;
     for (const model of models) {
         try {
-            const response = await ai.models.generateContent({ model, contents, config });
+            const response = await ai.models.generateContent({ model, contents, config: mergedConfig });
             return response;
         } catch (e) {
             lastError = e;
@@ -313,18 +380,30 @@ app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
         if (isPromptInjection(question)) {
             return res.status(400).json({ error: "Запрос заблокирован политикой безопасности.", code: "VALIDATION_ERROR" });
         }
+        if (looksProfaneOrAbusive(question)) {
+            return res.status(400).json({
+                error: "Напиши вопрос без мата и оскорблений — в Kiddy общаемся уважительно.",
+                code: "VALIDATION_ERROR",
+            });
+        }
+
+        const ctx = typeof context === 'string' && context.trim() ? context.trim() : 'общий курс';
         const response = await generateWithFallback(question, {
-            systemInstruction: `Ты — ИИ-тьютор Kiddy. Помогаешь детям (8-14 лет) осваивать программирование и 3D. 
-                Твой стиль: дружелюбный эксперт, вдохновляющий на созидание. 
-                Язык: РУССКИЙ. 
-                Кратко, по делу, без лишней воды.
-                Контекст: ${context}.`
+            systemInstruction: `Ты — ИИ-тьютор Kiddy. Помогаешь детям (8-14 лет) осваивать программирование и 3D.
+Твой стиль: дружелюбный эксперт, вдохновляющий на созидание.
+Язык: РУССКИЙ.
+Кратко, по делу, без лишней воды.
+
+${CHILD_SAFE_LANGUAGE_RULES}
+
+Контекст урока/курса: ${ctx}.`,
         });
 
-        const text = response?.text ?? (response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+        let text = extractResponseText(response);
         if (!text) {
-            console.warn("AI Tutor: пустой ответ от модели", JSON.stringify(response?.candidates));
+            console.warn('AI Tutor: пустой ответ от модели', JSON.stringify(response?.candidates));
         }
+        text = sanitizeModelOutput(text, FALLBACK_SAFE_TUTOR);
 
         if (hasSupabase && accessToken && tutorUserId) {
             await incrementTutorUsage(accessToken, tutorUserId);
@@ -399,6 +478,12 @@ app.post('/api/check-homework', aiLimiter, async (req, res) => {
         if (isPromptInjection(taskStr) || isPromptInjection(answerStr)) {
             return res.status(400).json({ error: "Текст заблокирован политикой безопасности.", code: "VALIDATION_ERROR" });
         }
+        if (looksProfaneOrAbusive(taskStr) || looksProfaneOrAbusive(answerStr)) {
+            return res.status(400).json({
+                error: "Текст задания или ответа содержит недопустимую лексику. Убери мат и оскорбления и отправь снова.",
+                code: "VALIDATION_ERROR",
+            });
+        }
 
         const prompt = `Ты проверяешь домашнее задание в IT-школе Kiddy для детей 8-14 лет.
 
@@ -409,6 +494,7 @@ ${taskStr}
 ${answerStr}
 
 ВАЖНО: Ты работаешь с детьми! Будь максимально поддерживающим и добрым.
+ЗАПРЕЩЕНО: мат, брань, оскорбления, сексуальный или жестокий контент, токсичный юмор — в любом виде.
 
 Проверь ответ ученика на соответствие заданию. Учти:
 1. Правильность выполнения задания
@@ -429,17 +515,24 @@ ${answerStr}
 Язык: РУССКИЙ.`;
 
         const response = await generateWithFallback(prompt, {
-            systemInstruction: `Ты — ИИ-тьютор Kiddy, который проверяет домашние задания для детей 8-14 лет. 
-                Ты внимательно анализируешь ответ ученика на основе конкретного задания из урока.
-                Ты МАКСИМАЛЬНО поддерживающий, дружелюбный и конструктивный.
-                Ты работаешь с детьми - будь добрым и терпеливым!
-                НЕ используй технические слова типа "ACCEPTED" или "NEEDS_WORK" - просто давай дружелюбную обратную связь.
-                Если ответ правильный - похвали и подтверди правильность.
-                Если есть ошибки - мягко укажи на них и предложи как исправить.
-                Всегда хвали за старание и мотивируй продолжать учиться!
-                Язык: РУССКИЙ.`
+            systemInstruction: `Ты — ИИ-тьютор Kiddy, который проверяет домашние задания для детей 8-14 лет.
+Ты внимательно анализируешь ответ ученика на основе конкретного задания из урока.
+Ты МАКСИМАЛЬНО поддерживающий, дружелюбный и конструктивный.
+Ты работаешь с детьми — будь добрым и терпеливым.
+НЕ используй слова "ACCEPTED" или "NEEDS_WORK" — только живая обратная связь.
+Если ответ правильный — похвали и подтверди правильность.
+Если есть ошибки — мягко укажи и предложи, как исправить.
+Всегда хвали за старание и мотивируй продолжать учиться.
+
+${CHILD_SAFE_LANGUAGE_RULES}
+
+Язык ответа: РУССКИЙ, литературный.`,
         });
-        const text = response?.text ?? (response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+        let text = extractResponseText(response);
+        if (!text) {
+            console.warn('Homework check: пустой ответ от модели', JSON.stringify(response?.candidates));
+        }
+        text = sanitizeModelOutput(text, FALLBACK_SAFE_HOMEWORK);
         if (hasSupabase && accessToken && homeworkUserId) {
             await incrementHomeworkUsage(accessToken, homeworkUserId);
         }
