@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { Card } from '../components/ui/Card';
-import { Calendar } from 'lucide-react';
+import { Calendar, Users } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,11 @@ import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { AnimatedGrid } from '../components/ui/AnimatedGrid';
 import { supabase } from '../services/supabase';
 import { ScheduleEvent } from '../types';
+import {
+  PERMANENT_GROUPS,
+  isInAcademicYear,
+  dayOfWeek,
+} from '../data/permanentSchedule';
 
 interface DashboardProps {
   user: User;
@@ -19,20 +24,74 @@ interface DashboardProps {
 
 const DAY_NAMES: Record<number, string> = { 1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 'Чт', 5: 'Пт', 6: 'Сб', 7: 'Вс' };
 
+interface DashEvent {
+  id: string;
+  day_of_week: number;
+  time_start: string;
+  time_end?: string;
+  title: string;
+  location?: string;
+  isPermanent: boolean;
+}
+
+function buildUpcomingEvents(dbEvents: ScheduleEvent[]): DashEvent[] {
+  const now = new Date();
+  const todayDow = dayOfWeek(now);
+  const academic = isInAcademicYear(now);
+  const result: DashEvent[] = [];
+
+  for (let offset = 0; offset < 7 && result.length < 6; offset++) {
+    const dow = ((todayDow - 1 + offset) % 7) + 1;
+
+    if (academic) {
+      PERMANENT_GROUPS
+        .filter((g) => g.day === dow)
+        .forEach((g, i) => {
+          result.push({
+            id: `perm-${g.day}-${i}`,
+            day_of_week: dow,
+            time_start: g.time,
+            time_end: g.end,
+            title: g.title,
+            isPermanent: true,
+          });
+        });
+    }
+
+    dbEvents
+      .filter((e) => e.day_of_week === dow)
+      .forEach((e) => {
+        result.push({
+          id: e.id,
+          day_of_week: dow,
+          time_start: e.time_start,
+          time_end: e.time_end,
+          title: e.title,
+          location: e.location,
+          isPermanent: false,
+        });
+      });
+  }
+
+  return result.slice(0, 6);
+}
+
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { requireAuth, isGuest } = useAuth();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const skillData = useSkillData(courses);
-  const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
+  const [dbScheduleEvents, setDbScheduleEvents] = useState<ScheduleEvent[]>([]);
   const navigate = useNavigate();
   const activeCourse = courses[0];
   const nextLesson = activeCourse?.modules?.flatMap(m => m.lessons).find(l => !l.isCompleted && !l.locked);
 
   useEffect(() => {
     void supabase.from('schedule_events').select('*').order('day_of_week').order('sort_order').order('time_start')
-      .then(({ data }) => setScheduleEvents(data || []))
-      .then(() => {}, () => setScheduleEvents([]));
+      .then(({ data }) => setDbScheduleEvents(data || []))
+      .then(() => {}, () => setDbScheduleEvents([]));
   }, []);
+
+  const upcomingEvents = useMemo(() => buildUpcomingEvents(dbScheduleEvents), [dbScheduleEvents]);
 
   const handleStartLesson = () => {
     requireAuth(() => navigate('/courses'));
@@ -133,29 +192,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       <section className="stagger-4">
         <div className="flex items-center justify-between mb-8">
-          <h3 className="font-display font-bold text-2xl text-white tracking-tight">События</h3>
+          <h3 className="font-display font-bold text-2xl text-white tracking-tight">Ближайшие занятия</h3>
+          <button onClick={() => navigate('/schedule')} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
+            Всё расписание →
+          </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {scheduleEvents.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {upcomingEvents.length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="text-kiddy-textMuted mx-auto mb-3" size={32} />
-              <p className="text-kiddy-textMuted font-medium">Скоро появятся события</p>
+              <p className="text-kiddy-textMuted font-medium">Скоро появятся занятия</p>
             </Card>
           ) : (
-            scheduleEvents.slice(0, 4).map((ev, i) => (
-              <Card key={ev.id} hoverEffect className="flex items-center justify-between gap-6 group" style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.3 + i * 0.08}s` }}>
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-kiddy-cherry/10 group-hover:border-kiddy-cherry/20 transition-all duration-400">
-                    <Calendar className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={28} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-xl text-white mb-1">{ev.title}</p>
-                    <p className="text-sm font-semibold text-kiddy-cherry">
-                      {DAY_NAMES[ev.day_of_week] ?? ''} {ev.time_start}
-                      {ev.time_end ? ` – ${ev.time_end}` : ''}
-                    </p>
-                    {ev.location && <p className="text-kiddy-textMuted text-xs mt-1">{ev.location}</p>}
-                  </div>
+            upcomingEvents.map((ev, i) => (
+              <Card
+                key={ev.id}
+                hoverEffect
+                className="flex items-center gap-5 group"
+                style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.3 + i * 0.06}s` }}
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-kiddy-cherry/10 group-hover:border-kiddy-cherry/20 transition-all duration-400">
+                  {ev.isPermanent ? (
+                    <Users className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
+                  ) : (
+                    <Calendar className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-base text-white truncate">{ev.title}</p>
+                  <p className="text-sm font-semibold text-kiddy-cherry">
+                    {DAY_NAMES[ev.day_of_week] ?? ''} {ev.time_start}
+                    {ev.time_end ? ` – ${ev.time_end}` : ''}
+                  </p>
+                  {ev.location && <p className="text-kiddy-textMuted text-xs mt-0.5 truncate">{ev.location}</p>}
                 </div>
               </Card>
             ))
