@@ -607,14 +607,14 @@ export const AdminPanel: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen animate-slide-up space-y-4 pb-10 overflow-hidden">
-            <header className="flex justify-between items-center border-b border-[#282828] pb-4 shrink-0">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#282828] pb-4 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-kiddy-cherry/10 border border-kiddy-cherry/20 rounded-lg">
                         <Shield className="text-kiddy-cherry" size={20} />
                     </div>
                     <h1 className="text-xl font-display font-bold text-white uppercase tracking-tighter italic">Панель управления</h1>
                 </div>
-                <div className="flex bg-[#181818] p-1 rounded-xl border border-white/5 shadow-inner">
+                <div className="flex flex-wrap bg-[#181818] p-1 rounded-xl border border-white/5 shadow-inner">
                     <button onClick={() => setCurrentView('content')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'content' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>КОНТЕНТ</button>
                     <button onClick={() => setCurrentView('users')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'users' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>ПОЛЬЗОВАТЕЛИ</button>
                     <button onClick={() => setCurrentView('schedule')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'schedule' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>РАСПИСАНИЕ</button>

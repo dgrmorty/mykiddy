@@ -24,7 +24,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const StaffRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, isGuest, isLoading } = useAuth();
     if (isLoading) return null;
-    if (isGuest || (user.role !== Role.ADMIN && user.role !== Role.TEACHER)) {
+    if (isGuest || user.role !== Role.ADMIN) {
         return <Navigate to="/" replace />;
     }
     return <>{children}</>;

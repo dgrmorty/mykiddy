@@ -10,7 +10,7 @@ import { Course, Lesson } from '../types';
 import { checkHomework } from '../services/geminiService';
 import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
-import { AccessGate } from '../components/AccessGate';
+
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
 import { useContentContext } from '../contexts/ContentContext';
 import { supabase } from '../services/supabase';
@@ -170,9 +170,8 @@ export const CourseDetail: React.FC = () => {
         setLastAnswerWasGood(isGoodAnswer);
 
         if (isGoodAnswer) {
-            await finalizeHomeworkReward();
+            await finalizeHomeworkReward(true);
         } else {
-            // Если ответ не очень хороший, даем мотивирующую обратную связь
             showToast('Проверьте комментарии наставника', 'info');
         }
     } catch (e: any) {
@@ -182,10 +181,8 @@ export const CourseDetail: React.FC = () => {
     }
   };
 
-  // Начисляем XP и закрываем задание только после того,
-  // как ребенок закрыл окно с ответом наставника
-  const finalizeHomeworkReward = async () => {
-      if (!activeLesson || isHomeworkCompleted || !lastAnswerWasGood) return;
+  const finalizeHomeworkReward = async (good?: boolean) => {
+      if (!activeLesson || isHomeworkCompleted || !(good ?? lastAnswerWasGood)) return;
       try {
           // Отмечаем урок как пройденный (50 XP)
           await contentService.markLessonComplete(user.id, activeLesson.id);

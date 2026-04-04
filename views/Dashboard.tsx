@@ -118,8 +118,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2 stagger-2">
+      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8">
+        <div className="lg:col-span-2 2xl:col-span-3 stagger-2">
           {loadError ? (
             <Card className="min-h-[400px] flex flex-col items-center justify-center text-center p-8">
               <p className="text-kiddy-textSecondary font-medium mb-4">{loadError}</p>
@@ -172,7 +172,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="stagger-3">
           <Card className="h-full flex flex-col">
             <h3 className="font-display font-bold text-xl text-white tracking-tight mb-1">Навыки</h3>
-            <p className="text-kiddy-textMuted text-xs mb-6">Пример по курсам</p>
+            <p className="text-kiddy-textMuted text-xs mb-6">По твоим курсам</p>
             <div className="flex-1 min-h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="65%" data={skillData}>
@@ -197,7 +197,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             Всё расписание →
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {upcomingEvents.length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="text-kiddy-textMuted mx-auto mb-3" size={32} />

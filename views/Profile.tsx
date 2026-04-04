@@ -219,7 +219,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       setIsLogoutModalOpen(false);
       await signOut();
       // Перенаправление произойдет автоматически через AuthContext
-      window.location.hash = '/';
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -348,7 +348,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
                 <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">

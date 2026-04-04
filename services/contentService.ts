@@ -146,7 +146,10 @@ export const contentService = {
               user_id: userId,
               lesson_id: lessonId
           });
-          if (error && error.code !== '23505') throw error;
+          if (error) {
+              if (error.code === '23505') return true;
+              throw error;
+          }
           await supabase.rpc('increment_xp', { x_val: 50 });
           return true;
       } catch (e) {

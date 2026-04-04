@@ -137,7 +137,7 @@ export const Schedule: React.FC = () => {
   }
 
   return (
-    <div className="animate-slide-up max-w-3xl mx-auto pb-24">
+    <div className="animate-slide-up max-w-4xl 2xl:max-w-5xl mx-auto pb-24">
       {/* ─── Week nav ─── */}
       <div className="mb-10">
         <p className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-[0.3em] mb-2">

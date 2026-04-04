@@ -9,7 +9,6 @@ import { supabase } from '../services/supabase';
 
 interface LayoutProps {
   user: User;
-  onSwitchRole?: () => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ user }) => {
@@ -82,7 +81,7 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
         <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" />
       </header>
 
-      <main className="flex-1 md:ml-[260px] min-h-screen px-4 md:px-10 py-6 md:py-12 max-w-[1400px] w-full mx-auto pb-28 md:pb-12">
+      <main className="flex-1 md:ml-[260px] min-h-screen px-4 md:px-10 xl:px-16 2xl:px-20 py-6 md:py-12 pb-28 md:pb-12">
         <PageTransition>
           <Outlet />
         </PageTransition>
