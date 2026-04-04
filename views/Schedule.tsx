@@ -271,9 +271,9 @@ export const Schedule: React.FC = () => {
                       return (
                         <div
                           key={ev.id}
-                          className={`relative flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
+                          className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
                             live
-                              ? 'bg-amber-400/[0.1] border border-amber-400/40 shadow-[0_0_24px_-4px_rgba(251,191,36,0.25)]'
+                              ? 'bg-emerald-500/[0.08] border border-emerald-500/25'
                               : ev.isPermanent
                                 ? 'bg-white/[0.025] border border-white/[0.05] hover:border-white/[0.1]'
                                 : 'bg-kiddy-cherry/[0.06] border border-kiddy-cherry/20 hover:border-kiddy-cherry/30'
@@ -283,17 +283,11 @@ export const Schedule: React.FC = () => {
                             animationDelay: `${dayIdx * 0.04 + i * 0.03 + 0.1}s`,
                           }}
                         >
-                          {live && (
-                            <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_2px_rgba(251,191,36,0.6)]" />
-                              <span className="absolute w-2.5 h-2.5 rounded-full bg-amber-400/60 animate-ping" />
-                            </div>
-                          )}
                           <div className="flex-shrink-0 w-16">
                             <span
                               className={`font-mono font-bold text-sm ${
                                 live
-                                  ? 'text-amber-400'
+                                  ? 'text-emerald-400'
                                   : ev.isPermanent
                                     ? 'text-kiddy-textSecondary'
                                     : 'text-kiddy-cherry'
@@ -302,21 +296,16 @@ export const Schedule: React.FC = () => {
                               {ev.time_start}
                             </span>
                             {ev.time_end && (
-                              <span className={`font-mono text-[11px] block ${live ? 'text-amber-400/60' : 'text-kiddy-textMuted'}`}>
+                              <span className={`font-mono text-[11px] block ${live ? 'text-emerald-400/50' : 'text-kiddy-textMuted'}`}>
                                 {ev.time_end}
                               </span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className={`font-semibold text-sm truncate ${live ? 'text-amber-300' : 'text-white'}`}>
+                              <span className={`font-semibold text-sm truncate ${live ? 'text-emerald-300' : 'text-white'}`}>
                                 {ev.title}
                               </span>
-                              {live && (
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-400/[0.12] px-2 py-0.5 rounded-full flex-shrink-0">
-                                  Сейчас
-                                </span>
-                              )}
                               {ev.isPermanent && !live && (
                                 <Users size={12} className="text-kiddy-textMuted flex-shrink-0" />
                               )}
