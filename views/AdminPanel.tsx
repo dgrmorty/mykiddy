@@ -1091,7 +1091,7 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Название организации</label>
-                            <input value={globalSettings.school_name} onChange={e => setGlobalSettings({...globalSettings, school_name: e.target.value})} className="w-full bg-black border border-[#282828] p-4 rounded-xl text-white font-display font-bold outline-none focus:border-kiddy-cherry transition-all" placeholder="Напр: Kiddy IT Academy"/>
+                            <input value={globalSettings.school_name} onChange={e => setGlobalSettings({...globalSettings, school_name: e.target.value})} className="w-full bg-black border border-[#282828] p-4 rounded-xl text-white font-display font-bold outline-none focus:border-kiddy-cherry transition-all" placeholder="Напр: Дети В ТОПЕ"/>
                         </div>
                         <button onClick={handleSaveSettings} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-kiddy-cherry hover:text-white transition-all shadow-xl">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
                     </div>

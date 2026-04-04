@@ -12,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Лимиты ИИ в день на пользователя (тьютор и проверка ДЗ отдельно)
@@ -129,7 +130,7 @@ async function incrementHomeworkUsage(accessToken, userId) {
 
 // Разрешаем CORS для веба и для приложения в телефоне/планшете (Capacitor)
 const allowedOrigins = [
-    'https://mykiddy-production.up.railway.app',
+    process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'https://mykiddy-production.up.railway.app',
     'http://localhost:5173',
     'http://localhost:5174',
     'capacitor://localhost',
@@ -382,14 +383,14 @@ app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
         }
         if (looksProfaneOrAbusive(question)) {
             return res.status(400).json({
-                error: "Напиши вопрос без мата и оскорблений — в Kiddy общаемся уважительно.",
+                error: "Напиши вопрос без мата и оскорблений — общаемся уважительно.",
                 code: "VALIDATION_ERROR",
             });
         }
 
         const ctx = typeof context === 'string' && context.trim() ? context.trim() : 'общий курс';
         const response = await generateWithFallback(question, {
-            systemInstruction: `Ты — ИИ-тьютор Kiddy. Помогаешь детям (8-14 лет) осваивать программирование и 3D.
+            systemInstruction: `Ты — ИИ-тьютор школы «Дети В ТОПЕ». Помогаешь детям (8-14 лет) осваивать программирование и 3D.
 Твой стиль: дружелюбный эксперт, вдохновляющий на созидание.
 Язык: РУССКИЙ.
 Кратко, по делу, без лишней воды.
@@ -485,7 +486,7 @@ app.post('/api/check-homework', aiLimiter, async (req, res) => {
             });
         }
 
-        const prompt = `Ты проверяешь домашнее задание в IT-школе Kiddy для детей 8-14 лет.
+        const prompt = `Ты проверяешь домашнее задание в IT-школе «Дети В ТОПЕ» для детей 8-14 лет.
 
 ЗАДАНИЕ ИЗ УРОКА:
 ${taskStr}
@@ -515,7 +516,7 @@ ${answerStr}
 Язык: РУССКИЙ.`;
 
         const response = await generateWithFallback(prompt, {
-            systemInstruction: `Ты — ИИ-тьютор Kiddy, который проверяет домашние задания для детей 8-14 лет.
+            systemInstruction: `Ты — ИИ-тьютор школы «Дети В ТОПЕ», который проверяет домашние задания для детей 8-14 лет.
 Ты внимательно анализируешь ответ ученика на основе конкретного задания из урока.
 Ты МАКСИМАЛЬНО поддерживающий, дружелюбный и конструктивный.
 Ты работаешь с детьми — будь добрым и терпеливым.
@@ -562,6 +563,14 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+for (const key of requiredEnv) {
+    if (!process.env[key]) {
+        console.error(`FATAL: переменная окружения ${key} не задана. Сервер не может стартовать.`);
+        process.exit(1);
+    }
+}
+
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Kiddy OS: Port ${PORT} | AI: ${!!ai ? 'Active' : 'Inactive'}`);
+    console.log(`🚀 Дети В ТОПЕ: Port ${PORT} | AI: ${!!ai ? 'Active' : 'Inactive'}`);
 });

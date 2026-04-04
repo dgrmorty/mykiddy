@@ -1,7 +1,7 @@
 {
-  "name": "kiddy-os",
+  "name": "deti-v-tope",
   "version": "1.0.0",
-  "description": "Kiddy Campus: IT Future School Platform",
+  "description": "Дети В ТОПЕ — IT-школа будущего",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -49,6 +49,6 @@
   "engines": {
     "node": ">=18.0.0 <22.0.0"
   },
-  "author": "Kiddy Elite Team",
+  "author": "Дети В ТОПЕ",
   "license": "ISC"
 }

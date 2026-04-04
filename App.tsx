@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './views/Dashboard';
 import { CourseDetail } from './views/CourseDetail';
@@ -22,17 +22,17 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <>{children}</>;
 };
 
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const StaffRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, isGuest, isLoading } = useAuth();
     if (isLoading) return null;
-    if (isGuest || user.role !== Role.ADMIN) {
+    if (isGuest || (user.role !== Role.ADMIN && user.role !== Role.TEACHER)) {
         return <Navigate to="/" replace />;
     }
     return <>{children}</>;
 };
 
 const AppContent: React.FC = () => {
-  const { isLoading, user, switchRole } = useAuth();
+  const { isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -43,9 +43,9 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout user={user} onSwitchRole={switchRole} />}>
+        <Route path="/" element={<Layout user={user} />}>
           <Route index element={<Dashboard user={user} />} />
           
           <Route path="courses" element={
@@ -73,15 +73,15 @@ const AppContent: React.FC = () => {
           } />
 
           <Route path="admin" element={
-            <AdminRoute>
+            <StaffRoute>
                 <AdminPanel />
-            </AdminRoute>
+            </StaffRoute>
           } />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 };
 

@@ -43,7 +43,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-kiddy-base flex items-center justify-center p-4">
         <div className="w-full max-w-md animate-slide-up">
             <div className="text-center mb-10">
-                <h1 className="text-4xl font-display font-bold text-white tracking-tight">Kiddy <span className="text-kiddy-cherry">OS</span></h1>
+                <h1 className="text-4xl font-display font-bold text-white tracking-tight">Дети В <span className="text-kiddy-cherry">ТОПЕ</span></h1>
                 <p className="text-kiddy-textMuted mt-2 uppercase text-[10px] font-bold tracking-[0.3em]">Идентификация в системе</p>
             </div>
             <Card className="bg-kiddy-surface border-white/[0.08] shadow-2xl p-8">

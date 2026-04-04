@@ -7,17 +7,18 @@ import { supabase } from '../services/supabase';
 
 interface SidebarProps {
   currentUser: User;
-  onSwitchRole: () => void;
 }
 
 const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3];
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentUser, onSwitchRole }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const { openAuthModal, signOut } = useAuth();
   const isGuest = currentUser.role === Role.GUEST;
   const isAdmin = currentUser.role === Role.ADMIN;
+  const isTeacher = currentUser.role === Role.TEACHER;
+  const isParent = currentUser.role === Role.PARENT;
   const [logo, setLogo] = useState<string | null>(null);
-  const [schoolName, setSchoolName] = useState('Kiddy');
+  const [schoolName, setSchoolName] = useState('Дети В ТОПЕ');
 
   useEffect(() => {
     const fetchBranding = async () => {
@@ -36,11 +37,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, onSwitchRole }) =
   const navItems: { iconName: NavIcon; label: string; path: string; locked: boolean }[] = [
     { iconName: 'dashboard', label: 'Главная', path: '/', locked: false },
     { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest },
-    { iconName: 'sparkle', label: 'Наставник', path: '/ai-tutor', locked: isGuest },
+    ...(isParent ? [] : [{ iconName: 'sparkle' as NavIcon, label: 'Наставник', path: '/ai-tutor', locked: isGuest }]),
     { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest },
     { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest },
   ];
-  if (isAdmin) navItems.push({ iconName: 'shield', label: 'Управление', path: '/admin', locked: false });
+  if (isAdmin || isTeacher) navItems.push({ iconName: 'shield', label: 'Управление', path: '/admin', locked: false });
 
   const handleNavClick = (e: React.MouseEvent, locked: boolean) => {
     if (locked) { e.preventDefault(); openAuthModal(); }
@@ -119,23 +120,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, onSwitchRole }) =
             <div className="min-w-0 flex-1">
               <p className="font-bold text-sm text-white truncate tracking-wide">{currentUser.name.split(' ')[0]}</p>
               <p className="text-xs text-kiddy-textMuted font-medium mt-0.5">
-                {isGuest ? 'Гость' : isAdmin ? 'Админ' : currentUser.role === Role.STUDENT ? `Уровень ${currentUser.level}` : 'Родитель'}
+                {isGuest ? 'Гость' : isAdmin ? 'Админ' : isTeacher ? 'Преподаватель' : isParent ? 'Родитель' : `Уровень ${currentUser.level}`}
               </p>
             </div>
           </div>
 
           <div className="space-y-1">
-            {!isGuest && !isAdmin && (
-              <button
-                type="button"
-                onClick={onSwitchRole}
-                className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-kiddy-textSecondary hover:text-white hover:bg-white/[0.03] transition-all group"
-                title={currentUser.role === Role.STUDENT ? 'Переключить на режим родителя' : 'Переключить на режим ученика'}
-              >
-                <AnimatedIcon name="user" size={18} className="group-hover:text-white" active={false} />
-                {currentUser.role === Role.STUDENT ? 'Режим ученика' : 'Режим родителя'}
-              </button>
-            )}
             {isGuest ? (
               <button type="button" onClick={openAuthModal} className="btn-cta w-full py-3.5 mt-4 text-sm tracking-wide">
                 Войти в аккаунт

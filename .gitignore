@@ -12,6 +12,7 @@ node_modules/
 .cache/
 .vscode/
 .idea/
+.cursor/
 
 # Web build outputs
 dist/
@@ -25,6 +26,9 @@ yarn-error.log*
 
 # Railway / deployment local stuff
 .railway/
+
+# Supabase CLI local state
+supabase/.temp/
 
 # Android build outputs and local SDK config
 android/app/build/

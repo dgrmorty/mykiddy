@@ -14,7 +14,7 @@ export const AccessGate: React.FC<{ title?: string; message?: string }> = ({
       </div>
       <h2 className="font-display font-semibold text-xl text-white tracking-tight mb-3">{title}</h2>
       <p className="text-body-sm text-kiddy-textSecondary leading-relaxed mb-8">{message}</p>
-      <p className="text-caption text-kiddy-textMuted">Kiddy · верификация</p>
+      <p className="text-caption text-kiddy-textMuted">Дети В ТОПЕ · верификация</p>
     </Card>
   </div>
 );

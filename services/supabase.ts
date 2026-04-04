@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Предпочтительно задавать в .env (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Fallback только для локальной разработки.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || 'https://twaepaurydscpcgfgtuc.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3YWVwYXVyeWRzY3BjZ2ZndHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDgzMTEsImV4cCI6MjA4NjU4NDMxMX0.OGx8wd7CvslrgEEVZV7voWGvnl6BsxiPMIWVi79H-Yo';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY должны быть заданы в .env');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

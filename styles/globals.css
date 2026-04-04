@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --kiddy-cherry: #e6002b;
+  --kiddy-bg: #0a0a0a;
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  margin: 0;
+  background-color: var(--kiddy-bg);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(230,0,43,0.04) 0%, transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(255,255,255,0.02) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #262626; }
+
+.btn-cta {
+  position: relative;
+  background-color: var(--kiddy-cherry);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform 0.3s var(--ease-spring), background-color 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+.btn-cta::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+  pointer-events: none;
+}
+.btn-cta:hover {
+  transform: scale(1.02) translateY(-1px);
+  background-color: #ff1a45;
+  box-shadow: 0 8px 24px -6px rgba(230,0,43,0.4);
+}
+.btn-cta:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px -2px rgba(230,0,43,0.4);
+}
+
+.btn-secondary {
+  background-color: rgba(255,255,255,0.04);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: transform 0.3s var(--ease-spring), background-color 0.3s ease, border-color 0.3s ease;
+}
+.btn-secondary:hover {
+  background-color: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.1);
+  transform: scale(1.02);
+}
+.btn-secondary:active { transform: scale(0.96); }
+
+.card-premium {
+  background-color: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px -8px rgba(0,0,0,0.6);
+  transition: transform 0.4s var(--ease-entrance), background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.card-premium:hover {
+  background-color: rgba(20, 20, 20, 0.95);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 16px 48px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(230,0,43,0.06);
+  transform: translateY(-4px);
+}
+
+.input-premium {
+  background-color: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  color: #ffffff;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.input-premium:hover { background-color: rgba(255,255,255,0.05); }
+.input-premium:focus {
+  outline: none;
+  background-color: rgba(255,255,255,0.05);
+  border-color: var(--kiddy-cherry);
+  box-shadow: 0 0 0 4px rgba(230,0,43,0.1);
+}
+
+.nav-active {
+  background-color: rgba(255,255,255,0.04);
+  color: #ffffff !important;
+}
+
+.svg-line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw-svg 1.5s var(--ease-entrance) forwards;
+}
+
+@keyframes draw-svg { to { stroke-dashoffset: 0; } }
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: 8px;
+}
+
+@keyframes reveal-up {
+  0% { transform: translateY(20px) scale(0.99); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes scale-in {
+  0% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.stagger-1 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.05s; }
+.stagger-2 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.1s; }
+.stagger-3 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.15s; }
+.stagger-4 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.2s; }
+.stagger-5 { animation: reveal-up 0.5s var(--ease-entrance) both; animation-delay: 0.25s; }

@@ -42,15 +42,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const normalizeRole = (rawRole: string | undefined, email?: string): Role => {
-    // Проверяем email только если он точно указан и совпадает
     if (email) {
       const emailLower = email.toLowerCase();
       if (ADMIN_EMAILS.includes(emailLower)) return Role.ADMIN;
     }
-    // Проверяем роль из метаданных или профиля
     if (!rawRole) return Role.STUDENT;
     const r = rawRole.toLowerCase();
     if (r === 'admin') return Role.ADMIN;
+    if (r === 'teacher') return Role.TEACHER;
     if (r === 'parent') return Role.PARENT;
     return Role.STUDENT;
   };

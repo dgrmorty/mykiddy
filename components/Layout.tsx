@@ -8,13 +8,15 @@ import { supabase } from '../services/supabase';
 
 interface LayoutProps {
   user: User;
-  onSwitchRole: () => void;
+  onSwitchRole?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ user, onSwitchRole }) => {
+export const Layout: React.FC<LayoutProps> = ({ user }) => {
   const { openAuthModal } = useAuth();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
+  const isTeacher = user.role === Role.TEACHER;
+  const isParent = user.role === Role.PARENT;
   const [logo, setLogo] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
 
@@ -70,11 +72,11 @@ export const Layout: React.FC<LayoutProps> = ({ user, onSwitchRole }) => {
           Нет соединения с интернетом. Часть функций недоступна.
         </div>
       )}
-      <Sidebar currentUser={user} onSwitchRole={onSwitchRole} />
+      <Sidebar currentUser={user} />
 
       <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 bg-kiddy-base/80 backdrop-blur-xl border-b border-white/[0.04]">
-        {logo ? <img src={logo} alt="Kiddy" className="h-7 w-auto object-contain" /> : <span className="font-display font-extrabold text-xl text-white tracking-tighter">Kiddy</span>}
-        <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" onClick={!isAdmin ? onSwitchRole : undefined} />
+        {logo ? <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" /> : <span className="font-display font-extrabold text-xl text-white tracking-tighter">Дети В ТОПЕ</span>}
+        <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" />
       </header>
 
       <main className="flex-1 md:ml-[260px] min-h-screen px-4 md:px-10 py-6 md:py-12 max-w-[1400px] w-full mx-auto pb-28 md:pb-12">
@@ -84,8 +86,8 @@ export const Layout: React.FC<LayoutProps> = ({ user, onSwitchRole }) => {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-kiddy-base/90 backdrop-blur-2xl border-t border-white/[0.04] py-3 px-2 pb-safe">
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" />
         <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" />
-        <MobileNavItem to="/ai-tutor" iconName="sparkle" locked={isGuest} label="ИИ" />
-        {isAdmin ? <MobileNavItem to="/admin" iconName="shield" locked={false} label="Админ" /> : <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />}
+        {!isParent && <MobileNavItem to="/ai-tutor" iconName="sparkle" locked={isGuest} label="ИИ" />}
+        {(isAdmin || isTeacher) ? <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" /> : <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />}
         <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" />
       </nav>
     </div>
