@@ -106,6 +106,10 @@ export default {
           '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
           '50%': { opacity: '0.7', transform: 'scale(1.05)' },
         },
+        'week-slide-in': {
+          '0%': { opacity: '0', transform: 'translateX(40px)', filter: 'blur(4px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)', filter: 'blur(0)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -119,6 +123,7 @@ export default {
         'draw-svg': 'draw-svg 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         float: 'float 4s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
+        'week-slide-in': 'week-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
       },
     },
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { ChevronLeft, ChevronRight, MapPin, Users } from 'lucide-react';
@@ -14,6 +14,8 @@ import {
 } from '../data/permanentSchedule';
 
 const DAY_NAMES = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+type SlideDir = 'left' | 'right' | null;
 
 interface MergedEvent {
   id: string;
@@ -36,6 +38,21 @@ export const Schedule: React.FC = () => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [dbEvents, setDbEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slideDir, setSlideDir] = useState<SlideDir>(null);
+  const [animKey, setAnimKey] = useState(0);
+  const isAnimating = useRef(false);
+
+  const navigate = useCallback((delta: number) => {
+    if (isAnimating.current) return;
+    isAnimating.current = true;
+    setSlideDir(delta > 0 ? 'left' : 'right');
+    setTimeout(() => {
+      setWeekOffset((w) => w + delta);
+      setSlideDir(null);
+      setAnimKey((k) => k + 1);
+      isAnimating.current = false;
+    }, 250);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -112,14 +129,17 @@ export const Schedule: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setWeekOffset((w) => w - 1)}
+            onClick={() => navigate(-1)}
             className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.1] transition-all active:scale-95"
           >
             <ChevronLeft size={20} className="text-white" />
           </button>
 
-          <div className="flex-1 text-center">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight leading-tight">
+          <div className="flex-1 text-center overflow-hidden">
+            <h1
+              key={`label-${weekOffset}`}
+              className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight leading-tight animate-[fade-in-up_0.35s_cubic-bezier(0.16,1,0.3,1)_both]"
+            >
               {weekLabel}
             </h1>
             {isThisWeek && (
@@ -130,7 +150,7 @@ export const Schedule: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setWeekOffset((w) => w + 1)}
+            onClick={() => navigate(1)}
             className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.1] transition-all active:scale-95"
           >
             <ChevronRight size={20} className="text-white" />
@@ -139,7 +159,17 @@ export const Schedule: React.FC = () => {
 
         {!isThisWeek && (
           <button
-            onClick={() => setWeekOffset(0)}
+            onClick={() => {
+              if (isAnimating.current) return;
+              isAnimating.current = true;
+              setSlideDir(weekOffset > 0 ? 'right' : 'left');
+              setTimeout(() => {
+                setWeekOffset(0);
+                setSlideDir(null);
+                setAnimKey((k) => k + 1);
+                isAnimating.current = false;
+              }, 250);
+            }}
             className="mt-3 mx-auto block text-kiddy-cherry text-xs font-bold hover:underline transition-all"
           >
             ← Вернуться к текущей неделе
@@ -148,7 +178,20 @@ export const Schedule: React.FC = () => {
       </div>
 
       {/* ─── Days ─── */}
-      <div className="space-y-4">
+      <div
+        key={animKey}
+        className="space-y-4 transition-[opacity,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={
+          slideDir
+            ? {
+                opacity: 0,
+                transform: `translateX(${slideDir === 'left' ? '-40px' : '40px'})`,
+              }
+            : {
+                animation: 'week-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+              }
+        }
+      >
         {weekDays.map((date, dayIdx) => {
           const isToday = isSameDay(date, today);
           const dow = dayOfWeek(date);
