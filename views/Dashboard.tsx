@@ -49,7 +49,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   return (
     <div className="space-y-10 md:space-y-14 pb-10">
       <div className="stagger-1 relative">
-        <div className="absolute -top-10 left-0 w-64 h-64 bg-kiddy-cherry/8 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute -top-10 left-0 w-72 h-72 bg-kiddy-cherry/8 rounded-full blur-[120px] pointer-events-none animate-glow-pulse" />
         <div className="relative">
           <p className="text-kiddy-textMuted text-sm font-semibold tracking-widest uppercase mb-3">Добро пожаловать</p>
           <h1 className="text-4xl md:text-6xl font-display font-extrabold text-white tracking-tighter leading-[1.05]">
@@ -141,11 +141,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <p className="text-kiddy-textMuted font-medium">Скоро появятся события</p>
             </Card>
           ) : (
-            scheduleEvents.slice(0, 4).map((ev) => (
-              <Card key={ev.id} hoverEffect className="flex items-center justify-between gap-6 group">
+            scheduleEvents.slice(0, 4).map((ev, i) => (
+              <Card key={ev.id} hoverEffect className="flex items-center justify-between gap-6 group" style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.3 + i * 0.08}s` }}>
                 <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <Calendar className="text-white" size={28} strokeWidth={1.5} />
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-kiddy-cherry/10 group-hover:border-kiddy-cherry/20 transition-all duration-400">
+                    <Calendar className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={28} strokeWidth={1.5} />
                   </div>
                   <div>
                     <p className="font-bold text-xl text-white mb-1">{ev.title}</p>

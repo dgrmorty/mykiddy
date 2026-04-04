@@ -189,8 +189,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   };
 
   return (
-    <div className="animate-slide-up space-y-10 pb-20">
-      <section className="relative h-72 md:h-80 w-full rounded-[3rem] overflow-hidden shadow-2xl group transition-all">
+    <div className="space-y-10 pb-20">
+      <section className="stagger-1 relative h-72 md:h-80 w-full rounded-[3rem] overflow-hidden shadow-2xl group transition-all">
         <div className="absolute inset-0 bg-gradient-to-r from-kiddy-base via-kiddy-base/60 to-transparent z-10" />
         <img 
           src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop" 
@@ -283,9 +283,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         </div>
       </section>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
+        <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
                 <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
                     <Target size={16} className="text-kiddy-cherry" />
@@ -303,9 +302,9 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
         </Card>
 
-        <Card className="bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
+        <Card className="stagger-3 bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
             <div>
-                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                     <Zap className="text-yellow-500" size={24} />
                 </div>
                 <h3 className="text-kiddy-textMuted font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Очки опыта</h3>
@@ -316,16 +315,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <span>До следующего уровня</span>
                     <span>{Math.min(100, ((currentUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-1 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden">
                     <div 
-                        className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover shadow-[0_0_15px_rgba(190,18,60,0.5)] transition-all duration-1000" 
+                        className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover rounded-full progress-glow transition-all duration-1000" 
                         style={{ width: `${Math.min(100, ((currentUser.xp % 100) / 100) * 100)}%` }} 
                     />
                 </div>
             </div>
         </Card>
 
-        <Card className="bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
+        <Card className="stagger-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
                     <Award className="text-kiddy-cherry" size={24} />

@@ -116,7 +116,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="max-w-[420px]">
       <div className="p-8 md:p-10 relative overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-64 h-64 bg-kiddy-cherryGlow rounded-full blur-[80px] opacity-30 pointer-events-none" />
+        <div className="absolute -top-32 -left-32 w-64 h-64 bg-kiddy-cherryGlow rounded-full blur-[80px] opacity-30 pointer-events-none animate-glow-pulse" />
+        <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-kiddy-cherry/10 rounded-full blur-[60px] pointer-events-none" />
 
         <div className="mb-8 text-center relative z-10">
           <h2 className="font-display font-bold text-4xl text-white tracking-tighter mb-3">
@@ -132,7 +133,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-zinc-800 font-bold text-sm hover:bg-zinc-100 transition-all disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-zinc-800 font-bold text-sm hover:bg-zinc-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-spring disabled:opacity-50 shadow-lg shadow-white/10"
           >
             {loading && mode === 'login' && !email ? (
               <Loader2 size={20} className="animate-spin" />

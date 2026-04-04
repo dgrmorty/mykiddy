@@ -70,11 +70,13 @@ export const Schedule: React.FC = () => {
           </Card>
         ) : (
           <div className="space-y-3">
-            {eventsByDay[currentDay].map((ev) => (
+            {eventsByDay[currentDay].map((ev, i) => (
               <Card
                 key={ev.id}
-                className="bg-kiddy-surfaceElevated/90 border border-white/[0.08] rounded-2xl p-5 hover:border-white/10 transition-colors"
+                className="bg-kiddy-surfaceElevated/90 border border-white/[0.08] rounded-2xl p-5 hover:border-white/10 transition-all duration-300"
                 noPadding
+                hoverEffect
+                style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${i * 0.08}s` }}
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-14 text-right">
@@ -103,14 +105,15 @@ export const Schedule: React.FC = () => {
           <Clock size={14} /> Неделя
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((dayNum, i) => (
             <div
               key={dayNum}
-              className={`rounded-2xl border p-4 transition-colors ${
+              className={`rounded-2xl border p-4 transition-all duration-300 hover:scale-[1.02] ${
                 dayNum === currentDay
-                  ? 'bg-kiddy-cherry/10 border-kiddy-cherry/30'
-                  : 'bg-kiddy-surfaceElevated/80 border-white/[0.08]'
+                  ? 'bg-kiddy-cherry/10 border-kiddy-cherry/30 hover-glow'
+                  : 'bg-kiddy-surfaceElevated/80 border-white/[0.08] hover:border-white/[0.12]'
               }`}
+              style={{ animation: `reveal-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${i * 0.06}s` }}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className={`font-bold text-sm ${dayNum === currentDay ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary'}`}>

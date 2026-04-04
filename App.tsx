@@ -6,7 +6,6 @@ import { Dashboard } from './views/Dashboard';
 import { CourseDetail } from './views/CourseDetail';
 import { Profile } from './views/Profile';
 import { Schedule } from './views/Schedule';
-import { AiTutor } from './views/AiTutor';
 import { AdminPanel } from './views/AdminPanel';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -36,8 +35,12 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-        <div className="min-h-screen flex items-center justify-center" style={{ background: '#050505' }}>
-            <div className="rounded-full border-2 border-white/20 border-t-[#e6002b] animate-spin" style={{ width: 40, height: 40 }} />
+        <div className="min-h-screen flex flex-col items-center justify-center gap-6" style={{ background: '#050505' }}>
+            <div className="relative">
+              <div className="absolute inset-0 bg-kiddy-cherry/20 rounded-full blur-2xl animate-glow-pulse" />
+              <div className="relative rounded-full border-2 border-white/10 border-t-[#e6002b] animate-spin" style={{ width: 44, height: 44 }} />
+            </div>
+            <img src="/logo-vtope.png" alt="" className="h-7 w-auto opacity-40 animate-fade-in" style={{ animationDelay: '0.3s' }} />
         </div>
     );
   }
@@ -63,12 +66,6 @@ const AppContent: React.FC = () => {
           <Route path="schedule" element={
             <ProtectedRoute>
                 <Schedule />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="ai-tutor" element={
-            <ProtectedRoute>
-                <AiTutor />
             </ProtectedRoute>
           } />
 

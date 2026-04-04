@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-const EXIT_DURATION_MS = 400;
+const EXIT_DURATION_MS = 350;
 
 interface ModalProps {
   isOpen: boolean;
@@ -68,12 +68,18 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className="fixed inset-0 z-[200] min-h-screen flex items-center justify-center p-4 md:p-6">
       <div
-        className={`absolute inset-0 bg-kiddy-base/80 backdrop-blur-xl cursor-pointer transition-all duration-400 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
         onClick={onClose}
         aria-hidden
       />
       <div
-        className={`relative z-10 w-full max-h-[90vh] overflow-y-auto custom-scrollbar ${maxWidth} transition-all duration-400 cubic-bezier(0.175, 0.885, 0.32, 1.1) ${isExiting ? 'opacity-0 translate-y-8 scale-95 filter blur-sm' : 'opacity-100 translate-y-0 scale-100 animate-reveal-up'} ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.04] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)]'}`}
+        className={`relative z-10 w-full max-h-[90vh] overflow-y-auto custom-scrollbar ${maxWidth}
+          transition-all duration-400 ease-spring
+          ${isExiting
+            ? 'opacity-0 translate-y-6 scale-[0.97]'
+            : 'opacity-100 translate-y-0 scale-100 animate-reveal-up'}
+          ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.06] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
+        `}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

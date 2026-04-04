@@ -425,12 +425,12 @@ export const CourseDetail: React.FC = () => {
           </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
-              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.08]/50 hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full" onClick={() => setActiveCourse(course)}>
-                <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" /></div>
+            {courses.map((course, i) => (
+              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.06] hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full hover-lift" onClick={() => setActiveCourse(course)} style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.1 + i * 0.1}s` }}>
+                <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-800 ease-entrance group-hover:scale-110 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" /></div>
                 <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
                     <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-cherry transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
-                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden"><div className="h-full bg-kiddy-cherry transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
+                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1.5 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
                 </div>
               </Card>
             ))}

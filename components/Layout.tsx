@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { User, Role } from '../types';
 import { Outlet, NavLink } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
+import { PageTransition } from './PageTransition';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 
@@ -16,7 +17,6 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
   const isTeacher = user.role === Role.TEACHER;
-  const isParent = user.role === Role.PARENT;
   const [logo, setLogo] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
 
@@ -45,13 +45,13 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
       to={to}
       onClick={(e) => handleNavClick(e, locked)}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-300
-         ${isActive && !locked ? 'text-kiddy-cherry scale-110' : 'text-kiddy-textSecondary hover:text-white'}`
+        `flex flex-col items-center gap-1 p-2.5 rounded-2xl transition-all duration-400 ease-spring
+         ${isActive && !locked ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary hover:text-white active:scale-90'}`
       }
     >
       {({ isActive }) => (
         <>
-          <div className={`relative ${isActive && !locked ? 'drop-shadow-[0_0_8px_rgba(230,0,43,0.4)]' : ''}`}>
+          <div className={`relative transition-transform duration-400 ease-spring ${isActive && !locked ? 'scale-110 drop-shadow-[0_0_12px_rgba(230,0,43,0.5)]' : ''}`}>
             <AnimatedIcon name={iconName} size={22} active={isActive && !locked} />
             {locked && (
               <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-kiddy-surfaceElevated border border-black">
@@ -59,7 +59,10 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
               </span>
             )}
           </div>
-          <span className={`text-[10px] font-semibold tracking-wide ${isActive && !locked ? 'text-white' : ''}`}>{label}</span>
+          {isActive && !locked && (
+            <div className="w-1 h-1 rounded-full bg-kiddy-cherry animate-scale-in" />
+          )}
+          <span className={`text-[10px] font-semibold tracking-wide transition-colors duration-300 ${isActive && !locked ? 'text-white' : ''}`}>{label}</span>
         </>
       )}
     </NavLink>
@@ -74,20 +77,22 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
       )}
       <Sidebar currentUser={user} />
 
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 bg-kiddy-base/80 backdrop-blur-xl border-b border-white/[0.04]">
-        {logo ? <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" /> : <span className="font-display font-extrabold text-xl text-white tracking-tighter">Дети В ТОПЕ</span>}
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 glass">
+        {logo ? <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" /> : <img src="/logo-vtope.png" alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" />}
         <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" />
       </header>
 
       <main className="flex-1 md:ml-[260px] min-h-screen px-4 md:px-10 py-6 md:py-12 max-w-[1400px] w-full mx-auto pb-28 md:pb-12">
-        <Outlet />
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-kiddy-base/90 backdrop-blur-2xl border-t border-white/[0.04] py-3 px-2 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around glass py-3 px-2 pb-safe">
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" />
         <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" />
-        {!isParent && <MobileNavItem to="/ai-tutor" iconName="sparkle" locked={isGuest} label="ИИ" />}
-        {(isAdmin || isTeacher) ? <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" /> : <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />}
+        <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />
+        {(isAdmin || isTeacher) && <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" />}
         <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" />
       </nav>
     </div>

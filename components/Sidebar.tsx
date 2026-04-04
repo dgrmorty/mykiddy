@@ -16,7 +16,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const isGuest = currentUser.role === Role.GUEST;
   const isAdmin = currentUser.role === Role.ADMIN;
   const isTeacher = currentUser.role === Role.TEACHER;
-  const isParent = currentUser.role === Role.PARENT;
   const [logo, setLogo] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState('Дети В ТОПЕ');
 
@@ -33,11 +32,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
     fetchBranding();
   }, []);
 
-  type NavIcon = 'dashboard' | 'book' | 'sparkle' | 'calendar' | 'user' | 'shield';
+  type NavIcon = 'dashboard' | 'book' | 'calendar' | 'user' | 'shield';
   const navItems: { iconName: NavIcon; label: string; path: string; locked: boolean }[] = [
     { iconName: 'dashboard', label: 'Главная', path: '/', locked: false },
     { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest },
-    ...(isParent ? [] : [{ iconName: 'sparkle' as NavIcon, label: 'Наставник', path: '/ai-tutor', locked: isGuest }]),
     { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest },
     { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest },
   ];
@@ -54,16 +52,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-50 h-screen w-[260px] flex-col bg-kiddy-base border-r border-white/[0.04] backdrop-blur-2xl">
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-white/[0.005] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-40 h-40 bg-kiddy-cherry/[0.03] rounded-full blur-[80px] pointer-events-none" />
       
       <div className="relative flex flex-col flex-1 min-h-0 p-6 pt-10">
         <div className="mb-10 px-2 animate-reveal-up" style={{ animationDelay: '0.02s' }}>
           {logo ? (
-            <img src={logo} className="h-8 w-auto object-contain" alt="" />
+            <img src={logo} className="h-8 w-auto object-contain" alt={schoolName} />
           ) : (
-            <span className="font-display font-extrabold text-2xl tracking-tighter text-white">
-              {schoolName}
-            </span>
+            <img src="/logo-vtope.png" className="h-9 w-auto object-contain" alt={schoolName} />
           )}
         </div>
 
@@ -86,11 +83,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                 to={item.path}
                 onClick={(e) => handleNavClick(e, item.locked)}
                 className={({ isActive }) =>
-                  `flex items-center gap-4 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-300
-                   ${item.locked ? 'pointer-events-none opacity-40' : ''}
+                  `flex items-center gap-4 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-300 ease-entrance
+                   ${item.locked ? 'pointer-events-none opacity-40' : 'active:scale-[0.97]'}
                    ${isActive && !item.locked 
                       ? 'nav-active' 
-                      : 'text-kiddy-textSecondary hover:text-white hover:bg-white/[0.03]'}`
+                      : 'text-kiddy-textSecondary hover:text-white hover:bg-white/[0.04]'}`
                 }
                 style={{ 
                   animationDelay: `${STAGGER[i]}s`, 
