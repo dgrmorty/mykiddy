@@ -81,8 +81,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         });
         if (err) throw err;
         if (data?.user && !data.session) {
-          setSuccess('Проверьте почту — мы отправили письмо для подтверждения аккаунта.');
+          setSuccess('Проверьте почту — мы отправили письмо для подтверждения. После подтверждения введите пароль ниже.');
           setLoading(false);
+          setTimeout(() => {
+            setMode('login');
+            setSuccess('Почта подтверждена? Введите пароль и нажмите «Войти».');
+          }, 4000);
           return;
         }
       } else {
