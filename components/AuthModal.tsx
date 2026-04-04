@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Modal } from './ui/Modal';
-import { Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
+}
+
+const inputClass = "input-premium w-full pl-12 pr-4 py-4 text-sm font-medium";
+const MIN_PASSWORD_LENGTH = 8;
+
+function validatePassword(p: string): string | null {
+  if (p.length < MIN_PASSWORD_LENGTH) return `Пароль не менее ${MIN_PASSWORD_LENGTH} символов`;
+  if (!/[a-zA-Z]/.test(p)) return 'Добавьте буквы в пароль';
+  if (!/[0-9]/.test(p)) return 'Добавьте цифры в пароль';
+  return null;
 }
 
 const GoogleIcon = () => (
@@ -20,8 +30,14 @@ const GoogleIcon = () => (
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const { refreshUser } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -35,10 +51,62 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         },
       });
       if (err) throw err;
-    } catch (err: any) {
+    } catch {
       setError('Не удалось войти через Google. Попробуйте ещё раз.');
       setLoading(false);
     }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      if (mode === 'forgot') {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/`,
+        });
+        if (err) throw err;
+        setSuccess('Проверьте почту — мы отправили ссылку для сброса пароля.');
+        setLoading(false);
+        return;
+      }
+      if (mode === 'signup') {
+        const pwError = validatePassword(password);
+        if (pwError) { setError(pwError); setLoading(false); return; }
+        const { data, error: err } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { name: name || 'Ученик', role: 'Student' } },
+        });
+        if (err) throw err;
+        if (data?.user && !data.session) {
+          setSuccess('Проверьте почту — мы отправили письмо для подтверждения аккаунта.');
+          setLoading(false);
+          return;
+        }
+      } else {
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) throw err;
+      }
+      try { await refreshUser(); } catch {}
+      setTimeout(onSuccess, 300);
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg === 'Invalid login credentials' || msg.includes('Invalid')) setError('Неверный email или пароль');
+      else if (msg.includes('Email') && msg.includes('already')) setError('Пользователь с таким email уже существует');
+      else if (msg.includes('password') || msg.includes('Password')) setError('Пароль: минимум 8 символов, буквы и цифры');
+      else if (msg.includes('email') || msg.includes('Email')) setError('Неверный формат email');
+      else setError('Произошла ошибка. Попробуйте ещё раз.');
+    } finally {
+      if (mode !== 'forgot' && mode !== 'signup') setLoading(false);
+    }
+  };
+
+  const switchMode = (m: 'login' | 'signup' | 'forgot') => {
+    setMode(m);
+    setError(null);
+    setSuccess(null);
   };
 
   return (
@@ -46,29 +114,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       <div className="p-8 md:p-10 relative overflow-hidden">
         <div className="absolute -top-32 -left-32 w-64 h-64 bg-kiddy-cherryGlow rounded-full blur-[80px] opacity-30 pointer-events-none" />
 
-        <div className="mb-10 text-center relative z-10">
+        <div className="mb-8 text-center relative z-10">
           <h2 className="font-display font-bold text-4xl text-white tracking-tighter mb-3">
-            Вход
+            {mode === 'forgot' ? 'Сброс пароля' : mode === 'signup' ? 'Регистрация' : 'Вход'}
           </h2>
           <p className="text-sm text-kiddy-textSecondary">
-            Для доступа к платформе «Дети В ТОПЕ»
+            {mode === 'forgot' ? 'Введите email — отправим ссылку' : 'Для доступа к платформе «Дети В ТОПЕ»'}
           </p>
         </div>
 
         <div className="space-y-4 relative z-10">
-          {error && (
-            <div className="animate-reveal-up py-3 px-4 rounded-xl bg-kiddy-cherryDim border border-kiddy-cherry/20 text-sm text-kiddy-cherry font-medium text-center">
-              {error}
-            </div>
-          )}
-
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-zinc-800 font-bold text-sm hover:bg-zinc-100 transition-all disabled:opacity-50"
           >
-            {loading ? (
+            {loading && mode === 'login' && !email ? (
               <Loader2 size={20} className="animate-spin" />
             ) : (
               <>
@@ -78,8 +140,92 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             )}
           </button>
 
-          <p className="text-xs text-kiddy-textMuted text-center mt-6">
-            Нажимая «Войти», вы принимаете условия использования платформы
+          <div className="flex items-center gap-4 my-2">
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="text-xs text-kiddy-textMuted font-medium">или</span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
+
+          <form onSubmit={handleEmailAuth} className="space-y-3">
+            {mode === 'signup' && (
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя ученика" />
+              </div>
+            )}
+
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="Электронная почта" required />
+            </div>
+
+            {mode !== 'forgot' && (
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className={`${inputClass} pr-12`}
+                  placeholder={mode === 'signup' ? 'Пароль (мин. 8 символов, буквы и цифры)' : 'Пароль'}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-kiddy-textMuted hover:text-white transition-colors"
+                  onMouseDown={() => setShowPassword(true)}
+                  onMouseUp={() => setShowPassword(false)}
+                  onMouseLeave={() => setShowPassword(false)}
+                  onTouchStart={() => setShowPassword(true)}
+                  onTouchEnd={() => setShowPassword(false)}
+                  aria-label="Показать пароль"
+                >
+                  {showPassword ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
+                </button>
+              </div>
+            )}
+
+            {mode === 'login' && (
+              <p className="text-right">
+                <button type="button" onClick={() => switchMode('forgot')} className="text-xs text-kiddy-textMuted hover:text-white transition-colors">
+                  Забыли пароль?
+                </button>
+              </p>
+            )}
+            {mode === 'forgot' && (
+              <p className="text-right">
+                <button type="button" onClick={() => switchMode('login')} className="text-xs text-kiddy-textMuted hover:text-white transition-colors">
+                  Вернуться к входу
+                </button>
+              </p>
+            )}
+
+            {error && (
+              <div className="animate-reveal-up py-3 px-4 rounded-xl bg-kiddy-cherryDim border border-kiddy-cherry/20 text-sm text-kiddy-cherry font-medium text-center">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="animate-reveal-up py-3 px-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-400 font-medium text-center">
+                {success}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-cta w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={20} className="animate-spin" /> : (
+                mode === 'forgot' ? 'Отправить ссылку' : mode === 'signup' ? 'Создать аккаунт' : 'Войти'
+              )}
+            </button>
+          </form>
+
+          <p className="text-center relative z-10 pt-2">
+            <button type="button" onClick={() => switchMode(mode === 'signup' ? 'login' : 'signup')} className="text-sm font-medium text-kiddy-textSecondary hover:text-white transition-colors">
+              {mode === 'signup' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Регистрация'}
+            </button>
           </p>
         </div>
       </div>
