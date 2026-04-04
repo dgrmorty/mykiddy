@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avatar: metadata.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(metadata.name || 'User')}&background=random`,
       level: 1,
       xp: 0,
-      isApproved: role === Role.ADMIN || metadata.is_approved === true
+      isApproved: true
     };
   }, []);
 
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             avatar: profile.avatar || authUser?.user_metadata?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`,
             level: Math.max(profileLevel, calculatedLevel), // Используем максимум из БД и рассчитанного
             xp: userXp,
-            isApproved: finalRole === Role.ADMIN || profile.is_approved === true
+            isApproved: true
           });
       } else {
           // Если профиль не найден или ошибка, используем данные из auth

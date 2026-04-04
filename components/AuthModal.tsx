@@ -75,9 +75,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       if (mode === 'signup') {
         const pwError = validatePassword(password);
         if (pwError) { setError(pwError); setLoading(false); return; }
+        if (!name.trim() || !name.trim().includes(' ')) {
+          setError('Укажите имя и фамилию через пробел');
+          setLoading(false);
+          return;
+        }
         const { data, error: err } = await supabase.auth.signUp({
           email, password,
-          options: { data: { name: name || 'Ученик', role: 'Student' } },
+          options: { data: { name: name.trim(), role: 'Student', is_approved: true } },
         });
         if (err) throw err;
         if (data?.user && !data.session) {
@@ -155,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             {mode === 'signup' && (
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
-                <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя ученика" />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя и Фамилия" required />
               </div>
             )}
 

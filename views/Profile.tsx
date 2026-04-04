@@ -8,11 +8,12 @@ import {
     LogOut, AlertTriangle, Trophy, Medal
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
-import { SKILL_DATA } from '../constants';
 import { supabase, uploadFile } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useContentContext } from '../contexts/ContentContext';
+import { useContent } from '../hooks/useContent';
+import { useSkillData } from '../hooks/useSkillData';
 
 interface ProfileProps {
   user: User;
@@ -21,6 +22,8 @@ interface ProfileProps {
 export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const { user, refreshUser, signOut } = useAuth();
   const { resetNavigation } = useContentContext();
+  const { courses } = useContent(user?.id !== 'guest' ? user?.id : undefined);
+  const skillData = useSkillData(courses);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -42,8 +45,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setEditAvatar(currentUser.avatar);
   }, [currentUser]);
 
+  const [myRank, setMyRank] = useState<number | null>(null);
+
   const fetchLeaderboard = async () => {
     setLoadingLeaderboard(true);
+    setMyRank(null);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -52,7 +58,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         .limit(50);
       if (error) throw error;
       if (data) {
-        setLeaderboard(data.map(u => ({
+        const mapped = data.map(u => ({
           id: u.id,
           email: '',
           name: u.name || 'Анонимный',
@@ -61,7 +67,19 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
           level: u.level || 1,
           xp: u.xp || 0,
           isApproved: true
-        })));
+        }));
+        setLeaderboard(mapped);
+
+        const inList = mapped.findIndex(u => u.id === currentUser.id);
+        if (inList !== -1) {
+          setMyRank(inList + 1);
+        } else {
+          const { count } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .gt('xp', currentUser.xp);
+          setMyRank(count != null ? count + 1 : null);
+        }
       }
     } catch (error: any) {
       console.error('[Profile] Leaderboard fetch error:', error);
@@ -70,6 +88,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       setLoadingLeaderboard(false);
     }
   };
+
+  useEffect(() => {
+    if (currentUser.id && currentUser.id !== 'guest' && myRank === null) {
+      supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .gt('xp', currentUser.xp)
+        .then(({ count }) => { if (count != null) setMyRank(count + 1); });
+    }
+  }, [currentUser.id, currentUser.xp]);
 
   useEffect(() => {
     if (isLeaderboardOpen) {
@@ -293,7 +321,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
             <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={SKILL_DATA}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
                         <PolarGrid stroke="#18181b" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 10, fontWeight: 700 }} />
                         <Radar name="Уровень" dataKey="A" stroke="#be123c" fill="#be123c" fillOpacity={0.4} />
@@ -330,7 +358,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <Award className="text-kiddy-cherry" size={24} />
                 </div>
                 <h3 className="text-kiddy-textMuted font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Рейтинг в академии</h3>
-                <div className="text-4xl font-display font-bold text-white italic">#{Math.max(1, 100 - currentUser.level)}</div>
+                <div className="text-4xl font-display font-bold text-white italic">#{myRank ?? '—'}</div>
             </div>
             <button 
               onClick={() => setIsLeaderboardOpen(true)}
@@ -431,6 +459,39 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           );
                       })}
                       
+                      {leaderboard.length > 0 && !leaderboard.some(u => u.id === currentUser.id) && myRank && (
+                        <>
+                          <div className="flex items-center gap-2 py-2 px-4">
+                            <div className="flex-1 h-px bg-white/[0.06]" />
+                            <span className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Ваша позиция</span>
+                            <div className="flex-1 h-px bg-white/[0.06]" />
+                          </div>
+                          <div className="p-4 rounded-xl border bg-kiddy-cherry/10 border-kiddy-cherry/50 shadow-lg shadow-kiddy-cherry/10">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-center w-12">
+                                <span className="text-sm font-display font-bold text-kiddy-cherry">#{myRank}</span>
+                              </div>
+                              <img src={currentUser.avatar} alt={currentUser.name} className="w-12 h-12 rounded-full border-2 border-kiddy-cherry/30 object-cover" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-bold text-sm truncate text-kiddy-cherry">{currentUser.name}</h4>
+                                  <span className="px-2 py-0.5 bg-kiddy-cherry/20 text-kiddy-cherry text-[9px] font-bold rounded uppercase">Вы</span>
+                                </div>
+                                <div className="flex items-center gap-4 mt-1">
+                                  <span className="text-kiddy-textMuted text-xs">Уровень {currentUser.level}</span>
+                                  <span className="text-kiddy-textMuted text-xs">•</span>
+                                  <span className="text-kiddy-textMuted text-xs">{currentUser.xp.toLocaleString()} XP</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-display font-bold text-kiddy-cherry">{currentUser.xp.toLocaleString()}</div>
+                                <div className="text-[9px] text-kiddy-textMuted uppercase tracking-widest">Очков</div>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
                       {leaderboard.length === 0 && (
                           <div className="text-center py-20">
                               <Trophy className="text-zinc-800 mx-auto mb-4" size={48} />

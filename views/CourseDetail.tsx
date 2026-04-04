@@ -302,8 +302,7 @@ export const CourseDetail: React.FC = () => {
                     <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
                 </div>
             </div>
-            {!user.isApproved ? <AccessGate /> : (
-                <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
+            <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
                     <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-white/[0.08] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
                     {!isTheaterMode && (
                         <div className="space-y-6">
@@ -344,7 +343,6 @@ export const CourseDetail: React.FC = () => {
                         </div>
                     )}
                 </div>
-            )}
             <Modal isOpen={isHomeworkOpen} onClose={() => setIsHomeworkOpen(false)} maxWidth={aiFeedback ? "max-w-6xl" : "max-w-xl"} transparentContainer>
                 <div className="flex flex-col md:flex-row gap-4 h-full md:items-center md:justify-center transition-all duration-700 ease-out p-4 md:p-0">
                     {/* Левая модалка - отправка ДЗ */}

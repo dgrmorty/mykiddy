@@ -3,10 +3,10 @@ import { User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Calendar } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
-import { SKILL_DATA } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useContent } from '../hooks/useContent';
+import { useSkillData } from '../hooks/useSkillData';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { AnimatedGrid } from '../components/ui/AnimatedGrid';
@@ -22,6 +22,7 @@ const DAY_NAMES: Record<number, string> = { 1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { requireAuth, isGuest } = useAuth();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
+  const skillData = useSkillData(courses);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
   const navigate = useNavigate();
   const activeCourse = courses[0];
@@ -115,10 +116,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <p className="text-kiddy-textMuted text-xs mb-6">Пример по курсам</p>
             <div className="flex-1 min-h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="65%" data={SKILL_DATA}>
+                <RadarChart cx="50%" cy="50%" outerRadius="65%" data={skillData}>
                   <PolarGrid stroke="rgba(255,255,255,0.08)" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 11, fontWeight: 600 }} />
-                  <Radar name="User" dataKey="A" stroke="#e6002b" fill="#e6002b" fillOpacity={0.15} strokeWidth={2} />
+                  <Radar name="User" dataKey="A" stroke="#e6002b" fill="#e6002b" fillOpacity={0.2} strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
