@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
             <div className="min-w-0 flex-1">
               <p className="font-bold text-sm text-white truncate tracking-wide">{currentUser.name.split(' ')[0]}</p>
               <p className="text-xs text-kiddy-textMuted font-medium mt-0.5">
-                {isGuest ? 'Гость' : isAdmin ? 'Админ' : isTeacher ? 'Преподаватель' : isParent ? 'Родитель' : `Уровень ${currentUser.level}`}
+                {isGuest ? 'Гость' : isAdmin ? 'Админ' : isTeacher ? 'Преподаватель' : currentUser.role === Role.PARENT ? 'Родитель' : `Уровень ${currentUser.level}`}
               </p>
             </div>
           </div>
