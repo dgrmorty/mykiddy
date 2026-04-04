@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Save, X, Loader2, Camera, Target, 
-    LogOut, AlertTriangle, Trophy, Medal
+    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Plus, Sparkles
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase, uploadFile } from '../services/supabase';
@@ -14,6 +14,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useContentContext } from '../contexts/ContentContext';
 import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
+import { useBadgeProgress } from '../hooks/useBadgeProgress';
+import { BadgeOrb } from '../components/BadgeOrb';
+import { BadgePickerModal } from '../components/BadgePickerModal';
+import { BADGE_CATALOG, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
 
 interface ProfileProps {
   user: User;
@@ -31,10 +35,15 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
   const { showToast } = useToast();
   
-  // Используем актуального пользователя из контекста, а не из пропсов
   const currentUser = user.id !== 'guest' ? user : initialUser;
+
+  const badgeUserId = currentUser.id !== 'guest' ? currentUser.id : undefined;
+  const { stats: badgeStats, equippedIds, setEquipped, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
+
+  useEffect(() => { refreshBadges(); }, [currentUser.xp, currentUser.level]);
   
   const [editName, setEditName] = useState(currentUser.name);
   const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
@@ -230,39 +239,67 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             <div className="flex flex-col md:flex-row items-center gap-8">
                 <div className="relative group/avatar">
                     <div className="absolute inset-0 bg-kiddy-cherry blur-3xl opacity-20 animate-pulse" />
-                    <div className="w-28 h-28 md:w-32 md:h-32 rounded-full border-2 border-white/10 relative z-10 shadow-2xl overflow-hidden bg-black">
-                         <img 
-                            src={editAvatar || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`} 
-                            className="w-full h-full object-cover"
-                            alt="Avatar" 
+                    {/* Badge ring */}
+                    <div className="relative w-44 h-44 md:w-48 md:h-48">
+                      {Array.from({ length: RING_SLOT_COUNT }).map((_, i) => {
+                        const cx = 88;
+                        const r = 76;
+                        const angle = -Math.PI / 2 + (2 * Math.PI * i) / RING_SLOT_COUNT;
+                        const left = cx + r * Math.cos(angle) - 17;
+                        const top = cx + r * Math.sin(angle) - 17;
+                        const id = equippedIds[i];
+                        const b = id ? getBadgeById(id) : null;
+                        return (
+                          <div
+                            key={`slot-${i}`}
+                            className="absolute z-20"
+                            style={{ left, top, width: 34, height: 34 }}
+                          >
+                            {b ? (
+                              <BadgeOrb tier={b.tier} icon={b.icon} size={34} onClick={() => setBadgeModalOpen(true)} />
+                            ) : (
+                              <div
+                                onClick={() => badgeUserId && setBadgeModalOpen(true)}
+                                className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-white/[0.12] bg-kiddy-surface flex items-center justify-center cursor-pointer hover:border-white/20 transition-colors"
+                              >
+                                <Plus size={12} className="text-kiddy-textMuted" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {/* Avatar centered */}
+                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-28 md:h-28 rounded-full border-2 border-white/10 z-10 shadow-2xl overflow-hidden bg-black">
+                        <img
+                          src={editAvatar || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`}
+                          className="w-full h-full object-cover"
+                          alt="Avatar"
                         />
                         {(uploading || saving) && (
-                             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
-                                <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
-                             </div>
+                          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
+                            <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
+                          </div>
                         )}
-                    </div>
-                    
-                    {isEditing && !uploading && !saving && (
-                         <div 
-                            className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 rounded-full cursor-pointer opacity-100 transition-opacity" 
+                        {isEditing && !uploading && !saving && (
+                          <div
+                            className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 cursor-pointer"
                             onClick={() => fileInputRef.current?.click()}
-                         >
+                          >
                             <Camera className="text-white" size={24} />
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                className="hidden" 
-                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                onChange={handleFileChange}
-                            />
-                         </div>
-                    )}
-                    
-                    {!isEditing && (
-                        <div className="absolute -bottom-1 -right-1 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-full border border-black z-20 shadow-lg">
-                            LVL {currentUser.level}
+                            <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={handleFileChange} />
+                          </div>
+                        )}
+                      </div>
+                      {!isEditing && (
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-full border border-black z-20 shadow-lg">
+                          LVL {currentUser.level}
                         </div>
+                      )}
+                    </div>
+                    {badgeUserId && (
+                      <button onClick={() => setBadgeModalOpen(true)} className="mt-2 flex items-center gap-1.5 mx-auto text-kiddy-cherry text-xs font-bold hover:underline transition-all">
+                        <Sparkles size={12} /> Настроить медали
+                      </button>
                     )}
                 </div>
 
@@ -368,6 +405,62 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </button>
         </Card>
       </div>
+
+      {/* Achievements Section */}
+      {badgeUserId && (
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
+              <Award size={16} className="text-kiddy-cherry" />
+              Достижения
+            </h3>
+            <button onClick={() => setBadgeModalOpen(true)} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
+              Настроить медали →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {BADGE_CATALOG.map((b) => {
+              const unlocked = badgeStats ? b.isUnlocked(badgeStats) : false;
+              const prog = badgeStats ? b.progress(badgeStats) : 0;
+              return (
+                <div
+                  key={b.id}
+                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                    unlocked
+                      ? 'bg-kiddy-surfaceElevated/80 border-white/[0.08]'
+                      : 'bg-kiddy-surfaceElevated/40 border-white/[0.04] opacity-70'
+                  }`}
+                >
+                  <BadgeOrb tier={b.tier} icon={b.icon} size={44} locked={!unlocked} />
+                  <div className="flex-1 min-w-0">
+                    <span className={`font-bold text-sm ${unlocked ? 'text-white' : 'text-kiddy-textMuted'}`}>{b.title}</span>
+                    <p className="text-kiddy-textMuted text-xs mt-0.5">{b.requirement}</p>
+                    {!unlocked && (
+                      <div className="mt-2 h-1 w-full bg-white/[0.06] rounded-full overflow-hidden">
+                        <div className="h-full bg-kiddy-cherry/60 rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                  {unlocked ? (
+                    <Check size={16} className="text-emerald-400 shrink-0" />
+                  ) : (
+                    <Lock size={14} className="text-kiddy-textMuted shrink-0" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Badge Picker Modal */}
+      <BadgePickerModal
+        isOpen={badgeModalOpen}
+        onClose={() => setBadgeModalOpen(false)}
+        stats={badgeStats}
+        equippedIds={equippedIds}
+        onSave={(ids) => setEquipped(ids)}
+      />
 
       {/* Logout Section */}
       <section className="pt-10 border-t border-zinc-900">
