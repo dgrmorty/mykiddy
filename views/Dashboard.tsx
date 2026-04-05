@@ -34,6 +34,18 @@ interface DashEvent {
   isPermanent: boolean;
 }
 
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** Совпадает с логикой Schedule.isEventLive: сегодня по day_of_week и окно time_start–time_end. */
+function isDashboardEventLive(ev: DashEvent, now: Date): boolean {
+  if (dayOfWeek(now) !== ev.day_of_week || !ev.time_end) return false;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  return nowMin >= timeToMinutes(ev.time_start) && nowMin < timeToMinutes(ev.time_end);
+}
+
 function buildUpcomingEvents(dbEvents: ScheduleEvent[]): DashEvent[] {
   const now = new Date();
   const todayDow = dayOfWeek(now);
@@ -81,7 +93,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const skillData = useSkillData(courses);
   const [dbScheduleEvents, setDbScheduleEvents] = useState<ScheduleEvent[]>([]);
+  const [now, setNow] = useState(() => new Date());
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const activeCourse = courses[0];
   const nextLesson = activeCourse?.modules?.flatMap(m => m.lessons).find(l => !l.isCompleted && !l.locked);
 
@@ -204,36 +222,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <p className="text-kiddy-textMuted font-medium">Пока нет занятий в расписании</p>
             </Card>
           ) : (
-            upcomingEvents.map((ev, i) => (
+            upcomingEvents.map((ev, i) => {
+              const live = isDashboardEventLive(ev, now);
+              return (
               <Card
                 key={ev.id}
                 hoverEffect
-                className="flex items-start gap-4 md:gap-5 group min-w-0"
+                className={`flex items-start gap-4 md:gap-5 group min-w-0 ${
+                  live ? 'bg-emerald-500/[0.08] border border-emerald-500/25' : ''
+                }`}
                 style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.3 + i * 0.06}s` }}
               >
                 <div
                   className={`mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all duration-400 group-hover:scale-110 md:h-14 md:w-14 ${
-                    ev.isPermanent
-                      ? 'border-kiddy-cherry/30 bg-kiddy-cherry/12 group-hover:border-kiddy-cherry/45 group-hover:bg-kiddy-cherry/18'
-                      : 'border-white/[0.04] bg-white/[0.03] group-hover:border-kiddy-cherry/20 group-hover:bg-kiddy-cherry/10'
+                    live
+                      ? 'border-emerald-500/35 bg-emerald-500/12 group-hover:border-emerald-400/45 group-hover:bg-emerald-500/18'
+                      : ev.isPermanent
+                        ? 'border-kiddy-cherry/30 bg-kiddy-cherry/12 group-hover:border-kiddy-cherry/45 group-hover:bg-kiddy-cherry/18'
+                        : 'border-white/[0.04] bg-white/[0.03] group-hover:border-kiddy-cherry/20 group-hover:bg-kiddy-cherry/10'
                   }`}
                 >
                   {ev.isPermanent ? (
-                    <Users className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
+                    <Users className={`transition-colors duration-300 ${live ? 'text-emerald-300 group-hover:text-emerald-200' : 'text-white group-hover:text-kiddy-cherry'}`} size={22} strokeWidth={1.5} />
                   ) : (
-                    <Calendar className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
+                    <Calendar className={`transition-colors duration-300 ${live ? 'text-emerald-300 group-hover:text-emerald-200' : 'text-white group-hover:text-kiddy-cherry'}`} size={22} strokeWidth={1.5} />
                   )}
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
-                  <p className="font-bold text-base text-white line-clamp-2 break-words">{ev.title}</p>
-                  <p className="text-sm font-semibold text-kiddy-cherry">
+                  <p className={`font-bold text-base line-clamp-2 break-words ${live ? 'text-emerald-300' : 'text-white'}`}>{ev.title}</p>
+                  <p className={`text-sm font-semibold ${live ? 'text-emerald-400' : 'text-kiddy-cherry'}`}>
                     {DAY_NAMES[ev.day_of_week] ?? ''} {ev.time_start}
                     {ev.time_end ? ` – ${ev.time_end}` : ''}
                   </p>
                   {ev.location && <p className="text-kiddy-textMuted text-xs mt-0.5 truncate">{ev.location}</p>}
                 </div>
               </Card>
-            ))
+              );
+            })
           )}
         </div>
       </section>
