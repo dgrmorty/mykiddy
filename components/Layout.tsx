@@ -7,6 +7,7 @@ import { PageTransition } from './PageTransition';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationProvider, useNotificationSummary } from '../contexts/NotificationContext';
+import { OnboardingTour } from './onboarding/OnboardingTour';
 import { supabase } from '../services/supabase';
 
 interface LayoutProps {
@@ -56,14 +57,17 @@ function LayoutShell({ user }: LayoutProps) {
     locked,
     label,
     badgeCount,
+    tourAnchor,
   }: {
     to: string;
     iconName: React.ComponentProps<typeof AnimatedIcon>['name'];
     locked: boolean;
     label: string;
     badgeCount?: number;
+    tourAnchor?: string;
   }) => (
     <NavLink
+      id={tourAnchor && !locked ? `tour-mob-${tourAnchor}` : undefined}
       to={to}
       onClick={(e) => handleNavClick(e, locked)}
       className={({ isActive }) =>
@@ -145,21 +149,26 @@ function LayoutShell({ user }: LayoutProps) {
       </main>
 
       <nav className="glass fixed bottom-0 left-0 right-0 z-50 flex items-center justify-start gap-1 overflow-x-auto px-2 py-2.5 pb-safe no-scrollbar md:hidden">
-        <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" />
-        <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" />
-        <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />
-        <MobileNavItem to="/community" iconName="usersGroup" locked={isGuest} label="Ученики" />
+        <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" tourAnchor="nav-home" />
+        <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" tourAnchor="nav-library" />
+        <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" tourAnchor="nav-schedule" />
+        <MobileNavItem to="/community" iconName="usersGroup" locked={isGuest} label="Ученики" tourAnchor="nav-community" />
         <MobileNavItem
           to="/notifications"
           iconName="bell"
           locked={isGuest}
           label="Активность"
           badgeCount={!isGuest ? unreadCount : undefined}
+          tourAnchor="nav-notifications"
         />
-        {isAdmin && <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" />}
-        <MobileNavItem to="/settings" iconName="settings" locked={isGuest} label="Настройки" />
-        <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" />
+        {isAdmin && (
+          <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" tourAnchor="nav-admin" />
+        )}
+        <MobileNavItem to="/settings" iconName="settings" locked={isGuest} label="Настройки" tourAnchor="nav-settings" />
+        <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" tourAnchor="nav-profile" />
       </nav>
+
+      <OnboardingTour userId={user.id} isGuest={isGuest} role={user.role} />
     </div>
   );
 }

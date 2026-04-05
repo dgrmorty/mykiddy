@@ -7,7 +7,9 @@ import {
   ChevronRight,
   Sparkles,
   LogOut,
+  HelpCircle,
 } from 'lucide-react';
+import { onboardingStorageKey } from '../data/onboardingTour';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
@@ -98,6 +100,21 @@ export const Settings: React.FC = () => {
         />
         {user.role === Role.ADMIN && (
           <Row icon={Shield} title="Панель управления" subtitle="Курсы, пользователи, расписание" to="/admin" />
+        )}
+        {user.id !== 'guest' && (
+          <Row
+            icon={HelpCircle}
+            title="Гид по разделам"
+            subtitle="Подсветка меню и короткие подсказки, как при первом входе"
+            onClick={() => {
+              try {
+                localStorage.removeItem(onboardingStorageKey(user.id));
+              } catch {
+                /* ignore */
+              }
+              window.location.reload();
+            }}
+          />
         )}
       </section>
 

@@ -20,6 +20,8 @@ interface NavItem {
   locked: boolean;
   /** Показать счётчик непрочитанных из NotificationContext */
   notificationBadge?: boolean;
+  /** Якорь онбординга → id tour-dsk-${anchor} */
+  onboardingAnchor?: string;
 }
 
 interface NavGroup {
@@ -55,18 +57,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
     {
       title: 'Обучение',
       items: [
-        { iconName: 'dashboard', label: 'Главная', path: '/', locked: false },
-        { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest },
-        { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest },
-        { iconName: 'usersGroup', label: 'Ученики', path: '/community', locked: isGuest },
+        { iconName: 'dashboard', label: 'Главная', path: '/', locked: false, onboardingAnchor: 'nav-home' },
+        { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest, onboardingAnchor: 'nav-library' },
+        { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest, onboardingAnchor: 'nav-schedule' },
+        { iconName: 'usersGroup', label: 'Ученики', path: '/community', locked: isGuest, onboardingAnchor: 'nav-community' },
       ],
     },
     {
       title: 'Аккаунт',
       items: [
-        { iconName: 'bell', label: 'Уведомления', path: '/notifications', locked: isGuest, notificationBadge: true },
-        { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest },
-        { iconName: 'settings', label: 'Настройки', path: '/settings', locked: isGuest },
+        {
+          iconName: 'bell',
+          label: 'Уведомления',
+          path: '/notifications',
+          locked: isGuest,
+          notificationBadge: true,
+          onboardingAnchor: 'nav-notifications',
+        },
+        { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest, onboardingAnchor: 'nav-profile' },
+        { iconName: 'settings', label: 'Настройки', path: '/settings', locked: isGuest, onboardingAnchor: 'nav-settings' },
       ],
     },
   ];
@@ -74,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   if (isAdmin) {
     navGroups.push({
       title: 'Система',
-      items: [{ iconName: 'shield', label: 'Управление', path: '/admin', locked: false }],
+      items: [{ iconName: 'shield', label: 'Управление', path: '/admin', locked: false, onboardingAnchor: 'nav-admin' }],
     });
   }
 
@@ -153,6 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                     return (
                       <NavLink
                         key={item.path}
+                        id={item.onboardingAnchor && !item.locked ? `tour-dsk-${item.onboardingAnchor}` : undefined}
                         to={item.path}
                         onClick={(e) => handleNavClick(e, item.locked)}
                         className={({ isActive: navIsActive }) =>
