@@ -3,7 +3,28 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm run build",
-    "watchPatterns": ["package.json", "package-lock.json", "vite.config.ts", "tsconfig.json", "index.html", "server.js", "src/**", "views/**", "components/**", "contexts/**", "services/**", "config.ts", "App.tsx"]
+    "watchPatterns": [
+      "package.json",
+      "package-lock.json",
+      "vite.config.ts",
+      "tsconfig.json",
+      "tailwind.config.js",
+      "postcss.config.js",
+      "index.html",
+      "server.js",
+      "index.tsx",
+      "App.tsx",
+      "types.ts",
+      "constants.ts",
+      "config.ts",
+      "src/**",
+      "views/**",
+      "components/**",
+      "contexts/**",
+      "services/**",
+      "hooks/**",
+      "data/**"
+    ]
   },
   "deploy": {
     "startCommand": "npm start",
