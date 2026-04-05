@@ -262,11 +262,16 @@ export const CourseDetail: React.FC = () => {
     );
   };
 
-  if (loading && courses.length === 0) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh]">
-      <AnimatedEmptyState message="Загружаем знания..." />
-    </div>
-  );
+  if (loading && courses.length === 0) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center" aria-busy="true">
+        <div
+          className="h-10 w-10 shrink-0 rounded-full border-2 border-white/10 border-t-kiddy-cherry animate-spin"
+          style={{ animationDuration: '0.85s' }}
+        />
+      </div>
+    );
+  }
 
   if (loadError && courses.length === 0) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -536,7 +541,11 @@ export const CourseDetail: React.FC = () => {
       )}
       
       {isTransitioning && (
-        <div className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-kiddy-base/95 backdrop-blur-2xl" style={{ animation: 'lessonTransition 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
+        <div
+          className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-kiddy-base/95 backdrop-blur-2xl"
+          style={{ animation: 'lessonTransition 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+          aria-busy="true"
+        >
           <AnimatedLearningScene />
           <style>{`
             @keyframes lessonTransition {
