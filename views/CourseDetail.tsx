@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     X, ArrowLeft, PenTool, Sparkles, Send, Loader2, 
-    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock
+    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock, Search
 } from 'lucide-react';
 import { Course, CourseYearTier, COURSE_YEAR_LABELS, Lesson } from '../types';
 import { checkHomework } from '../services/geminiService';
@@ -55,6 +55,8 @@ export const CourseDetail: React.FC = () => {
     return 'year_1';
   });
 
+  const [librarySearch, setLibrarySearch] = useState('');
+
   useEffect(() => {
     try {
       sessionStorage.setItem('kiddy_library_year', libraryYear);
@@ -63,7 +65,21 @@ export const CourseDetail: React.FC = () => {
     }
   }, [libraryYear]);
 
-  const filteredCourses = courses.filter((c) => c.yearTier === libraryYear);
+  const coursesInYear = useMemo(
+    () => courses.filter((c) => c.yearTier === libraryYear),
+    [courses, libraryYear],
+  );
+
+  const filteredCourses = useMemo(() => {
+    const q = librarySearch.trim().toLowerCase();
+    if (!q) return coursesInYear;
+    return coursesInYear.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        (c.description || '').toLowerCase().includes(q) ||
+        String(c.type || '').toLowerCase().includes(q),
+    );
+  }, [coursesInYear, librarySearch]);
 
   const handleOpenLesson = (lesson: Lesson) => {
     if (lesson.locked) return;
@@ -464,6 +480,17 @@ export const CourseDetail: React.FC = () => {
             </button>
           ))}
         </div>
+        <div className="relative max-w-xl">
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-kiddy-textMuted" aria-hidden />
+          <input
+            type="search"
+            value={librarySearch}
+            onChange={(e) => setLibrarySearch(e.target.value)}
+            placeholder="Поиск по названию, описанию или направлению…"
+            className="w-full rounded-2xl border border-white/[0.08] bg-black/40 py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-colors focus:border-kiddy-cherry/40"
+            aria-label="Поиск курсов"
+          />
+        </div>
       </header>
       {courses.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
@@ -472,12 +499,24 @@ export const CourseDetail: React.FC = () => {
               Повторить
             </button>
           </div>
-      ) : filteredCourses.length === 0 ? (
+      ) : coursesInYear.length === 0 ? (
           <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
             <p className="text-kiddy-textSecondary font-medium">
               В разделе «{COURSE_YEAR_LABELS[libraryYear]}» пока нет курсов.
             </p>
             <p className="text-kiddy-textMuted mt-2 text-sm">Выберите другой год или добавьте курс в админ-панели.</p>
+          </div>
+      ) : filteredCourses.length === 0 ? (
+          <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
+            <p className="text-kiddy-textSecondary font-medium">Ничего не найдено</p>
+            <p className="text-kiddy-textMuted mt-2 text-sm">Попробуйте другой запрос или сбросьте поиск.</p>
+            <button
+              type="button"
+              onClick={() => setLibrarySearch('')}
+              className="mt-6 rounded-xl border border-white/[0.1] bg-white/[0.04] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:border-kiddy-cherry/35 hover:bg-kiddy-cherry/10"
+            >
+              Сбросить поиск
+            </button>
           </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

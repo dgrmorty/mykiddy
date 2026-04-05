@@ -211,14 +211,7 @@ export const Community: React.FC = () => {
                         </p>
                       </div>
                     </button>
-                    <div className="flex shrink-0 flex-wrap gap-2 md:flex-col md:items-stretch">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/users/${s.id}`)}
-                        className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white hover:border-kiddy-cherry/40 hover:bg-kiddy-cherry/10"
-                      >
-                        Профиль
-                      </button>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:flex-col md:items-stretch">
                       {canFriend && !isFriend && !hasOutgoing && (
                         <button
                           type="button"
