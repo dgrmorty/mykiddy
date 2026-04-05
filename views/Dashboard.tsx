@@ -208,10 +208,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <Card
                 key={ev.id}
                 hoverEffect
-                className="flex items-center gap-4 md:gap-5 group min-w-0"
+                className="flex items-start gap-4 md:gap-5 group min-w-0"
                 style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.3 + i * 0.06}s` }}
               >
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-kiddy-cherry/10 group-hover:border-kiddy-cherry/20 transition-all duration-400">
+                <div
+                  className={`mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all duration-400 group-hover:scale-110 md:h-14 md:w-14 ${
+                    ev.isPermanent
+                      ? 'border-kiddy-cherry/30 bg-kiddy-cherry/12 group-hover:border-kiddy-cherry/45 group-hover:bg-kiddy-cherry/18'
+                      : 'border-white/[0.04] bg-white/[0.03] group-hover:border-kiddy-cherry/20 group-hover:bg-kiddy-cherry/10'
+                  }`}
+                >
                   {ev.isPermanent ? (
                     <Users className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
                   ) : (

@@ -20,7 +20,24 @@ export const Card: React.FC<CardProps> = ({
   glow = false,
   hero = false,
   onClick,
-}) => (
+}) => {
+  const innerRow = className.includes('flex') && !className.includes('flex-col');
+  const innerItems = className.includes('items-start')
+    ? 'items-start'
+    : className.includes('items-end')
+      ? 'items-end'
+      : className.includes('items-center')
+        ? 'items-center'
+        : '';
+  const innerJustify = className.includes('justify-between')
+    ? 'justify-between'
+    : className.includes('justify-center')
+      ? 'justify-center'
+      : className.includes('justify-end')
+        ? 'justify-end'
+        : '';
+
+  return (
   <div
     onClick={onClick}
     role={onClick ? 'button' : undefined}
@@ -38,8 +55,11 @@ export const Card: React.FC<CardProps> = ({
     {glow && (
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-kiddy-cherryGlow blur-[64px] opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-600" />
     )}
-    <div className={`relative z-10 w-full h-full ${className.includes('flex') ? 'flex' : ''} ${className.includes('flex-col') ? 'flex-col' : ''} ${className.includes('justify-end') ? 'justify-end' : ''} ${className.includes('justify-center') ? 'justify-center' : ''} ${className.includes('items-center') ? 'items-center' : ''}`}>
+    <div
+      className={`relative z-10 min-h-0 min-w-0 w-full h-full ${className.includes('flex') ? 'flex' : ''} ${className.includes('flex-col') ? 'flex-col' : ''} ${innerJustify} ${innerItems} ${innerRow ? 'gap-4 md:gap-5' : ''}`}
+    >
       {children}
     </div>
   </div>
-);
+  );
+};

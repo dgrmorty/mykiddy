@@ -271,7 +271,7 @@ export const Schedule: React.FC = () => {
                       return (
                         <div
                           key={ev.id}
-                          className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
+                          className={`flex items-start gap-4 rounded-xl px-4 py-3 transition-all duration-200 ${
                             live
                               ? 'bg-emerald-500/[0.08] border border-emerald-500/25'
                               : ev.isPermanent
@@ -283,7 +283,7 @@ export const Schedule: React.FC = () => {
                             animationDelay: `${dayIdx * 0.04 + i * 0.03 + 0.1}s`,
                           }}
                         >
-                          <div className="flex-shrink-0 w-16">
+                          <div className="w-16 shrink-0 pt-0.5">
                             <span
                               className={`font-mono font-bold text-sm ${
                                 live
@@ -302,12 +302,12 @@ export const Schedule: React.FC = () => {
                             )}
                           </div>
                           <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex items-start gap-2 min-w-0">
-                              <span className={`font-semibold text-sm min-w-0 flex-1 break-words line-clamp-2 ${live ? 'text-emerald-300' : 'text-white'}`}>
+                            <div className="flex min-w-0 items-start gap-2">
+                              <span className={`min-w-0 flex-1 break-words text-sm font-semibold leading-snug line-clamp-2 ${live ? 'text-emerald-300' : 'text-white'}`}>
                                 {ev.title}
                               </span>
                               {ev.isPermanent && !live && (
-                                <Users size={14} className="text-kiddy-textMuted shrink-0 mt-0.5" aria-hidden />
+                                <Users size={14} className="mt-0.5 shrink-0 text-kiddy-textMuted" aria-hidden />
                               )}
                             </div>
                             {ev.description && (
