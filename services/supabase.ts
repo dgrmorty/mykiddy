@@ -11,7 +11,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
   },
   realtime: {
     params: {
@@ -19,6 +19,26 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
   }
 });
+
+/** В фоновых вкладках браузер троттлит таймеры — без этого сессия может «отвалиться», а UI — потерять данные профиля. */
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  const syncAuthRefresh = () => {
+    try {
+      if (document.visibilityState === 'visible') {
+        void supabase.auth.startAutoRefresh();
+      } else {
+        void supabase.auth.stopAutoRefresh();
+      }
+    } catch {
+      /* старые версии клиента */
+    }
+  };
+  syncAuthRefresh();
+  document.addEventListener('visibilitychange', syncAuthRefresh);
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) syncAuthRefresh();
+  });
+}
 
 // Функция для проверки подключения к Supabase
 export const checkSupabaseConnection = async (): Promise<boolean> => {

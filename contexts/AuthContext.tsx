@@ -13,6 +13,18 @@ const _adminFromEnv = (import.meta.env.VITE_ADMIN_EMAILS || '')
   .filter(Boolean);
 const ADMIN_EMAILS = _adminFromEnv;
 
+/** Не затираем аватар при возврате на вкладку, если ответ БД пустой, а в UI уже был URL (например из Storage). */
+function mergePreserveAvatar(prev: User, next: User): User {
+  if (prev.id !== next.id || prev.role === Role.GUEST) return next;
+  const prevA = (prev.avatar || '').trim();
+  const nextA = (next.avatar || '').trim();
+  if (prevA && !nextA) return { ...next, avatar: prevA };
+  const prevCustom = prevA.includes('supabase.co') || prevA.includes('/storage/');
+  const nextGeneric = nextA.includes('ui-avatars.com');
+  if (prevCustom && nextGeneric) return { ...next, avatar: prevA };
+  return next;
+}
+
 interface AuthContextType {
   user: User;
   isLoading: boolean;
@@ -113,21 +125,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const calculatedLevel = Math.floor(userXp / 100) + 1;
           const profileLevel = profile.level || calculatedLevel;
           
-          setUser({
-            id: userId,
-            email: profile.email || authUser?.email,
-            name: profile.name || authUser?.user_metadata?.name || 'Пользователь',
-            role: finalRole,
-            avatar: profile.avatar || authUser?.user_metadata?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`,
-            level: Math.max(profileLevel, calculatedLevel), // Используем максимум из БД и рассчитанного
-            xp: userXp,
-            isApproved: true
-          });
+          setUser((prev) =>
+            mergePreserveAvatar(prev, {
+              id: userId,
+              email: profile.email || authUser?.email,
+              name: profile.name || authUser?.user_metadata?.name || 'Пользователь',
+              role: finalRole,
+              avatar:
+                profile.avatar ||
+                authUser?.user_metadata?.avatar ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`,
+              level: Math.max(profileLevel, calculatedLevel),
+              xp: userXp,
+              isApproved: true,
+            }),
+          );
       } else {
           // Если профиль не найден или ошибка, используем данные из auth
           console.warn("[Auth] Profile not found or error, using auth data:", error?.message);
           if (authUser) {
-            setUser(mapAuthToUser(authUser));
+            setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(authUser)));
           }
       }
     } catch (e: any) {
@@ -135,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // При таймауте или другой ошибке используем данные из auth
       if (authUser) {
         console.log("[Auth] Falling back to auth user data");
-        setUser(mapAuthToUser(authUser));
+        setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(authUser)));
       } else {
         // Если нет authUser, устанавливаем гостя
         setUser(GUEST_USER);
@@ -180,9 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (session?.user && mounted) {
-          // Сразу показываем приложение с данными из сессии — без ожидания профиля из БД.
-          // Так при возврате из другого приложения (в т.ч. после перезагрузки вкладки) не будет экрана загрузки.
-          setUser(mapAuthToUser(session.user));
+          setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(session.user)));
           setAuthLoading(false);
           fetchProfile(session.user.id, session.user, { silent: true }).catch(() => {});
         } else if (mounted) {
@@ -223,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (err) {
           console.error("[Auth] Error in onAuthStateChange:", err);
           // Даже при ошибке устанавливаем пользователя из сессии
-          setUser(mapAuthToUser(session.user));
+          setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(session.user)));
           setAuthLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
@@ -239,12 +254,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // При возврате на вкладку — тихо подтягиваем профиль не чаще раза в 3 мин (меньше трафика)
-    const PROFILE_REFRESH_THROTTLE_MS = 3 * 60 * 1000;
-    const onVisibilityChange = () => {
-      if (document.visibilityState !== 'visible' || !mounted) return;
+    // Возврат на вкладку / bfcache: обновить сессию и профиль (троттлинг умеренный)
+    const PROFILE_REFRESH_THROTTLE_MS = 15 * 1000;
+    const refreshIfLoggedIn = () => {
       const uid = userRef.current?.id;
-      if (!uid) return;
+      if (!uid || userRef.current.role === Role.GUEST) return;
       if (Date.now() - lastProfileRefreshRef.current < PROFILE_REFRESH_THROTTLE_MS) return;
       lastProfileRefreshRef.current = Date.now();
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -252,13 +266,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchProfile(session.user.id, session.user, { silent: true }).then(() => {}).catch(() => {});
       });
     };
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !mounted) return;
+      refreshIfLoggedIn();
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (!mounted || !e.persisted) return;
+      lastProfileRefreshRef.current = 0;
+      refreshIfLoggedIn();
+    };
     document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', onPageShow as EventListener);
 
     return () => {
       mounted = false;
       clearTimeout(globalSafetyTimer);
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pageshow', onPageShow as EventListener);
     };
   }, [mapAuthToUser]);
 

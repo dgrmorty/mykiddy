@@ -4,6 +4,7 @@ import { AnimatedIcon } from './ui/AnimatedIcon';
 import { User, Role } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { AvatarImage } from './AvatarImage';
 
 interface SidebarProps {
   currentUser: User;
@@ -112,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
         <div className="mt-auto space-y-4 pt-6 border-t border-white/[0.04]">
           <div className="flex items-center gap-3 px-2">
             <div className="relative">
-              <img src={currentUser.avatar} alt="" className="w-10 h-10 rounded-full object-cover border border-white/[0.08]" />
+              <AvatarImage src={currentUser.avatar} name={currentUser.name} alt="" className="w-10 h-10 rounded-full object-cover border border-white/[0.08]" />
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-kiddy-base" />
             </div>
             <div className="min-w-0 flex-1">

@@ -4,6 +4,7 @@ import { User, Role } from '../types';
 import { Outlet, NavLink } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { PageTransition } from './PageTransition';
+import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 
@@ -77,7 +78,7 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
 
       <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 glass">
         {logo ? <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" /> : <img src="/logo-vtope.png" alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" />}
-        <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" />
+        <AvatarImage src={user.avatar} name={user.name} alt="" className="w-8 h-8 rounded-full object-cover border border-white/[0.08]" />
       </header>
 
       <main className="flex-1 md:ml-[260px] min-h-screen px-4 md:px-10 xl:px-16 2xl:px-20 py-6 md:py-12 pb-28 md:pb-12">
