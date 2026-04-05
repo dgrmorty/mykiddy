@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { Modal } from './ui/Modal';
 import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
@@ -38,8 +38,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  /** Синхронная защита от двойного сабмита до срабатывания setState(loading) */
+  const authInFlightRef = useRef(false);
 
   const handleGoogleLogin = async () => {
+    if (authInFlightRef.current || loading) return;
+    authInFlightRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -53,12 +57,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       if (err) throw err;
     } catch {
       setError('Не удалось войти через Google. Попробуйте ещё раз.');
+    } finally {
       setLoading(false);
+      authInFlightRef.current = false;
     }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authInFlightRef.current || loading) return;
+    authInFlightRef.current = true;
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -69,15 +77,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         });
         if (err) throw err;
         setSuccess('Проверьте почту — мы отправили ссылку для сброса пароля.');
-        setLoading(false);
         return;
       }
       if (mode === 'signup') {
         const pwError = validatePassword(password);
-        if (pwError) { setError(pwError); setLoading(false); return; }
+        if (pwError) {
+          setError(pwError);
+          return;
+        }
         if (!name.trim() || !name.trim().includes(' ')) {
           setError('Укажите имя и фамилию через пробел');
-          setLoading(false);
           return;
         }
         const { data, error: err } = await supabase.auth.signUp({
@@ -87,7 +96,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         if (err) throw err;
         if (data?.user && !data.session) {
           setSuccess('Проверьте почту — мы отправили письмо для подтверждения. После подтверждения введите пароль ниже.');
-          setLoading(false);
           setTimeout(() => {
             setMode('login');
             setSuccess('Почта подтверждена? Введите пароль и нажмите «Войти».');
@@ -108,7 +116,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       else if (msg.includes('email') || msg.includes('Email')) setError('Неверный формат email');
       else setError('Произошла ошибка. Попробуйте ещё раз.');
     } finally {
-      if (mode !== 'forgot' && mode !== 'signup') setLoading(false);
+      setLoading(false);
+      authInFlightRef.current = false;
     }
   };
 
