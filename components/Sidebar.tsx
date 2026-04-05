@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { User, Role } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotificationSummary } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabase';
 import { AvatarImage } from './AvatarImage';
 
@@ -10,13 +11,15 @@ interface SidebarProps {
   currentUser: User;
 }
 
-type NavIcon = 'dashboard' | 'book' | 'calendar' | 'usersGroup' | 'user' | 'settings' | 'shield';
+type NavIcon = 'dashboard' | 'book' | 'calendar' | 'usersGroup' | 'bell' | 'user' | 'settings' | 'shield';
 
 interface NavItem {
   iconName: NavIcon;
   label: string;
   path: string;
   locked: boolean;
+  /** Показать счётчик непрочитанных из NotificationContext */
+  notificationBadge?: boolean;
 }
 
 interface NavGroup {
@@ -28,6 +31,7 @@ const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const { openAuthModal, signOut } = useAuth();
+  const { unreadCount } = useNotificationSummary();
   const isGuest = currentUser.role === Role.GUEST;
   const isAdmin = currentUser.role === Role.ADMIN;
   const isTeacher = currentUser.role === Role.TEACHER;
@@ -60,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
     {
       title: 'Аккаунт',
       items: [
+        { iconName: 'bell', label: 'Уведомления', path: '/notifications', locked: isGuest, notificationBadge: true },
         { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest },
         { iconName: 'settings', label: 'Настройки', path: '/settings', locked: isGuest },
       ],
@@ -173,6 +178,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                               <AnimatedIcon name={item.iconName} size={20} className="shrink-0" active={isActive} />
                             </div>
                             <span className="min-w-0 flex-1 tracking-wide">{item.label}</span>
+                            {item.notificationBadge && !item.locked && unreadCount > 0 && (
+                              <span className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-kiddy-cherry px-1.5 text-[10px] font-bold tabular-nums text-white">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                              </span>
+                            )}
                             {item.locked && (
                               <AnimatedIcon name="lock" size={14} className="shrink-0 opacity-50" active={false} />
                             )}

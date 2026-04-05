@@ -10,6 +10,7 @@ import { AdminPanel } from './views/AdminPanel';
 import { Settings } from './views/Settings';
 import { Community } from './views/Community';
 import { UserPublicProfile } from './views/UserPublicProfile';
+import { Notifications } from './views/Notifications';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
@@ -69,6 +70,12 @@ const AppContent: React.FC = () => {
           <Route path="settings" element={
             <ProtectedRoute>
                 <Settings />
+            </ProtectedRoute>
+          } />
+
+          <Route path="notifications" element={
+            <ProtectedRoute>
+                <Notifications />
             </ProtectedRoute>
           } />
           

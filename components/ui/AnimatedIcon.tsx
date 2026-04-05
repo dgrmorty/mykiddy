@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface AnimatedIconProps {
-  name: 'sparkle' | 'play' | 'lock' | 'dashboard' | 'book' | 'calendar' | 'user' | 'usersGroup' | 'shield' | 'zap' | 'logout' | 'settings';
+  name: 'sparkle' | 'play' | 'lock' | 'dashboard' | 'book' | 'calendar' | 'user' | 'usersGroup' | 'bell' | 'shield' | 'zap' | 'logout' | 'settings';
   size?: number;
   className?: string;
   active?: boolean;
@@ -78,6 +78,15 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({ name, size = 24, cla
         <circle cx="9" cy="7" r="4" pathLength="100" className={lineClass} style={{ animationDelay: '0.2s' }} />
         <path d="M22 21v-2a4 4 0 0 0-3-3.87" pathLength="100" className={lineClass} style={{ animationDelay: '0.35s' }} />
         <path d="M16 3.13a4 4 0 0 1 0 7.75" pathLength="100" className={lineClass} style={{ animationDelay: '0.5s' }} />
+      </svg>
+    );
+  }
+
+  if (name === 'bell') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" pathLength="100" className={lineClass} style={{ animationDelay: '0s' }} />
+        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" pathLength="100" className={lineClass} style={{ animationDelay: '0.25s' }} />
       </svg>
     );
   }
