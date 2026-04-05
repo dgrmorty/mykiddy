@@ -5,7 +5,7 @@ import { User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
-    Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Save, X, Loader2, Camera, Target, 
+    Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Check, X, Loader2, Camera, Target, 
     LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Plus, Settings2
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
@@ -114,103 +114,101 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }
   }, [isLeaderboardOpen]);
 
+  const mapSaveError = (error: any): string => {
+    let userMessage = 'Не удалось сохранить изменения';
+    if (error?.message?.includes('row-level security') || error?.message?.includes('RLS')) {
+      userMessage = 'Недостаточно прав для выполнения операции';
+    } else if (error?.message?.includes('permission') || error?.message?.includes('доступ')) {
+      userMessage = 'Недостаточно прав для выполнения операции';
+    } else if (error?.message?.includes('not found') || error?.message?.includes('не найден')) {
+      userMessage = 'Профиль не найден';
+    }
+    return userMessage;
+  };
+
+  const writeProfileToDb = async (name: string, avatar: string) => {
+    if (currentUser.id === 'guest') throw new Error('Войдите в аккаунт');
+    const updateData = { name, avatar };
+
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (!existingProfile) {
+      const { error: insertError } = await supabase.from('profiles').insert({
+        id: currentUser.id,
+        email: currentUser.email,
+        name,
+        avatar,
+        role: 'Student',
+        level: 1,
+        xp: 0,
+      });
+      if (insertError) throw insertError;
+    } else {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', currentUser.id)
+        .select();
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Профиль не найден или нет прав на обновление');
+      }
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (currentUser.id === 'guest') return;
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!validMimes.includes(file.type) && !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
-        showToast('Используйте изображение: JPG, PNG, GIF или WEBP', 'error');
-        e.target.value = '';
-        return;
+    const looksImage =
+      file.type.startsWith('image/') ||
+      validMimes.includes(file.type) ||
+      ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
+    if (!looksImage) {
+      showToast('Выберите изображение (JPG, PNG, GIF или WEBP)', 'error');
+      e.target.value = '';
+      return;
     }
     setUploading(true);
     try {
-        const publicUrl = await uploadFile(file, 'avatars');
-        
-        if (publicUrl) {
-            setEditAvatar(publicUrl);
-            showToast('Фотография профиля загружена', 'success');
-        } else {
-            showToast('Ошибка загрузки изображения', 'error');
-        }
-    } catch (err) {
-        showToast('Сервис хранилища недоступен', 'error');
+      const publicUrl = await uploadFile(file, 'avatars');
+      if (!publicUrl) {
+        showToast('Ошибка загрузки изображения', 'error');
+        return;
+      }
+      setEditAvatar(publicUrl);
+      await writeProfileToDb(editName, publicUrl);
+      await refreshUser();
+      showToast('Фото сохранено', 'success');
+    } catch (err: any) {
+      console.error('[Profile] Avatar save error:', err);
+      showToast(mapSaveError(err), 'error');
     } finally {
-        setUploading(false);
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
   const handleSave = async () => {
-      if (saving || uploading) return;
-      setSaving(true);
-      try {
-          const updateData: any = {
-              name: editName,
-              avatar: editAvatar
-          };
-          
-          // Сначала проверяем, существует ли профиль
-          const { data: existingProfile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('id', currentUser.id)
-              .single();
-          
-          // Если профиля нет, создаем его
-          if (!existingProfile) {
-              const { error: insertError } = await supabase
-                  .from('profiles')
-                  .insert({
-                      id: currentUser.id,
-                      email: currentUser.email,
-                      name: editName,
-                      avatar: editAvatar,
-                      role: 'Student',
-                      level: 1,
-                      xp: 0
-                  });
-              
-              if (insertError) {
-                  console.error('[Profile] Insert error:', insertError);
-                  throw insertError;
-              }
-          } else {
-              // Обновляем существующий профиль
-              const { data, error } = await supabase
-                  .from('profiles')
-                  .update(updateData)
-                  .eq('id', currentUser.id)
-                  .select();
-
-              if (error) {
-                  console.error('[Profile] Update error:', error);
-                  throw error;
-              }
-              
-              if (!data || data.length === 0) {
-                  throw new Error('Профиль не найден или нет прав на обновление');
-              }
-          }
-          
-          await refreshUser();
-          setIsEditing(false);
-          showToast('Изменения сохранены', 'success');
-      } catch (error: any) {
-          console.error('[Profile] Save error:', error);
-          // Преобразуем технические ошибки в понятные сообщения
-          let userMessage = 'Не удалось сохранить изменения';
-          if (error?.message?.includes('row-level security') || error?.message?.includes('RLS')) {
-            userMessage = 'Недостаточно прав для выполнения операции';
-          } else if (error?.message?.includes('permission') || error?.message?.includes('доступ')) {
-            userMessage = 'Недостаточно прав для выполнения операции';
-          } else if (error?.message?.includes('not found') || error?.message?.includes('не найден')) {
-            userMessage = 'Профиль не найден';
-          }
-          showToast(userMessage, 'error');
-      } finally {
-          setSaving(false);
-      }
+    if (saving || uploading || currentUser.id === 'guest') return;
+    setSaving(true);
+    try {
+      await writeProfileToDb(editName, editAvatar);
+      await refreshUser();
+      setIsEditing(false);
+      showToast('Изменения сохранены', 'success');
+    } catch (error: any) {
+      console.error('[Profile] Save error:', error);
+      showToast(mapSaveError(error), 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -268,33 +266,60 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           </div>
                         );
                       })}
-                      {/* Avatar centered */}
-                      <button
-                        type="button"
-                        disabled={isEditing}
-                        onClick={() => !isEditing && navigate('/settings')}
-                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-28 md:h-28 rounded-full border-2 border-white/10 z-10 shadow-2xl overflow-hidden bg-black text-left ${!isEditing ? 'cursor-pointer hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20 transition-all' : ''}`}
-                      >
-                        <img
-                          src={editAvatar || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`}
-                          className="w-full h-full object-cover"
-                          alt="Avatar"
-                        />
-                        {(uploading || saving) && (
-                          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
-                            <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
-                          </div>
-                        )}
-                        {isEditing && !uploading && !saving && (
-                          <div
-                            className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 cursor-pointer"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Camera className="text-white" size={24} />
-                            <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={handleFileChange} />
-                          </div>
-                        )}
-                      </button>
+                      {/* Avatar centered — в режиме редактирования не button, иначе disabled блокирует выбор файла */}
+                      {isEditing ? (
+                        <div className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black shadow-2xl">
+                          <img
+                            src={
+                              editAvatar ||
+                              currentUser.avatar ||
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`
+                            }
+                            className="h-full w-full object-cover"
+                            alt=""
+                          />
+                          {(uploading || saving) && (
+                            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
+                              <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
+                            </div>
+                          )}
+                          {!uploading && !saving && (
+                            <>
+                              <label
+                                htmlFor="profile-avatar-input"
+                                className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center rounded-full bg-black/45 transition-colors hover:bg-black/55"
+                              >
+                                <Camera className="pointer-events-none text-white" size={24} aria-hidden />
+                                <span className="sr-only">Выбрать фото профиля</span>
+                              </label>
+                              <input
+                                id="profile-avatar-input"
+                                ref={fileInputRef}
+                                type="file"
+                                className="sr-only"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/*"
+                                onChange={handleFileChange}
+                              />
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => navigate('/settings')}
+                          className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
+                        >
+                          <img
+                            src={
+                              editAvatar ||
+                              currentUser.avatar ||
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`
+                            }
+                            className="h-full w-full object-cover"
+                            alt=""
+                          />
+                        </button>
+                      )}
                       {!isEditing && (
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-full border border-black z-20 shadow-lg">
                           LVL {currentUser.level}
@@ -343,8 +368,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                             <button onClick={() => setIsEditing(false)} disabled={saving} className="p-3 bg-kiddy-surfaceHighlight rounded-xl text-kiddy-textSecondary hover:text-white transition-all">
                                 <X size={20} />
                             </button>
-                            <button onClick={handleSave} disabled={saving || uploading} className="p-3 bg-kiddy-cherry rounded-xl text-white hover:bg-kiddy-cherryHover transition-all shadow-lg shadow-kiddy-cherry/20">
-                                {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                            <button
+                              type="button"
+                              onClick={handleSave}
+                              disabled={saving || uploading}
+                              className="rounded-xl bg-kiddy-cherry p-3 text-white shadow-lg shadow-kiddy-cherry/20 transition-all hover:bg-kiddy-cherryHover"
+                              aria-label="Сохранить имя"
+                            >
+                              {saving ? <Loader2 size={20} className="animate-spin" /> : <Check size={22} strokeWidth={2.5} />}
                             </button>
                         </div>
                     ) : (
