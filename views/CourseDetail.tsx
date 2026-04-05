@@ -438,7 +438,67 @@ export const CourseDetail: React.FC = () => {
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-4xl"
         >
-            <div className="flex flex-col h-full bg-kiddy-surfaceElevated"><div className="relative h-64 md:h-80 shrink-0"><img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" /><button onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/80 backdrop-blur-sm rounded-2xl text-white"><X size={20} /></button><div className="absolute bottom-10 left-10"><h2 className="text-4xl md:text-5xl font-display font-bold text-white italic">{courseForModal.title}</h2><p className="text-kiddy-textSecondary mt-2 max-w-lg">{courseForModal.description}</p></div></div><div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">{courseForModal.modules.map((module) => (<div key={module.id} className="space-y-6"><div className="flex items-center gap-4"><div className="h-px flex-1 bg-kiddy-surfaceHighlight" /><h3 className="text-kiddy-textMuted font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap">{module.title}</h3><div className="h-px flex-1 bg-kiddy-surfaceHighlight" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{module.lessons.map((lesson, idx) => (<div key={lesson.id} onClick={() => handleOpenLesson(lesson)} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${lesson.locked ? 'bg-kiddy-surfaceElevated/20 border-white/[0.08]/50 opacity-40 cursor-not-allowed' : 'bg-black border-white/[0.08] cursor-pointer hover:border-kiddy-cherry/50 hover:bg-kiddy-surfaceHighlight/30'}`}><div className="flex items-center gap-5"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${lesson.isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-kiddy-surfaceHighlight text-kiddy-textMuted group-hover:bg-kiddy-cherry group-hover:text-white transition-colors duration-300'}`}>{lesson.isCompleted ? <CheckCircle size={18} /> : (idx + 1)}</div><div><h4 className="text-white font-bold text-sm">{lesson.title}</h4><p className="text-[10px] text-kiddy-textMuted uppercase tracking-widest mt-1">15 минут</p></div></div>{lesson.locked && <Lock size={16} className="text-zinc-800" />}</div>))}</div></div>))}</div></div>
+            <div className="flex flex-col h-full bg-kiddy-surfaceElevated">
+              <div className="relative h-64 md:h-80 shrink-0">
+                <img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
+                <button type="button" onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/80 backdrop-blur-sm rounded-2xl text-white shrink-0 z-10">
+                  <X size={20} />
+                </button>
+                <div className="absolute bottom-10 left-10 right-10 md:right-auto pr-4">
+                  <h2 className="text-4xl md:text-5xl font-display font-bold text-white italic break-words">{courseForModal.title}</h2>
+                  <p className="text-kiddy-textSecondary mt-2 max-w-lg">{courseForModal.description}</p>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">
+                {courseForModal.modules.map((module) => (
+                  <div key={module.id} className="space-y-6">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="h-px flex-1 min-w-[1rem] bg-kiddy-surfaceHighlight" />
+                      <h3 className="text-kiddy-textMuted font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap shrink-0">{module.title}</h3>
+                      <div className="h-px flex-1 min-w-[1rem] bg-kiddy-surfaceHighlight" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {module.lessons.map((lesson, idx) => (
+                        <div
+                          key={lesson.id}
+                          role="button"
+                          tabIndex={lesson.locked ? -1 : 0}
+                          onClick={() => handleOpenLesson(lesson)}
+                          onKeyDown={(e) => {
+                            if (lesson.locked) return;
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleOpenLesson(lesson);
+                            }
+                          }}
+                          className={`p-5 md:p-6 rounded-[2rem] border transition-all flex items-start gap-3 md:gap-4 min-w-0 group ${
+                            lesson.locked
+                              ? 'bg-kiddy-surfaceElevated/20 border-white/[0.08]/50 opacity-40 cursor-not-allowed'
+                              : 'bg-black border-white/[0.08] cursor-pointer hover:border-kiddy-cherry/50 hover:bg-kiddy-surfaceHighlight/30'
+                          }`}
+                        >
+                          <div
+                            className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${
+                              lesson.isCompleted
+                                ? 'bg-green-500/10 text-green-500'
+                                : 'bg-kiddy-surfaceHighlight text-kiddy-textMuted group-hover:bg-kiddy-cherry group-hover:text-white transition-colors duration-300'
+                            }`}
+                          >
+                            {lesson.isCompleted ? <CheckCircle size={18} /> : idx + 1}
+                          </div>
+                          <div className="min-w-0 flex-1 pt-0.5">
+                            <h4 className="text-white font-bold text-sm leading-snug break-words line-clamp-3">{lesson.title}</h4>
+                            <p className="text-[10px] text-kiddy-textMuted uppercase tracking-widest mt-1.5">15 минут</p>
+                          </div>
+                          {lesson.locked && <Lock size={16} className="text-zinc-500 shrink-0 mt-1" aria-hidden />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
         </Modal>
       )}
       

@@ -301,13 +301,13 @@ export const Schedule: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-semibold text-sm truncate ${live ? 'text-emerald-300' : 'text-white'}`}>
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <span className={`font-semibold text-sm min-w-0 flex-1 break-words line-clamp-2 ${live ? 'text-emerald-300' : 'text-white'}`}>
                                 {ev.title}
                               </span>
                               {ev.isPermanent && !live && (
-                                <Users size={12} className="text-kiddy-textMuted flex-shrink-0" />
+                                <Users size={14} className="text-kiddy-textMuted shrink-0 mt-0.5" aria-hidden />
                               )}
                             </div>
                             {ev.description && (

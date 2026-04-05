@@ -208,18 +208,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <Card
                 key={ev.id}
                 hoverEffect
-                className="flex items-center gap-5 group"
+                className="flex items-center gap-4 md:gap-5 group min-w-0"
                 style={{ animation: `fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.3 + i * 0.06}s` }}
               >
-                <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-kiddy-cherry/10 group-hover:border-kiddy-cherry/20 transition-all duration-400">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-kiddy-cherry/10 group-hover:border-kiddy-cherry/20 transition-all duration-400">
                   {ev.isPermanent ? (
                     <Users className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
                   ) : (
                     <Calendar className="text-white group-hover:text-kiddy-cherry transition-colors duration-300" size={22} strokeWidth={1.5} />
                   )}
                 </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-base text-white truncate">{ev.title}</p>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="font-bold text-base text-white line-clamp-2 break-words">{ev.title}</p>
                   <p className="text-sm font-semibold text-kiddy-cherry">
                     {DAY_NAMES[ev.day_of_week] ?? ''} {ev.time_start}
                     {ev.time_end ? ` – ${ev.time_end}` : ''}
