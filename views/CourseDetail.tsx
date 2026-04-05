@@ -56,6 +56,7 @@ export const CourseDetail: React.FC = () => {
   });
 
   const [librarySearch, setLibrarySearch] = useState('');
+  const [librarySearchFocused, setLibrarySearchFocused] = useState(false);
 
   useEffect(() => {
     try {
@@ -481,13 +482,33 @@ export const CourseDetail: React.FC = () => {
           ))}
         </div>
         <div className="relative max-w-xl">
-          <Search className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-kiddy-textMuted" aria-hidden />
+          <span
+            className={`pointer-events-none absolute left-3 top-1/2 flex h-10 w-10 items-center justify-center transition-transform duration-300 ease-spring ${
+              !librarySearchFocused && librarySearch.trim() === ''
+                ? 'animate-loupe-pulse'
+                : librarySearchFocused
+                  ? 'scale-[1.12]'
+                  : 'scale-100'
+            }`}
+            aria-hidden
+          >
+            <Search
+              className={`size-5 transition-colors duration-200 ${
+                librarySearchFocused || librarySearch.trim() !== ''
+                  ? 'text-kiddy-cherry'
+                  : 'text-kiddy-textMuted'
+              }`}
+              strokeWidth={2.25}
+            />
+          </span>
           <input
             type="search"
             value={librarySearch}
             onChange={(e) => setLibrarySearch(e.target.value)}
+            onFocus={() => setLibrarySearchFocused(true)}
+            onBlur={() => setLibrarySearchFocused(false)}
             placeholder="Поиск по названию, описанию или направлению…"
-            className="w-full rounded-2xl border border-white/[0.08] bg-black/40 py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-colors focus:border-kiddy-cherry/40"
+            className="w-full rounded-2xl border border-white/[0.08] bg-black/40 py-3.5 pl-[3.25rem] pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-colors focus:border-kiddy-cherry/40 selection:bg-kiddy-cherry/30"
             aria-label="Поиск курсов"
           />
         </div>

@@ -110,6 +110,11 @@ export default {
           '0%': { opacity: '0', transform: 'translateX(40px)', filter: 'blur(4px)' },
           '100%': { opacity: '1', transform: 'translateX(0)', filter: 'blur(0)' },
         },
+        /** Лупа поиска в библиотеке курсов (CourseDetail) */
+        'loupe-pulse': {
+          '0%, 100%': { transform: 'translateY(-50%) scale(1)' },
+          '50%': { transform: 'translateY(-50%) scale(1.08)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -124,6 +129,7 @@ export default {
         float: 'float 4s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
         'week-slide-in': 'week-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'loupe-pulse': 'loupe-pulse 2s ease-in-out infinite',
       },
     },
   },
