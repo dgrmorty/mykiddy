@@ -7,7 +7,7 @@ import {
     Edit2, X, ChevronRight, ChevronDown, Search, Calendar
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Role, ScheduleEvent } from '../types';
+import { User, Role, ScheduleEvent, CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 
@@ -36,7 +36,13 @@ export const AdminPanel: React.FC = () => {
     const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
     
     // Формы для создания/редактирования
-    const [courseForm, setCourseForm] = useState({ title: '', description: '', cover_image: '', id: '' });
+    const [courseForm, setCourseForm] = useState<{
+        title: string;
+        description: string;
+        cover_image: string;
+        id: string;
+        year_tier: CourseYearTier;
+    }>({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
     const [moduleForm, setModuleForm] = useState({ title: '', course_id: '', id: '' });
     const [lessonForm, setLessonForm] = useState({ title: '', description: '', video_url: '', homework_task: '', module_id: '', id: '' });
     const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
@@ -299,10 +305,11 @@ export const AdminPanel: React.FC = () => {
                 title: courseForm.title,
                 description: courseForm.description,
                 cover_image: courseForm.cover_image,
-                type: 'Course'
+                type: 'Course',
+                year_tier: courseForm.year_tier,
             });
             if (error) throw error;
-            setCourseForm({ title: '', description: '', cover_image: '', id: '' });
+            setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
             await fetchContent();
             showToast('Новый курс создан', 'success');
         } catch (error: any) {
@@ -317,7 +324,8 @@ export const AdminPanel: React.FC = () => {
             id: course.id,
             title: course.title || '',
             description: course.description || '',
-            cover_image: course.cover_image || ''
+            cover_image: course.cover_image || '',
+            year_tier: normalizeCourseYearTier(course.year_tier),
         });
         setEditing({ type: 'course', id: course.id });
         setExpandedCourses(new Set([course.id]));
@@ -339,12 +347,13 @@ export const AdminPanel: React.FC = () => {
                 .update({
                     title: courseForm.title,
                     description: courseForm.description,
-                    cover_image: courseForm.cover_image
+                    cover_image: courseForm.cover_image,
+                    year_tier: courseForm.year_tier,
                 })
                 .eq('id', courseForm.id);
             if (error) throw error;
             setEditing({ type: null, id: null });
-            setCourseForm({ title: '', description: '', cover_image: '', id: '' });
+            setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
             await fetchContent();
             showToast('Курс обновлен', 'success');
         } catch (error: any) {
@@ -603,7 +612,7 @@ export const AdminPanel: React.FC = () => {
                                     <button
                                         onClick={() => {
                                             setEditing({ type: null, id: null });
-                                            setCourseForm({ title: '', description: '', cover_image: '', id: '' });
+                                            setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
                                         }}
                                         className="text-kiddy-textMuted hover:text-white transition-colors"
                                         title="Отменить редактирование"
@@ -625,6 +634,25 @@ export const AdminPanel: React.FC = () => {
                                 placeholder="Описание курса"
                                 className="w-full bg-black border border-[#282828] p-3 rounded-lg text-white outline-none focus:border-kiddy-cherry min-h-[100px]"
                             />
+                            <div>
+                                <label className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest block mb-2">Год занятий</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {(['year_1', 'year_2_plus'] as const).map((tier) => (
+                                        <button
+                                            key={tier}
+                                            type="button"
+                                            onClick={() => setCourseForm({ ...courseForm, year_tier: tier })}
+                                            className={`rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wide transition-all ${
+                                                courseForm.year_tier === tier
+                                                    ? 'bg-kiddy-cherry text-white'
+                                                    : 'bg-[#181818] text-kiddy-textMuted hover:text-white border border-[#282828]'
+                                            }`}
+                                        >
+                                            {COURSE_YEAR_LABELS[tier]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="flex gap-2">
                                 <input
                                     value={courseForm.cover_image}
@@ -663,7 +691,7 @@ export const AdminPanel: React.FC = () => {
                                         <button onClick={handleUpdateCourse} className="flex-1 py-2 bg-kiddy-cherry text-white text-sm font-bold rounded-lg hover:bg-rose-600">
                                             Сохранить
                                         </button>
-                                        <button onClick={() => { setEditing({ type: null, id: null }); setCourseForm({ title: '', description: '', cover_image: '', id: '' }); }} className="px-4 py-2 bg-zinc-800 text-white text-sm font-bold rounded-lg hover:bg-zinc-700">
+                                        <button onClick={() => { setEditing({ type: null, id: null }); setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' }); }} className="px-4 py-2 bg-zinc-800 text-white text-sm font-bold rounded-lg hover:bg-zinc-700">
                                             Отмена
                                         </button>
                                     </>
@@ -692,8 +720,13 @@ export const AdminPanel: React.FC = () => {
                                         {course.cover_image && (
                                             <img src={course.cover_image} alt={course.title} className="w-16 h-16 object-cover rounded-lg" />
                                         )}
-                                        <div className="flex-1">
-                                            <h3 className="text-white font-bold">{course.title}</h3>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2 gap-y-1">
+                                                <h3 className="text-white font-bold">{course.title}</h3>
+                                                <span className="shrink-0 rounded-md border border-kiddy-cherry/25 bg-kiddy-cherry/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-kiddy-cherry">
+                                                    {COURSE_YEAR_LABELS[normalizeCourseYearTier(course.year_tier)]}
+                                                </span>
+                                            </div>
                                             <p className="text-kiddy-textMuted text-xs mt-1 line-clamp-1">{course.description}</p>
                                         </div>
                                     </div>

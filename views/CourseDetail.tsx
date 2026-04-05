@@ -6,7 +6,7 @@ import {
     X, ArrowLeft, PenTool, Sparkles, Send, Loader2, 
     Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock
 } from 'lucide-react';
-import { Course, Lesson } from '../types';
+import { Course, CourseYearTier, COURSE_YEAR_LABELS, Lesson } from '../types';
 import { checkHomework } from '../services/geminiService';
 import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +44,26 @@ export const CourseDetail: React.FC = () => {
 
   const playerRef = useRef<HTMLDivElement>(null);
   const courseForModal = activeCourse || closingCourse;
+
+  const [libraryYear, setLibraryYear] = useState<CourseYearTier>(() => {
+    try {
+      const s = sessionStorage.getItem('kiddy_library_year');
+      if (s === 'year_2_plus' || s === 'year_1') return s;
+    } catch {
+      /* ignore */
+    }
+    return 'year_1';
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('kiddy_library_year', libraryYear);
+    } catch {
+      /* ignore */
+    }
+  }, [libraryYear]);
+
+  const filteredCourses = courses.filter((c) => c.yearTier === libraryYear);
 
   const handleOpenLesson = (lesson: Lesson) => {
     if (lesson.locked) return;
@@ -415,7 +435,36 @@ export const CourseDetail: React.FC = () => {
 
   return (
     <div className="animate-slide-up space-y-12">
-      <header><h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">Библиотека <span className="text-kiddy-cherry">Курсов</span></h1><p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p></header>
+      <header className="space-y-6">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">
+            Библиотека <span className="text-kiddy-cherry">Курсов</span>
+          </h1>
+          <p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p>
+        </div>
+        <div
+          className="inline-flex rounded-2xl border border-white/[0.08] bg-black/40 p-1 backdrop-blur-sm"
+          role="tablist"
+          aria-label="Год занятий"
+        >
+          {(['year_1', 'year_2_plus'] as const).map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              role="tab"
+              aria-selected={libraryYear === tier}
+              onClick={() => setLibraryYear(tier)}
+              className={`rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all md:px-8 md:py-3 md:text-sm ${
+                libraryYear === tier
+                  ? 'bg-kiddy-cherry text-white shadow-lg shadow-kiddy-cherry/25'
+                  : 'text-kiddy-textMuted hover:text-white'
+              }`}
+            >
+              {tier === 'year_1' ? '1-й год' : '2+ год занятий'}
+            </button>
+          ))}
+        </div>
+      </header>
       {courses.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <AnimatedEmptyState message={loadError || "Курсы загружаются или временно недоступны"} />
@@ -423,11 +472,24 @@ export const CourseDetail: React.FC = () => {
               Повторить
             </button>
           </div>
+      ) : filteredCourses.length === 0 ? (
+          <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
+            <p className="text-kiddy-textSecondary font-medium">
+              В разделе «{COURSE_YEAR_LABELS[libraryYear]}» пока нет курсов.
+            </p>
+            <p className="text-kiddy-textMuted mt-2 text-sm">Выберите другой год или добавьте курс в админ-панели.</p>
+          </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course, i) => (
+            {filteredCourses.map((course, i) => (
               <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.06] hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full hover-lift" onClick={() => setActiveCourse(course)} style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.1 + i * 0.1}s` }}>
-                <div className="aspect-[16/10] relative overflow-hidden"><img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-800 ease-entrance group-hover:scale-110 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" /></div>
+                <div className="aspect-[16/10] relative overflow-hidden">
+                  <img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-800 ease-entrance group-hover:scale-110 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                  <span className="absolute left-3 top-3 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-sm">
+                    {COURSE_YEAR_LABELS[course.yearTier]}
+                  </span>
+                </div>
                 <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
                     <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-cherry transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
                     <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1.5 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
@@ -455,12 +517,6 @@ export const CourseDetail: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
                 <div className="absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-kiddy-cherry/60 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 z-[1] h-1.5 bg-black/40">
-                  <div
-                    className="h-full bg-gradient-to-r from-kiddy-cherry via-kiddy-cherryHover to-kiddy-cherryHover shadow-[0_0_20px_rgba(230,0,43,0.45)] transition-all duration-700"
-                    style={{ width: `${courseForModal.progress}%` }}
-                  />
-                </div>
                 <button
                   type="button"
                   onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
@@ -469,10 +525,15 @@ export const CourseDetail: React.FC = () => {
                 >
                   <X size={20} />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-8 sm:p-7 sm:pb-9 md:p-9 md:pb-10">
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1 backdrop-blur-md">
-                    <MonitorPlay size={12} className="text-kiddy-cherry" aria-hidden />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-300">Курс</span>
+                <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-6 sm:p-7 sm:pb-7 md:p-9 md:pb-8">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1 backdrop-blur-md">
+                      <MonitorPlay size={12} className="text-kiddy-cherry" aria-hidden />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-300">Курс</span>
+                    </div>
+                    <span className="rounded-full border border-kiddy-cherry/30 bg-kiddy-cherry/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-kiddy-cherry">
+                      {COURSE_YEAR_LABELS[courseForModal.yearTier]}
+                    </span>
                   </div>
                   <h2 className="font-display text-balance text-2xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
                     {courseForModal.title}

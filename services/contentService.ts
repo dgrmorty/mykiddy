@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Course } from '../types';
+import { Course, normalizeCourseYearTier } from '../types';
 import { withTimeout } from '../utils/withTimeout';
 
 const CACHE_TTL_MS = 90 * 1000;
@@ -132,7 +132,8 @@ export const contentService = {
             modules,
             progress: totalCourseLessons > 0 ? Math.round((courseCompletedLessons / totalCourseLessons) * 100) : 0,
             nextLessonId: globalNextLessonId,
-            coverImage: c.cover_image
+            coverImage: c.cover_image,
+            yearTier: normalizeCourseYearTier(c.year_tier),
         };
       });
 

@@ -47,6 +47,18 @@ export interface Module {
   lessons: Lesson[];
 }
 
+/** Год занятий: первый год обучения или второй и далее */
+export type CourseYearTier = 'year_1' | 'year_2_plus';
+
+export const COURSE_YEAR_LABELS: Record<CourseYearTier, string> = {
+  year_1: '1-й год',
+  year_2_plus: '2+ год занятий',
+};
+
+export function normalizeCourseYearTier(value: unknown): CourseYearTier {
+  return value === 'year_2_plus' ? 'year_2_plus' : 'year_1';
+}
+
 export interface Course {
   id: string;
   type: CourseType;
@@ -56,6 +68,8 @@ export interface Course {
   modules: Module[];
   nextLessonId: string;
   coverImage: string;
+  /** Из колонки courses.year_tier в Supabase */
+  yearTier: CourseYearTier;
   created_at?: string;
 }
 

@@ -40,6 +40,7 @@ export const MOCK_COURSES: Course[] = [
     progress: 10,
     nextLessonId: 'l3-1',
     coverImage: 'https://picsum.photos/800/402?grayscale',
+    yearTier: 'year_1',
     modules: [
         {
             id: 'm3-1',
@@ -81,6 +82,7 @@ export const MOCK_COURSES: Course[] = [
     progress: 65,
     nextLessonId: 'l1-3',
     coverImage: 'https://picsum.photos/800/400?grayscale',
+    yearTier: 'year_2_plus',
     modules: [
       {
         id: 'm1',
