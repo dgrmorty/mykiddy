@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/ui/Card';
 import { supabase, uploadFile } from '../services/supabase';
 import { 
-    Plus, Loader2, Trash2, Video, Image as ImageIcon, Upload, Shield, Lock, Unlock,
+    Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
     Edit2, X, ChevronRight, ChevronDown, Search, Calendar
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,7 +11,7 @@ import { User, Role, ScheduleEvent } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 
-type AdminView = 'content' | 'users' | 'schedule' | 'settings';
+type AdminView = 'content' | 'users' | 'schedule';
 
 interface EditingState {
     type: 'course' | 'module' | 'lesson' | null;
@@ -25,7 +25,6 @@ export const AdminPanel: React.FC = () => {
     const [currentView, setCurrentView] = useState<AdminView>('content');
     const [courses, setCourses] = useState<any[]>([]);
     const [usersList, setUsersList] = useState<User[]>([]);
-    const [globalSettings, setGlobalSettings] = useState({ logo_url: '', school_name: '' });
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -45,7 +44,6 @@ export const AdminPanel: React.FC = () => {
 
     const courseFileRef = useRef<HTMLInputElement>(null);
     const lessonVideoRef = useRef<HTMLInputElement>(null);
-    const logoFileRef = useRef<HTMLInputElement>(null);
     const editCourseFileRef = useRef<HTMLInputElement>(null);
     const editLessonVideoRef = useRef<HTMLInputElement>(null);
     const courseFormRef = useRef<HTMLDivElement>(null);
@@ -54,44 +52,7 @@ export const AdminPanel: React.FC = () => {
         if (currentView === 'content') fetchContent();
         if (currentView === 'users') fetchUsers();
         if (currentView === 'schedule') fetchSchedule();
-        if (currentView === 'settings') fetchSettings();
     }, [currentView]);
-
-    const fetchSettings = async () => {
-        setLoading(true);
-        try {
-            const { data, error } = await supabase.from('settings').select('*');
-            if (error) throw error;
-            if (data) {
-                const settingsMap = data.reduce((acc: any, item: any) => {
-                    acc[item.id] = item.value;
-                    return acc;
-                }, {});
-                setGlobalSettings(settingsMap);
-            }
-        } catch (error: any) {
-            console.error('[AdminPanel] Settings fetch error:', error);
-            showToast('Ошибка загрузки настроек', 'error');
-        }
-        setLoading(false);
-    };
-
-    const handleSaveSettings = async () => {
-        setLoading(true);
-        try {
-            const updates = [
-                { id: 'logo_url', value: globalSettings.logo_url },
-                { id: 'school_name', value: globalSettings.school_name }
-            ];
-            const { error } = await supabase.from('settings').upsert(updates);
-            if (error) throw error;
-            showToast('Глобальные настройки обновлены', 'success');
-        } catch (error: any) {
-            showToast('Ошибка сохранения конфигурации', 'error');
-            console.error('[AdminPanel] Save settings error:', error);
-        }
-        setLoading(false);
-    };
 
     const fetchContent = async () => {
         setLoading(true);
@@ -256,11 +217,11 @@ export const AdminPanel: React.FC = () => {
         }
     };
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'video' | 'logo', targetId?: string) => {
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'video', targetId?: string) => {
         const file = e.target.files?.[0];
         if (!file) return;
         
-        if (type === 'cover' || type === 'logo') {
+        if (type === 'cover') {
             const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
             const ext = file.name.split('.').pop()?.toLowerCase();
             const validExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -294,7 +255,7 @@ export const AdminPanel: React.FC = () => {
         showToast('Загрузка файла...', 'info');
         
         try {
-            const folder = type === 'logo' ? 'images' : (type === 'cover' ? 'covers' : 'videos');
+            const folder = type === 'cover' ? 'covers' : 'videos';
             const url = await uploadFile(file, folder);
             
             if (url) {
@@ -313,9 +274,6 @@ export const AdminPanel: React.FC = () => {
                         setLessonForm(prev => ({ ...prev, video_url: url }));
                     }
                     showToast('Видео успешно загружено', 'success');
-                } else if (type === 'logo') {
-                    setGlobalSettings(prev => ({ ...prev, logo_url: url }));
-                    showToast('Логотип успешно загружен', 'success');
                 }
             } else {
                 showToast('Не удалось загрузить файл. Попробуйте еще раз', 'error');
@@ -618,7 +576,6 @@ export const AdminPanel: React.FC = () => {
                     <button onClick={() => setCurrentView('content')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'content' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>КОНТЕНТ</button>
                     <button onClick={() => setCurrentView('users')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'users' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>ПОЛЬЗОВАТЕЛИ</button>
                     <button onClick={() => setCurrentView('schedule')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'schedule' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>РАСПИСАНИЕ</button>
-                    <button onClick={() => setCurrentView('settings')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'settings' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>НАСТРОЙКИ</button>
                 </div>
             </header>
 
@@ -1075,25 +1032,6 @@ export const AdminPanel: React.FC = () => {
                                 ))
                             )}
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {!loading && currentView === 'settings' && (
-                <div className="flex-1 bg-[#121212]/40 border border-[#282828] rounded-2xl p-10 overflow-y-auto no-scrollbar">
-                    <div className="max-w-2xl space-y-10">
-                        <div className="space-y-4">
-                            <label className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Логотип академии</label>
-                            <div className="relative group aspect-square w-40 bg-black border border-[#282828] rounded-3xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-kiddy-cherry transition-colors" onClick={() => logoFileRef.current?.click()}>
-                                {uploading ? <Loader2 className="animate-spin text-zinc-700" size={32} /> : globalSettings.logo_url ? <img src={globalSettings.logo_url} className="w-full h-full object-contain p-4" alt="Logo" /> : <div className="text-center p-4"><ImageIcon size={32} className="text-zinc-700 mx-auto mb-2" /><p className="text-[9px] text-kiddy-textMuted font-bold uppercase tracking-widest">Загрузить</p></div>}
-                                <input type="file" ref={logoFileRef} className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={e => handleUpload(e, 'logo')} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Название организации</label>
-                            <input value={globalSettings.school_name} onChange={e => setGlobalSettings({...globalSettings, school_name: e.target.value})} className="w-full bg-black border border-[#282828] p-4 rounded-xl text-white font-display font-bold outline-none focus:border-kiddy-cherry transition-all" placeholder="Напр: Дети В ТОПЕ"/>
-                        </div>
-                        <button onClick={handleSaveSettings} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-kiddy-cherry hover:text-white transition-all shadow-xl">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
                     </div>
                 </div>
             )}
