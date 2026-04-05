@@ -48,8 +48,13 @@ export function useFriendships(myId: string | undefined) {
   const sendRequest = useCallback(
     async (addresseeId: string) => {
       if (!myId || myId === 'guest' || addresseeId === myId) return { error: new Error('invalid') };
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.user) {
+        return { error: Object.assign(new Error('not_authenticated'), { code: 'AUTH' }) };
+      }
+      const requesterId = sessionData.session.user.id;
       const { error } = await supabase.from('friendships').insert({
-        requester_id: myId,
+        requester_id: requesterId,
         addressee_id: addresseeId,
         status: 'pending',
       });
