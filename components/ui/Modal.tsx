@@ -66,26 +66,25 @@ export const Modal: React.FC<ModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] overflow-y-auto overscroll-contain">
-      <div className="flex min-h-full min-h-[100dvh] items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] md:px-6 md:pb-8">
-        <div
-          className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
-          onClick={onClose}
-          aria-hidden
-        />
-        <div
-          className={`relative z-10 flex w-full max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem))] min-h-0 flex-col overflow-hidden ${maxWidth}
-            transition-all duration-400 ease-spring
-            ${isExiting
-              ? 'opacity-0 scale-[0.98]'
-              : 'opacity-100 scale-100 animate-scale-in'}
-            ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.06] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
-          `}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-            {children}
-          </div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 md:p-6">
+      <div
+        className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        className={`relative z-10 my-auto flex w-full flex-col overflow-hidden ${maxWidth}
+          transition-all duration-400 ease-spring
+          ${isExiting
+            ? 'opacity-0 scale-[0.98]'
+            : 'opacity-100 scale-100 animate-scale-in'}
+          ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.06] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
+        `}
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          {children}
         </div>
       </div>
     </div>

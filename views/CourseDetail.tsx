@@ -451,7 +451,7 @@ export const CourseDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
-                  className="absolute right-4 top-[max(1rem,env(safe-area-inset-top,0px))] z-10 shrink-0 rounded-2xl bg-black/70 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-black/90 md:right-6 md:top-6 md:p-3"
+                  className="absolute right-4 top-4 z-10 shrink-0 rounded-2xl bg-black/70 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-black/90 md:right-6 md:top-6 md:p-3"
                   aria-label="Закрыть"
                 >
                   <X size={20} />
@@ -469,7 +469,7 @@ export const CourseDetail: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="space-y-10 px-5 py-6 sm:px-6 md:space-y-12 md:px-8 md:py-8 pb-[max(2rem,env(safe-area-inset-bottom,0px))]">
+              <div className="space-y-10 px-5 py-6 pb-10 sm:px-6 md:space-y-12 md:px-8 md:py-8 md:pb-12">
                 {courseForModal.modules.map((module) => (
                   <div key={module.id} className="space-y-6">
                     <div className="flex items-center gap-4 min-w-0">
