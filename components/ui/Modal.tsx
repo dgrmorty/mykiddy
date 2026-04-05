@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 const EXIT_DURATION_MS = 350;
 
@@ -71,7 +72,7 @@ export const Modal: React.FC<ModalProps> = ({
   const visible = isOpen || isExiting;
   if (!visible) return null;
 
-  return (
+  const modalTree = (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-3 md:p-5">
       <div
         className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
@@ -96,4 +97,9 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(modalTree, document.body);
+  }
+  return modalTree;
 };
