@@ -201,7 +201,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           {upcomingEvents.length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="text-kiddy-textMuted mx-auto mb-3" size={32} />
-              <p className="text-kiddy-textMuted font-medium">Скоро появятся занятия</p>
+              <p className="text-kiddy-textMuted font-medium">Пока нет занятий в расписании</p>
             </Card>
           ) : (
             upcomingEvents.map((ev, i) => (

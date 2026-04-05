@@ -3,16 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Role } from '../types';
 import {
   User as UserIcon,
-  Bell,
-  Globe,
-  Palette,
   Shield,
-  KeyRound,
   ChevronRight,
   Sparkles,
   LogOut,
 } from 'lucide-react';
-import { Card } from '../components/ui/Card';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
@@ -90,7 +85,7 @@ export const Settings: React.FC = () => {
       <div>
         <p className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-[0.3em] mb-2">Аккаунт</p>
         <h1 className="text-3xl md:text-4xl font-display font-bold text-white tracking-tight">Настройки</h1>
-        <p className="text-kiddy-textMuted text-sm mt-2">Профиль, медали и предпочтения</p>
+        <p className="text-kiddy-textMuted text-sm mt-2">Профиль и медали</p>
       </div>
 
       <section className="space-y-3">
@@ -127,22 +122,6 @@ export const Settings: React.FC = () => {
           </button>
         </section>
       )}
-
-      <section className="space-y-3">
-        <h2 className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-widest px-1">Основные</h2>
-        <Row icon={Bell} title="Уведомления" subtitle="Письма о занятиях и напоминания — скоро" dimmed />
-        <Row icon={Globe} title="Язык интерфейса" subtitle="Русский — другие языки позже" dimmed />
-        <Row icon={Palette} title="Оформление" subtitle="Тёмная тема, размер шрифта — в разработке" dimmed />
-        <Row icon={KeyRound} title="Безопасность" subtitle="Смена пароля и сессии — скоро" dimmed />
-      </section>
-
-      <Card className="p-6 border-white/[0.06] bg-kiddy-surfaceElevated/40">
-        <p className="text-kiddy-textMuted text-xs leading-relaxed">
-          <span className="text-white font-semibold">Идеи на будущее:</span> привязка родителя к аккаунту ребёнка,
-          экспорт прогресса, push-уведомления в браузере, двухфакторная аутентификация, выбор часового пояса для
-          расписания.
-        </p>
-      </Card>
 
       <button
         type="button"
