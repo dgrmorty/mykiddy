@@ -82,6 +82,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   let staggerIndex = 0;
   const xpToNext = Math.min(100, ((currentUser.xp % 100) / 100) * 100);
 
+  const nameWords = schoolName.trim().split(/\s+/).filter(Boolean);
+  const isVtopeStyle =
+    nameWords.length >= 3 &&
+    nameWords[nameWords.length - 2]?.toLowerCase() === 'в' &&
+    nameWords[nameWords.length - 1]?.toLowerCase() === 'топе';
+  const titleHead = isVtopeStyle ? nameWords.slice(0, -2).join(' ') : '';
+  const titleTail = isVtopeStyle ? nameWords.slice(-2).join(' ') : nameWords.join(' ');
+
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-50 h-screen w-[288px] flex-col border-r border-white/[0.06] bg-kiddy-base backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_-20%,rgba(230,0,43,0.08),transparent)]" />
@@ -90,19 +98,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
 
       <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-6 pt-8">
         <div
-          className="mb-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-4 animate-reveal-up"
+          className="mb-8 flex items-center gap-3.5 px-1 animate-reveal-up"
           style={{ animationDelay: '0.02s' }}
         >
-          <div className="flex items-center gap-3">
-            {logo ? (
-              <img src={logo} className="h-9 w-auto max-w-[140px] object-contain object-left" alt={schoolName} />
+          {logo ? (
+            <img
+              src={logo}
+              className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
+              alt=""
+            />
+          ) : (
+            <img
+              src="/logo-vtope.png"
+              className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
+              alt=""
+            />
+          )}
+          <div
+            className="h-11 w-px shrink-0 bg-gradient-to-b from-transparent via-kiddy-cherry/45 to-transparent"
+            aria-hidden
+          />
+          <div className="min-w-0 flex-1" aria-label={schoolName}>
+            {isVtopeStyle ? (
+              <p className="font-display text-balance text-[1.0625rem] font-extrabold leading-[1.2] tracking-tight">
+                <span className="text-white">{titleHead}</span>{' '}
+                <span className="bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover bg-clip-text text-transparent italic">
+                  в топе
+                </span>
+              </p>
             ) : (
-              <img src="/logo-vtope.png" className="h-10 w-auto max-w-[160px] object-contain object-left" alt={schoolName} />
+              <p className="font-display text-balance text-[1.0625rem] font-extrabold leading-[1.2] tracking-tight text-white">
+                {titleTail}
+              </p>
             )}
           </div>
-          <p className="mt-2.5 border-t border-white/[0.05] pt-2.5 text-[11px] font-medium leading-snug text-kiddy-textMuted">
-            {schoolName}
-          </p>
         </div>
 
         <nav className="relative flex min-h-0 flex-1 flex-col">
