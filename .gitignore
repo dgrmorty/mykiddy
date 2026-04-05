@@ -12,7 +12,10 @@ node_modules/
 .cache/
 .vscode/
 .idea/
-.cursor/
+# Cursor: игнорим локальное, но правила в репо — для команды и CI
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 
 # Web build outputs
 dist/
