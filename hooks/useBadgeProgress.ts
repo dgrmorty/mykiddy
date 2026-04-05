@@ -19,7 +19,13 @@ function saveEquipped(userId: string, ids: string[]) {
   localStorage.setItem(STORAGE_KEY(userId), JSON.stringify(ids.slice(0, RING_SLOT_COUNT)));
 }
 
-export function useBadgeProgress(userId: string | undefined) {
+export interface UseBadgeProgressOptions {
+  /** Чужой профиль: не пишем localStorage, «кольцо» — первые разблокированные из каталога */
+  publicView?: boolean;
+}
+
+export function useBadgeProgress(userId: string | undefined, options?: UseBadgeProgressOptions) {
+  const publicView = options?.publicView === true;
   const [stats, setStats] = useState<BadgeStats | null>(null);
   const [equippedIds, setEquippedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,36 +64,44 @@ export function useBadgeProgress(userId: string | undefined) {
       };
       setStats(next);
 
-      const equipped = loadEquipped(userId);
       const unlocked = new Set(BADGE_CATALOG.filter((b) => b.isUnlocked(next)).map((b) => b.id));
-      let nextEquipped = equipped.filter((id) => unlocked.has(id)).slice(0, RING_SLOT_COUNT);
-      if (nextEquipped.length === 0 && unlocked.size > 0) {
-        const first = BADGE_CATALOG.find((b) => unlocked.has(b.id));
-        if (first) nextEquipped = [first.id];
+      let nextEquipped: string[];
+
+      if (publicView) {
+        nextEquipped = BADGE_CATALOG.filter((b) => unlocked.has(b.id))
+          .map((b) => b.id)
+          .slice(0, RING_SLOT_COUNT);
+      } else {
+        const equipped = loadEquipped(userId);
+        nextEquipped = equipped.filter((id) => unlocked.has(id)).slice(0, RING_SLOT_COUNT);
+        if (nextEquipped.length === 0 && unlocked.size > 0) {
+          const first = BADGE_CATALOG.find((b) => unlocked.has(b.id));
+          if (first) nextEquipped = [first.id];
+        }
+        if (JSON.stringify(equipped) !== JSON.stringify(nextEquipped)) {
+          saveEquipped(userId, nextEquipped);
+        }
       }
       setEquippedIds(nextEquipped);
-      if (JSON.stringify(equipped) !== JSON.stringify(nextEquipped)) {
-        saveEquipped(userId, nextEquipped);
-      }
     } catch {
       setStats({ lessonsCompleted: 0, homeworkSubmitted: 0, level: 1, xp: 0, leaderboardRank: null });
-      setEquippedIds(loadEquipped(userId));
+      setEquippedIds(publicView ? [] : loadEquipped(userId));
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, publicView]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   const setEquipped = useCallback(
     (ids: string[]) => {
-      if (!userId || !stats) return;
+      if (!userId || !stats || publicView) return;
       const unlocked = new Set(BADGE_CATALOG.filter((b) => b.isUnlocked(stats)).map((b) => b.id));
       const clean = ids.filter((id) => unlocked.has(id) && getBadgeById(id)).slice(0, RING_SLOT_COUNT);
       setEquippedIds(clean);
       saveEquipped(userId, clean);
     },
-    [userId, stats],
+    [userId, stats, publicView],
   );
 
   const unlockedIds = stats ? BADGE_CATALOG.filter((b) => b.isUnlocked(stats)).map((b) => b.id) : [];

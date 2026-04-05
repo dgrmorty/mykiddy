@@ -2,12 +2,31 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { AvatarImage } from '../components/AvatarImage';
+import { BadgeOrb } from '../components/BadgeOrb';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../services/supabase';
-import { Role } from '../types';
+import { Role, COURSE_YEAR_LABELS } from '../types';
 import { useFriendships, friendshipStateForPair } from '../hooks/useFriendships';
-import { ChevronLeft, Loader2, UserPlus, UserCheck, Clock, XCircle, Users } from 'lucide-react';
+import { useBadgeProgress } from '../hooks/useBadgeProgress';
+import { useContent } from '../hooks/useContent';
+import { useSkillData } from '../hooks/useSkillData';
+import { BADGE_CATALOG, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
+import {
+  ChevronLeft,
+  Loader2,
+  UserPlus,
+  UserCheck,
+  Clock,
+  XCircle,
+  Users,
+  Award,
+  Target,
+  BookOpen,
+  Check,
+  Lock,
+} from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 interface PublicProfileRow {
   id: string;
@@ -34,6 +53,23 @@ export const UserPublicProfile: React.FC = () => {
 
   const myId = user.id !== 'guest' ? user.id : undefined;
   const { rows, loading: loadingFriends, sendRequest, accept, remove } = useFriendships(myId);
+  const { stats: badgeStats, loading: loadingBadges, equippedIds } = useBadgeProgress(userId, { publicView: true });
+  const { courses, loading: loadingCourses, loadError: coursesError } = useContent(userId);
+  const skillData = useSkillData(courses);
+
+  const lessonTotals = useMemo(() => {
+    let total = 0;
+    let done = 0;
+    for (const c of courses) {
+      for (const m of c.modules) {
+        for (const l of m.lessons) {
+          total++;
+          if (l.isCompleted) done++;
+        }
+      }
+    }
+    return { total, done };
+  }, [courses]);
 
   useEffect(() => {
     if (!userId) {
@@ -115,6 +151,9 @@ export const UserPublicProfile: React.FC = () => {
     profile?.avatar ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'U')}&background=random`;
 
+  const statsReady = profile && !loadingBadges;
+  const showProgressSection = statsReady && !loadingCourses;
+
   return (
     <div className="space-y-8 pb-20">
       <button
@@ -148,14 +187,34 @@ export const UserPublicProfile: React.FC = () => {
             <div className="relative flex flex-col md:flex-row items-center gap-8 md:gap-12">
               <div className="relative shrink-0">
                 <div className="absolute inset-0 rounded-full bg-kiddy-cherry/20 blur-2xl scale-110" />
-                <AvatarImage
-                  src={avatarUrl}
-                  name={profile.name || 'Ученик'}
-                  alt=""
-                  className="relative h-32 w-32 md:h-40 md:w-40 rounded-full border-2 border-white/10 object-cover shadow-2xl"
-                />
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] font-bold text-white">
-                  LVL {level}
+                <div className="relative h-44 w-44 md:h-48 md:w-48">
+                  {Array.from({ length: RING_SLOT_COUNT }).map((_, i) => {
+                    const cx = 88;
+                    const r = 76;
+                    const angle = -Math.PI / 2 + (2 * Math.PI * i) / RING_SLOT_COUNT;
+                    const left = cx + r * Math.cos(angle) - 17;
+                    const top = cx + r * Math.sin(angle) - 17;
+                    const id = equippedIds[i];
+                    const b = id ? getBadgeById(id) : null;
+                    return (
+                      <div key={`slot-${i}`} className="absolute z-20" style={{ left, top, width: 34, height: 34 }}>
+                        {b ? (
+                          <BadgeOrb tier={b.tier} icon={b.icon} size={34} />
+                        ) : (
+                          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-[1.5px] border-dashed border-white/[0.12] bg-kiddy-surface/80" />
+                        )}
+                      </div>
+                    );
+                  })}
+                  <AvatarImage
+                    src={avatarUrl}
+                    name={profile.name || 'Ученик'}
+                    alt=""
+                    className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/10 object-cover shadow-2xl md:h-32 md:w-32"
+                  />
+                  <div className="absolute -bottom-1 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] font-bold text-white">
+                    LVL {level}
+                  </div>
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left min-w-0">
@@ -163,9 +222,19 @@ export const UserPublicProfile: React.FC = () => {
                 <h1 className="font-display text-3xl md:text-5xl font-bold text-white tracking-tight italic mb-4 break-words">
                   {profile.name || 'Ученик'}
                 </h1>
-                <p className="text-kiddy-textMuted text-sm font-mono mb-6">
+                <p className="text-kiddy-textMuted text-sm font-mono mb-2">
                   {xp.toLocaleString()} <span className="text-kiddy-textSecondary">XP</span>
                 </p>
+                {statsReady && badgeStats?.leaderboardRank != null && (
+                  <p className="text-kiddy-textMuted text-xs mb-6">
+                    Место в рейтинге: <span className="font-bold text-white">#{badgeStats.leaderboardRank}</span>
+                  </p>
+                )}
+                {!statsReady && (
+                  <div className="mb-6 flex justify-center md:justify-start">
+                    <Loader2 className="animate-spin text-kiddy-cherry/80" size={22} />
+                  </div>
+                )}
 
                 {!loadingFriends && canUseFriends && (
                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
@@ -233,13 +302,150 @@ export const UserPublicProfile: React.FC = () => {
             </div>
           </section>
 
-          <Card className="p-8 border-white/[0.06]">
-            <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] mb-2">О школе</h3>
-            <p className="text-kiddy-textMuted text-sm leading-relaxed">
-              Прогресс по курсам и достижения видны только владельцу профиля. Здесь отображаются имя, уровень и опыт —
-              так одноклассники узнают друг друга в каталоге.
-            </p>
-          </Card>
+          {statsReady && badgeStats && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Card className="border-white/[0.06]" noPadding>
+                <div className="flex items-center gap-3 p-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04]">
+                    <BookOpen className="text-kiddy-cherry" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Уроки</p>
+                    <p className="font-display text-2xl font-bold text-white">
+                      {badgeStats.lessonsCompleted}
+                      {lessonTotals.total > 0 && (
+                        <span className="text-base font-semibold text-kiddy-textMuted"> / {lessonTotals.total}</span>
+                      )}
+                    </p>
+                    <p className="text-kiddy-textMuted text-xs mt-0.5">завершено в каталоге</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="border-white/[0.06]" noPadding>
+                <div className="flex items-center gap-3 p-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04]">
+                    <Award className="text-amber-400/90" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Домашки</p>
+                    <p className="font-display text-2xl font-bold text-white">{badgeStats.homeworkSubmitted}</p>
+                    <p className="text-kiddy-textMuted text-xs mt-0.5">сдано через платформу</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="border-white/[0.06]" noPadding>
+                <div className="flex items-center gap-3 p-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04]">
+                    <Target className="text-emerald-400/90" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Рейтинг</p>
+                    <p className="font-display text-2xl font-bold text-white">
+                      {badgeStats.leaderboardRank != null ? `#${badgeStats.leaderboardRank}` : '—'}
+                    </p>
+                    <p className="text-kiddy-textMuted text-xs mt-0.5">по XP в школе</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {showProgressSection && coursesError && (
+            <p className="text-kiddy-textMuted text-sm text-center">Курсы временно не загрузились — прогресс по модулям скрыт.</p>
+          )}
+
+          {showProgressSection && courses.length > 0 && (
+            <Card className="border-white/[0.08] bg-kiddy-surfaceElevated/80 p-8 md:p-10" noPadding>
+              <div className="mb-8 flex items-center gap-3 px-8 pt-8 md:px-10 md:pt-10">
+                <Target size={18} className="text-kiddy-cherry" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white">Матрица компетенций</h3>
+              </div>
+              <div className="h-64 w-full px-4 pb-8 md:px-8">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
+                    <PolarGrid stroke="#18181b" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 10, fontWeight: 700 }} />
+                    <Radar name="Уровень" dataKey="A" stroke="#be123c" fill="#be123c" fillOpacity={0.4} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
+          {showProgressSection && courses.length > 0 && (
+            <section>
+              <h3 className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white">
+                <BookOpen size={16} className="text-kiddy-cherry" />
+                Прогресс по курсам
+              </h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {courses.map((course) => (
+                  <Card key={course.id} className="border-white/[0.06] p-5">
+                    <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                      <h4 className="font-bold text-white leading-snug">{course.title}</h4>
+                      <span className="shrink-0 rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-kiddy-textMuted">
+                        {COURSE_YEAR_LABELS[course.yearTier]}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">
+                      <span>Прогресс</span>
+                      <span className="text-white">{course.progress}%</span>
+                    </div>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-kiddy-surfaceHighlight">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-all duration-500"
+                        style={{ width: `${course.progress}%` }}
+                      />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {statsReady && badgeStats && (
+            <section>
+              <h3 className="mb-6 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white">
+                <Award size={16} className="text-kiddy-cherry" />
+                Достижения
+              </h3>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {BADGE_CATALOG.map((b) => {
+                  const unlocked = b.isUnlocked(badgeStats);
+                  const prog = b.progress(badgeStats);
+                  return (
+                    <div
+                      key={b.id}
+                      className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${
+                        unlocked
+                          ? 'border-white/[0.08] bg-kiddy-surfaceElevated/80'
+                          : 'border-white/[0.04] bg-kiddy-surfaceElevated/40 opacity-75'
+                      }`}
+                    >
+                      <BadgeOrb tier={b.tier} icon={b.icon} size={44} locked={!unlocked} />
+                      <div className="min-w-0 flex-1">
+                        <span className={`font-bold text-sm ${unlocked ? 'text-white' : 'text-kiddy-textMuted'}`}>{b.title}</span>
+                        <p className="mt-0.5 text-xs text-kiddy-textMuted">{b.requirement}</p>
+                        {!unlocked && (
+                          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                            <div
+                              className="h-full rounded-full bg-kiddy-cherry/60 transition-all duration-500"
+                              style={{ width: `${prog * 100}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      {unlocked ? (
+                        <Check size={16} className="shrink-0 text-emerald-400" />
+                      ) : (
+                        <Lock size={14} className="shrink-0 text-kiddy-textMuted" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>
