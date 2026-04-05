@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Save, X, Loader2, Camera, Target, 
-    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Plus, Sparkles
+    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Plus, Settings2
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase, uploadFile } from '../services/supabase';
@@ -16,7 +17,6 @@ import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { BadgeOrb } from '../components/BadgeOrb';
-import { BadgePickerModal } from '../components/BadgePickerModal';
 import { BADGE_CATALOG, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
 
 interface ProfileProps {
@@ -35,13 +35,13 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
-  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+  const navigate = useNavigate();
   const { showToast } = useToast();
   
   const currentUser = user.id !== 'guest' ? user : initialUser;
 
   const badgeUserId = currentUser.id !== 'guest' ? currentUser.id : undefined;
-  const { stats: badgeStats, equippedIds, setEquipped, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
+  const { stats: badgeStats, equippedIds, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
 
   useEffect(() => { refreshBadges(); }, [currentUser.xp, currentUser.level]);
   
@@ -256,10 +256,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                             style={{ left, top, width: 34, height: 34 }}
                           >
                             {b ? (
-                              <BadgeOrb tier={b.tier} icon={b.icon} size={34} onClick={() => setBadgeModalOpen(true)} />
+                              <BadgeOrb tier={b.tier} icon={b.icon} size={34} onClick={() => badgeUserId && navigate('/settings', { state: { focusMedals: true } })} />
                             ) : (
                               <div
-                                onClick={() => badgeUserId && setBadgeModalOpen(true)}
+                                onClick={() => badgeUserId && navigate('/settings', { state: { focusMedals: true } })}
                                 className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-white/[0.12] bg-kiddy-surface flex items-center justify-center cursor-pointer hover:border-white/20 transition-colors"
                               >
                                 <Plus size={12} className="text-kiddy-textMuted" />
@@ -269,7 +269,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         );
                       })}
                       {/* Avatar centered */}
-                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-28 md:h-28 rounded-full border-2 border-white/10 z-10 shadow-2xl overflow-hidden bg-black">
+                      <button
+                        type="button"
+                        disabled={isEditing}
+                        onClick={() => !isEditing && navigate('/settings')}
+                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-28 md:h-28 rounded-full border-2 border-white/10 z-10 shadow-2xl overflow-hidden bg-black text-left ${!isEditing ? 'cursor-pointer hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20 transition-all' : ''}`}
+                      >
                         <img
                           src={editAvatar || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`}
                           className="w-full h-full object-cover"
@@ -289,7 +294,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={handleFileChange} />
                           </div>
                         )}
-                      </div>
+                      </button>
                       {!isEditing && (
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-full border border-black z-20 shadow-lg">
                           LVL {currentUser.level}
@@ -297,8 +302,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       )}
                     </div>
                     {badgeUserId && (
-                      <button onClick={() => setBadgeModalOpen(true)} className="mt-2 flex items-center gap-1.5 mx-auto text-kiddy-cherry text-xs font-bold hover:underline transition-all">
-                        <Sparkles size={12} /> Настроить медали
+                      <button
+                        type="button"
+                        onClick={() => navigate('/settings', { state: { focusMedals: true } })}
+                        className="mt-2 flex items-center gap-1.5 mx-auto text-kiddy-cherry text-xs font-bold hover:underline transition-all"
+                      >
+                        <Settings2 size={12} /> Настройки и медали
                       </button>
                     )}
                 </div>
@@ -414,7 +423,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               <Award size={16} className="text-kiddy-cherry" />
               Достижения
             </h3>
-            <button onClick={() => setBadgeModalOpen(true)} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
+            <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
               Настроить медали →
             </button>
           </div>
@@ -454,14 +463,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       )}
 
       {/* Badge Picker Modal */}
-      <BadgePickerModal
-        isOpen={badgeModalOpen}
-        onClose={() => setBadgeModalOpen(false)}
-        stats={badgeStats}
-        equippedIds={equippedIds}
-        onSave={(ids) => setEquipped(ids)}
-      />
-
       {/* Logout Section */}
       <section className="pt-10 border-t border-zinc-900">
           <button 

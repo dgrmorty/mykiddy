@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface AnimatedIconProps {
-  name: 'sparkle' | 'play' | 'lock' | 'dashboard' | 'book' | 'calendar' | 'user' | 'shield' | 'zap' | 'logout';
+  name: 'sparkle' | 'play' | 'lock' | 'dashboard' | 'book' | 'calendar' | 'user' | 'shield' | 'zap' | 'logout' | 'settings';
   size?: number;
   className?: string;
   active?: boolean;
@@ -96,6 +96,15 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({ name, size = 24, cla
     );
   }
   
+  if (name === 'settings') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="3" pathLength="100" className={lineClass} style={{ animationDelay: '0s' }} />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" pathLength="100" className={lineClass} style={{ animationDelay: '0.15s' }} />
+      </svg>
+    );
+  }
+
   if (name === 'logout') {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>

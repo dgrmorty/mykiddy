@@ -36,7 +36,7 @@ export function BadgePickerModal({ isOpen, onClose, stats, equippedIds, onSave }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl">
-      <div className="p-8 md:p-10 flex flex-col max-h-[80vh]">
+      <div className="p-8 md:p-10 flex flex-col min-h-0">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-display font-bold text-white">Медали на аватаре</h2>
           <button

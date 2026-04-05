@@ -9,7 +9,7 @@ interface SidebarProps {
   currentUser: User;
 }
 
-const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3];
+const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const { openAuthModal, signOut } = useAuth();
@@ -32,14 +32,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
     fetchBranding();
   }, []);
 
-  type NavIcon = 'dashboard' | 'book' | 'calendar' | 'user' | 'shield';
+  type NavIcon = 'dashboard' | 'book' | 'calendar' | 'user' | 'settings' | 'shield';
   const navItems: { iconName: NavIcon; label: string; path: string; locked: boolean }[] = [
     { iconName: 'dashboard', label: 'Главная', path: '/', locked: false },
     { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest },
     { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest },
     { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest },
+    { iconName: 'settings', label: 'Настройки', path: '/settings', locked: isGuest },
   ];
-  if (isAdmin || isTeacher) navItems.push({ iconName: 'shield', label: 'Управление', path: '/admin', locked: false });
+  if (isAdmin) navItems.push({ iconName: 'shield', label: 'Управление', path: '/admin', locked: false });
 
   const handleNavClick = (e: React.MouseEvent, locked: boolean) => {
     if (locked) { e.preventDefault(); openAuthModal(); }

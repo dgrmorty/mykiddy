@@ -15,7 +15,6 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
   const { openAuthModal } = useAuth();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
-  const isTeacher = user.role === Role.TEACHER;
   const [logo, setLogo] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
 
@@ -44,7 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
       to={to}
       onClick={(e) => handleNavClick(e, locked)}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1 p-2.5 rounded-2xl transition-all duration-400 ease-spring
+        `flex shrink-0 flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-400 ease-spring min-w-[56px]
          ${isActive && !locked ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary hover:text-white active:scale-90'}`
       }
     >
@@ -87,11 +86,12 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
         </PageTransition>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around glass py-3 px-2 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-start gap-1 overflow-x-auto no-scrollbar glass py-2.5 px-2 pb-safe">
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" />
         <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" />
         <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />
-        {(isAdmin || isTeacher) && <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" />}
+        {isAdmin && <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" />}
+        <MobileNavItem to="/settings" iconName="settings" locked={isGuest} label="Настройки" />
         <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" />
       </nav>
     </div>

@@ -66,23 +66,25 @@ export const Modal: React.FC<ModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] min-h-screen flex items-center justify-center p-4 md:p-6">
-      <div
-        className={`absolute inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
-        className={`relative z-10 w-full max-h-[90vh] overflow-y-auto custom-scrollbar ${maxWidth}
-          transition-all duration-400 ease-spring
-          ${isExiting
-            ? 'opacity-0 translate-y-6 scale-[0.97]'
-            : 'opacity-100 translate-y-0 scale-100 animate-reveal-up'}
-          ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.06] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
-        `}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
+    <div className="fixed inset-0 z-[200] overflow-y-auto overscroll-contain">
+      <div className="flex min-h-full min-h-[100dvh] items-center justify-center p-4 md:p-6 py-10">
+        <div
+          className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+          onClick={onClose}
+          aria-hidden
+        />
+        <div
+          className={`relative z-10 w-full max-h-[min(90vh,100dvh-3rem)] overflow-y-auto custom-scrollbar ${maxWidth}
+            transition-all duration-400 ease-spring
+            ${isExiting
+              ? 'opacity-0 scale-[0.98]'
+              : 'opacity-100 scale-100 animate-scale-in'}
+            ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.06] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
+          `}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

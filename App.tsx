@@ -7,6 +7,7 @@ import { CourseDetail } from './views/CourseDetail';
 import { Profile } from './views/Profile';
 import { Schedule } from './views/Schedule';
 import { AdminPanel } from './views/AdminPanel';
+import { Settings } from './views/Settings';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
@@ -60,6 +61,12 @@ const AppContent: React.FC = () => {
           <Route path="profile" element={
             <ProtectedRoute>
                 <Profile user={user} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="settings" element={
+            <ProtectedRoute>
+                <Settings />
             </ProtectedRoute>
           } />
           
