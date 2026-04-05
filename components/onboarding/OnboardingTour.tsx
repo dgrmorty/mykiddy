@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import {
@@ -16,6 +16,44 @@ interface OnboardingTourProps {
 
 const OVERLAY_Z = 10000;
 
+const DIM_CLASS = 'bg-black/80 animate-fade-in';
+
+/** Затемнение только вокруг прямоугольника — центр без слоя, без blur (интерфейс остаётся чётким). */
+function DimmingCutout({
+  rect,
+  zIndex,
+}: {
+  rect: { top: number; left: number; width: number; height: number };
+  zIndex: number;
+}) {
+  const { top, left, width, height } = rect;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
+  const right = left + width;
+  const bottom = top + height;
+
+  return (
+    <>
+      <div className={`fixed left-0 right-0 top-0 ${DIM_CLASS}`} style={{ height: Math.max(0, top), zIndex }} aria-hidden />
+      <div
+        className={`fixed left-0 right-0 ${DIM_CLASS}`}
+        style={{ top: bottom, height: Math.max(0, vh - bottom), zIndex }}
+        aria-hidden
+      />
+      <div
+        className={`fixed ${DIM_CLASS}`}
+        style={{ top, left: 0, width: Math.max(0, left), height, zIndex }}
+        aria-hidden
+      />
+      <div
+        className={`fixed ${DIM_CLASS}`}
+        style={{ top, left: right, width: Math.max(0, vw - right), height, zIndex }}
+        aria-hidden
+      />
+    </>
+  );
+}
+
 export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest, role }) => {
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -24,9 +62,6 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
     top: 120,
     left: 24,
   });
-
-  const targetRef = useRef<HTMLElement | null>(null);
-  const prevTargetStyleRef = useRef<{ zIndex: string; position: string } | null>(null);
 
   const isAdmin = role === Role.ADMIN;
   const steps = useMemo(() => getStepsForUser(isAdmin), [isAdmin]);
@@ -41,17 +76,6 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
     }
     setOpen(false);
   }, [userId]);
-
-  const restoreTarget = useCallback(() => {
-    const el = targetRef.current;
-    const prev = prevTargetStyleRef.current;
-    if (el && prev) {
-      el.style.zIndex = prev.zIndex;
-      el.style.position = prev.position;
-    }
-    targetRef.current = null;
-    prevTargetStyleRef.current = null;
-  }, []);
 
   const updateGeometry = useCallback(() => {
     if (!open) return;
@@ -110,26 +134,14 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
   useLayoutEffect(() => {
     if (!open || !step) return;
 
-    restoreTarget();
-
     const el = resolveTourTarget(step.anchor);
-    targetRef.current = el;
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      prevTargetStyleRef.current = {
-        zIndex: el.style.zIndex,
-        position: el.style.position,
-      };
-      const computed = window.getComputedStyle(el);
-      if (computed.position === 'static') {
-        el.style.position = 'relative';
-      }
-      el.style.zIndex = String(OVERLAY_Z + 2);
     }
 
     const id = window.requestAnimationFrame(() => updateGeometry());
     return () => cancelAnimationFrame(id);
-  }, [open, stepIndex, step, restoreTarget, updateGeometry]);
+  }, [open, stepIndex, step, updateGeometry]);
 
   useEffect(() => {
     if (!open) return;
@@ -143,17 +155,13 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
   }, [open, updateGeometry]);
 
   useEffect(() => {
-    if (!open) {
-      restoreTarget();
-      return;
-    }
+    if (!open) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prevOverflow;
-      restoreTarget();
     };
-  }, [open, restoreTarget]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -175,12 +183,11 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
 
   const node = (
     <div className="fixed inset-0" style={{ zIndex: OVERLAY_Z }} role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      <div
-        className="absolute inset-0 bg-black/78 backdrop-blur-[2px] animate-fade-in"
-        style={{ animationDuration: '0.35s' }}
-        onClick={(e) => e.stopPropagation()}
-        aria-hidden
-      />
+      {rect ? (
+        <DimmingCutout rect={rect} zIndex={OVERLAY_Z} />
+      ) : (
+        <div className={`fixed inset-0 ${DIM_CLASS}`} style={{ zIndex: OVERLAY_Z }} aria-hidden />
+      )}
       {rect && (
         <div
           className="pointer-events-none absolute rounded-2xl border-2 border-kiddy-cherry transition-all duration-300 ease-out"
