@@ -532,10 +532,23 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           return (
                               <div
                                   key={user.id}
-                                  className={`p-4 rounded-xl border transition-all ${
+                                  role={isCurrentUser ? undefined : 'button'}
+                                  tabIndex={isCurrentUser ? undefined : 0}
+                                  onClick={isCurrentUser ? undefined : () => navigate(`/users/${user.id}`)}
+                                  onKeyDown={
+                                    isCurrentUser
+                                      ? undefined
+                                      : (e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            navigate(`/users/${user.id}`);
+                                          }
+                                        }
+                                  }
+                                  className={`p-4 rounded-xl border transition-all text-left w-full ${
                                       isCurrentUser
                                           ? 'bg-kiddy-cherry/10 border-kiddy-cherry/50 shadow-lg shadow-kiddy-cherry/10'
-                                          : 'bg-kiddy-surfaceDark/80 border-white/[0.08] hover:border-zinc-700'
+                                          : 'bg-kiddy-surfaceDark/80 border-white/[0.08] hover:border-zinc-700 cursor-pointer'
                                   }`}
                               >
                                   <div className="flex items-center gap-4">

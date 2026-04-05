@@ -10,7 +10,7 @@ interface SidebarProps {
   currentUser: User;
 }
 
-type NavIcon = 'dashboard' | 'book' | 'calendar' | 'user' | 'settings' | 'shield';
+type NavIcon = 'dashboard' | 'book' | 'calendar' | 'usersGroup' | 'user' | 'settings' | 'shield';
 
 interface NavItem {
   iconName: NavIcon;
@@ -54,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
         { iconName: 'dashboard', label: 'Главная', path: '/', locked: false },
         { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest },
         { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest },
+        { iconName: 'usersGroup', label: 'Ученики', path: '/community', locked: isGuest },
       ],
     },
     {

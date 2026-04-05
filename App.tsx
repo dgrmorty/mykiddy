@@ -8,6 +8,8 @@ import { Profile } from './views/Profile';
 import { Schedule } from './views/Schedule';
 import { AdminPanel } from './views/AdminPanel';
 import { Settings } from './views/Settings';
+import { Community } from './views/Community';
+import { UserPublicProfile } from './views/UserPublicProfile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
@@ -73,6 +75,18 @@ const AppContent: React.FC = () => {
           <Route path="schedule" element={
             <ProtectedRoute>
                 <Schedule />
+            </ProtectedRoute>
+          } />
+
+          <Route path="community" element={
+            <ProtectedRoute>
+                <Community />
+            </ProtectedRoute>
+          } />
+
+          <Route path="users/:userId" element={
+            <ProtectedRoute>
+                <UserPublicProfile />
             </ProtectedRoute>
           } />
 

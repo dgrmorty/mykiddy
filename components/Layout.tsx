@@ -91,6 +91,7 @@ export const Layout: React.FC<LayoutProps> = ({ user }) => {
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" />
         <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" />
         <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" />
+        <MobileNavItem to="/community" iconName="usersGroup" locked={isGuest} label="Ученики" />
         {isAdmin && <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" />}
         <MobileNavItem to="/settings" iconName="settings" locked={isGuest} label="Настройки" />
         <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" />
