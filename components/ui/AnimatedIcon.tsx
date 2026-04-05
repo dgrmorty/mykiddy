@@ -97,10 +97,16 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({ name, size = 24, cla
   }
   
   if (name === 'settings') {
+    /* Шестерёнка: обод с «зубьями» + центр — отдельные pathLength для draw, как у dashboard/book */
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <circle cx="12" cy="12" r="3" pathLength="100" className={lineClass} style={{ animationDelay: '0s' }} />
-        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" pathLength="100" className={lineClass} style={{ animationDelay: '0.15s' }} />
+        <path
+          d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+          pathLength="100"
+          className={lineClass}
+          style={{ animationDelay: '0s' }}
+        />
+        <circle cx="12" cy="12" r="3" pathLength="100" className={lineClass} style={{ animationDelay: '0.35s' }} />
       </svg>
     );
   }
