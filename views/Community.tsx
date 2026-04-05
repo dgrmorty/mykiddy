@@ -195,15 +195,27 @@ export const Community: React.FC = () => {
                 const isFriend = friendRows.some(
                   (r) => r.status === 'accepted' && ((r.requester_id === myId && r.addressee_id === s.id) || (r.addressee_id === myId && r.requester_id === s.id)),
                 );
+                const actionClass =
+                  'inline-flex h-10 min-w-[9.5rem] shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-300';
+
                 return (
                   <Card
                     key={s.id}
                     hoverEffect
-                    className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between"
+                    className="flex flex-row items-center gap-3 p-4 sm:gap-4 sm:p-5"
                     style={{ animation: `fade-in-up 0.5s ease both`, animationDelay: `${0.05 + i * 0.04}s` }}
                   >
-                    <button type="button" onClick={() => navigate(`/users/${s.id}`)} className="flex min-w-0 flex-1 items-center gap-4 text-left">
-                      <AvatarImage src={avatarUrl} name={s.name || ''} alt="" className="h-14 w-14 shrink-0 rounded-2xl border border-white/10 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/users/${s.id}`)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4"
+                    >
+                      <AvatarImage
+                        src={avatarUrl}
+                        name={s.name || ''}
+                        alt=""
+                        className="h-12 w-12 shrink-0 rounded-2xl border border-white/[0.08] object-cover sm:h-14 sm:w-14"
+                      />
                       <div className="min-w-0">
                         <p className="truncate font-bold text-white">{s.name || 'Ученик'}</p>
                         <p className="text-kiddy-textMuted text-xs">
@@ -211,32 +223,40 @@ export const Community: React.FC = () => {
                         </p>
                       </div>
                     </button>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:flex-col md:items-stretch">
-                      {canFriend && !isFriend && !hasOutgoing && (
-                        <button
-                          type="button"
-                          disabled={busyId === s.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleQuickAdd(s.id);
-                          }}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-kiddy-cherry/90 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-kiddy-cherry disabled:opacity-50"
-                        >
-                          {busyId === s.id ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-                          В друзья
-                        </button>
-                      )}
-                      {canFriend && hasOutgoing && (
-                        <span className="inline-flex items-center justify-center gap-1 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-amber-200">
-                          <Clock size={12} /> Ждём
-                        </span>
-                      )}
-                      {isFriend && (
-                        <span className="inline-flex items-center justify-center gap-1 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-200">
-                          <UserCheck size={12} /> Друзья
-                        </span>
-                      )}
-                    </div>
+                    {canFriend && !isFriend && !hasOutgoing && (
+                      <button
+                        type="button"
+                        disabled={busyId === s.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleQuickAdd(s.id);
+                        }}
+                        className={`group ${actionClass} border-kiddy-cherry/40 bg-kiddy-cherry/[0.14] text-white hover:border-kiddy-cherry hover:bg-kiddy-cherry hover:shadow-[0_0_24px_-4px_rgba(230,0,43,0.45)] disabled:pointer-events-none disabled:opacity-45`}
+                      >
+                        {busyId === s.id ? (
+                          <Loader2 size={16} className="animate-spin text-kiddy-cherry group-hover:text-white" />
+                        ) : (
+                          <UserPlus size={16} className="text-kiddy-cherry transition-colors group-hover:text-white" />
+                        )}
+                        <span className="truncate">В друзья</span>
+                      </button>
+                    )}
+                    {canFriend && hasOutgoing && (
+                      <span
+                        className={`${actionClass} cursor-default border-amber-500/20 bg-amber-500/[0.08] text-amber-100/95`}
+                      >
+                        <Clock size={15} className="shrink-0 opacity-90" />
+                        Ждём ответ
+                      </span>
+                    )}
+                    {isFriend && (
+                      <span
+                        className={`${actionClass} cursor-default border-emerald-500/25 bg-emerald-500/[0.1] text-emerald-100/95`}
+                      >
+                        <UserCheck size={15} className="shrink-0 opacity-90" />
+                        Друзья
+                      </span>
+                    )}
                   </Card>
                 );
               })}
