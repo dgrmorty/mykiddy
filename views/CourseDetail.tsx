@@ -436,48 +436,62 @@ export const CourseDetail: React.FC = () => {
           isOpen={!!activeCourse}
           onClose={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
           onClosed={() => setClosingCourse(null)}
-          maxWidth="max-w-4xl"
+          maxWidth="max-w-5xl"
+          maxPanelHeight="calc(100dvh - 0.5rem)"
+          panelClassName="ring-1 ring-kiddy-cherry/20 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_48px_120px_-28px_rgba(0,0,0,0.92),0_0_120px_-48px_rgba(230,0,43,0.14)]"
         >
             <div className="flex flex-col bg-kiddy-surfaceElevated">
-              <div className="relative h-44 shrink-0 overflow-hidden sm:h-52 md:h-64">
-                <img src={courseForModal.coverImage} className="h-full w-full object-cover opacity-50" alt="" />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 z-[1] h-1 bg-white/[0.08]">
+              <div className="relative h-[13.5rem] shrink-0 overflow-hidden sm:h-60 md:h-72 lg:h-80">
+                <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-b from-kiddy-cherry/15 via-transparent to-transparent" />
+                <img
+                  src={courseForModal.coverImage}
+                  className="h-full w-full scale-105 object-cover opacity-[0.55]"
+                  alt=""
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
+                <div className="absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-kiddy-cherry/60 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 z-[1] h-1.5 bg-black/40">
                   <div
-                    className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-all duration-700"
+                    className="h-full bg-gradient-to-r from-kiddy-cherry via-kiddy-cherryHover to-kiddy-cherryHover shadow-[0_0_20px_rgba(230,0,43,0.45)] transition-all duration-700"
                     style={{ width: `${courseForModal.progress}%` }}
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
-                  className="absolute right-4 top-4 z-10 shrink-0 rounded-2xl bg-black/70 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-black/90 md:right-6 md:top-6 md:p-3"
+                  className="absolute right-4 top-4 z-20 flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white backdrop-blur-md transition-all hover:border-white/20 hover:bg-black/80 md:right-6 md:top-5 md:size-12"
                   aria-label="Закрыть"
                 >
                   <X size={20} />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-7 md:p-8 md:pb-9">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-textMuted">Курс</p>
-                  <h2 className="font-display text-2xl font-bold italic leading-tight text-white break-words sm:text-3xl md:text-4xl">
+                <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-8 sm:p-7 sm:pb-9 md:p-9 md:pb-10">
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1 backdrop-blur-md">
+                    <MonitorPlay size={12} className="text-kiddy-cherry" aria-hidden />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-300">Курс</span>
+                  </div>
+                  <h2 className="font-display text-balance text-2xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
                     {courseForModal.title}
                   </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-kiddy-textSecondary line-clamp-2 md:line-clamp-none md:text-base">
+                  <p className="mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400 line-clamp-2 sm:line-clamp-3 md:text-base md:leading-relaxed lg:line-clamp-none">
                     {courseForModal.description}
                   </p>
-                  <p className="mt-3 text-xs font-bold text-white/80">
-                    Прогресс: <span className="text-kiddy-cherry">{courseForModal.progress}%</span>
-                  </p>
+                  <div className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-kiddy-cherry/25 bg-gradient-to-br from-kiddy-cherry/15 to-transparent px-4 py-2.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-kiddy-cherry">Прогресс</span>
+                    <span className="font-display text-xl font-bold tabular-nums text-white md:text-2xl">{courseForModal.progress}%</span>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-10 px-5 py-6 pb-10 sm:px-6 md:space-y-12 md:px-8 md:py-8 md:pb-12">
+              <div className="space-y-10 border-t border-white/[0.06] bg-gradient-to-b from-black/25 to-kiddy-surfaceElevated px-5 py-7 pb-12 sm:px-7 md:space-y-12 md:px-10 md:py-9 md:pb-14">
                 {courseForModal.modules.map((module) => (
-                  <div key={module.id} className="space-y-6">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="h-px flex-1 min-w-[1rem] bg-kiddy-surfaceHighlight" />
-                      <h3 className="text-kiddy-textMuted font-bold uppercase text-[10px] tracking-[0.4em] px-4 whitespace-nowrap shrink-0">{module.title}</h3>
-                      <div className="h-px flex-1 min-w-[1rem] bg-kiddy-surfaceHighlight" />
+                  <div key={module.id} className="space-y-5 md:space-y-6">
+                    <div className="flex items-center gap-3 min-w-0 md:gap-4">
+                      <div className="h-px min-w-[1rem] flex-1 bg-gradient-to-r from-transparent to-white/15" />
+                      <h3 className="shrink-0 px-2 text-center text-[10px] font-bold uppercase tracking-[0.35em] text-zinc-500 md:px-4 md:tracking-[0.4em]">
+                        {module.title}
+                      </h3>
+                      <div className="h-px min-w-[1rem] flex-1 bg-gradient-to-l from-transparent to-white/15" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                       {module.lessons.map((lesson, idx) => (
                         <div
                           key={lesson.id}
@@ -491,10 +505,10 @@ export const CourseDetail: React.FC = () => {
                               handleOpenLesson(lesson);
                             }
                           }}
-                          className={`p-5 md:p-6 rounded-[2rem] border transition-all flex items-start gap-3 md:gap-4 min-w-0 group ${
+                          className={`flex min-w-0 items-start gap-3 rounded-2xl border p-5 transition-all duration-300 md:gap-4 md:rounded-[1.75rem] md:p-6 ${
                             lesson.locked
-                              ? 'bg-kiddy-surfaceElevated/20 border-white/[0.08]/50 opacity-40 cursor-not-allowed'
-                              : 'bg-black border-white/[0.08] cursor-pointer hover:border-kiddy-cherry/50 hover:bg-kiddy-surfaceHighlight/30'
+                              ? 'cursor-not-allowed border-white/[0.06] bg-white/[0.02] opacity-40'
+                              : 'group cursor-pointer border-white/[0.07] bg-gradient-to-br from-zinc-950/90 to-black shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] hover:border-kiddy-cherry/40 hover:shadow-[0_20px_50px_-24px_rgba(230,0,43,0.25)]'
                           }`}
                         >
                           <div

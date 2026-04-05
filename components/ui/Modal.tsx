@@ -9,6 +9,10 @@ interface ModalProps {
   maxWidth?: string;
   transparentContainer?: boolean;
   onClosed?: () => void;
+  /** Max height of the panel (inline style). Taller = more viewport, keep small bottom margin. */
+  maxPanelHeight?: string;
+  /** Extra classes on the panel (shadow, ring). */
+  panelClassName?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -18,6 +22,8 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'max-w-md',
   transparentContainer = false,
   onClosed,
+  maxPanelHeight = 'calc(100dvh - 1rem)',
+  panelClassName = '',
 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const wasOpenRef = useRef(false);
@@ -66,7 +72,7 @@ export const Modal: React.FC<ModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 md:p-6">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-3 md:p-5">
       <div
         className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
         onClick={onClose}
@@ -78,9 +84,10 @@ export const Modal: React.FC<ModalProps> = ({
           ${isExiting
             ? 'opacity-0 scale-[0.98]'
             : 'opacity-100 scale-100 animate-scale-in'}
-          ${transparentContainer ? '' : 'rounded-3xl bg-kiddy-surfaceElevated border border-white/[0.06] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
+          ${transparentContainer ? '' : 'rounded-[1.75rem] sm:rounded-[2rem] bg-kiddy-surfaceElevated border border-white/[0.08] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.9)]'}
+          ${panelClassName}
         `}
-        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+        style={{ maxHeight: maxPanelHeight }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
