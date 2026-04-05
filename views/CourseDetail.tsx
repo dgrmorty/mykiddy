@@ -438,19 +438,38 @@ export const CourseDetail: React.FC = () => {
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-4xl"
         >
-            <div className="flex flex-col h-full bg-kiddy-surfaceElevated">
-              <div className="relative h-64 md:h-80 shrink-0">
-                <img src={courseForModal.coverImage} className="w-full h-full object-cover opacity-40" alt="" />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-                <button type="button" onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }} className="absolute top-8 right-8 p-3 bg-black/80 backdrop-blur-sm rounded-2xl text-white shrink-0 z-10">
+            <div className="flex flex-col bg-kiddy-surfaceElevated">
+              <div className="relative h-44 shrink-0 overflow-hidden sm:h-52 md:h-64">
+                <img src={courseForModal.coverImage} className="h-full w-full object-cover opacity-50" alt="" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 z-[1] h-1 bg-white/[0.08]">
+                  <div
+                    className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-all duration-700"
+                    style={{ width: `${courseForModal.progress}%` }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
+                  className="absolute right-4 top-[max(1rem,env(safe-area-inset-top,0px))] z-10 shrink-0 rounded-2xl bg-black/70 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-black/90 md:right-6 md:top-6 md:p-3"
+                  aria-label="Закрыть"
+                >
                   <X size={20} />
                 </button>
-                <div className="absolute bottom-10 left-10 right-10 md:right-auto pr-4">
-                  <h2 className="text-4xl md:text-5xl font-display font-bold text-white italic break-words">{courseForModal.title}</h2>
-                  <p className="text-kiddy-textSecondary mt-2 max-w-lg">{courseForModal.description}</p>
+                <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-7 md:p-8 md:pb-9">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-textMuted">Курс</p>
+                  <h2 className="font-display text-2xl font-bold italic leading-tight text-white break-words sm:text-3xl md:text-4xl">
+                    {courseForModal.title}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-kiddy-textSecondary line-clamp-2 md:line-clamp-none md:text-base">
+                    {courseForModal.description}
+                  </p>
+                  <p className="mt-3 text-xs font-bold text-white/80">
+                    Прогресс: <span className="text-kiddy-cherry">{courseForModal.progress}%</span>
+                  </p>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-12">
+              <div className="space-y-10 px-5 py-6 sm:px-6 md:space-y-12 md:px-8 md:py-8 pb-[max(2rem,env(safe-area-inset-bottom,0px))]">
                 {courseForModal.modules.map((module) => (
                   <div key={module.id} className="space-y-6">
                     <div className="flex items-center gap-4 min-w-0">

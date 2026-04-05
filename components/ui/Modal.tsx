@@ -67,14 +67,14 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[200] overflow-y-auto overscroll-contain">
-      <div className="flex min-h-full min-h-[100dvh] items-center justify-center p-4 md:p-6 py-10">
+      <div className="flex min-h-full min-h-[100dvh] items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] md:px-6 md:pb-8">
         <div
           className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
           onClick={onClose}
           aria-hidden
         />
         <div
-          className={`relative z-10 w-full max-h-[min(90vh,100dvh-3rem)] overflow-y-auto custom-scrollbar ${maxWidth}
+          className={`relative z-10 flex w-full max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem))] min-h-0 flex-col overflow-hidden ${maxWidth}
             transition-all duration-400 ease-spring
             ${isExiting
               ? 'opacity-0 scale-[0.98]'
@@ -83,7 +83,9 @@ export const Modal: React.FC<ModalProps> = ({
           `}
           onClick={(e) => e.stopPropagation()}
         >
-          {children}
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            {children}
+          </div>
         </div>
       </div>
     </div>
