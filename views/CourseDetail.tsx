@@ -481,25 +481,24 @@ export const CourseDetail: React.FC = () => {
             </button>
           ))}
         </div>
-        <div className="relative max-w-xl">
+        <div className="relative max-w-xl isolate">
           <span
-            className={`pointer-events-none absolute left-3 top-1/2 flex h-10 w-10 items-center justify-center transition-transform duration-300 ease-spring ${
-              !librarySearchFocused && librarySearch.trim() === ''
-                ? 'animate-loupe-pulse'
-                : librarySearchFocused
-                  ? 'scale-[1.12]'
-                  : 'scale-100'
-            }`}
+            className="pointer-events-none absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center"
             aria-hidden
           >
-            <Search
-              className={`size-5 transition-colors duration-200 ${
-                librarySearchFocused || librarySearch.trim() !== ''
-                  ? 'text-kiddy-cherry'
-                  : 'text-kiddy-textMuted'
+            <span
+              className={`flex items-center justify-center ${
+                !librarySearchFocused && librarySearch.trim() === '' ? 'animate-loupe-pulse' : ''
               }`}
-              strokeWidth={2.25}
-            />
+            >
+              <Search
+                className={`h-[22px] w-[22px] shrink-0 text-kiddy-textMuted transition-colors duration-200 [stroke-linecap:round] [stroke-linejoin:round] ${
+                  librarySearchFocused || librarySearch.trim() !== '' ? 'text-kiddy-cherry' : ''
+                }`}
+                strokeWidth={2}
+                absoluteStrokeWidth
+              />
+            </span>
           </span>
           <input
             type="search"
