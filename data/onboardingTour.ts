@@ -31,9 +31,9 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
     body: 'Каталог одноклассников: смотрите профили, отправляйте заявки в друзья и принимайте входящие.',
   },
   {
-    anchor: 'nav-notifications',
+    anchor: 'notifications-home',
     title: 'Уведомления',
-    body: 'Лента активности: заявки в друзья, принятие дружбы и другое, что касается вашего профиля.',
+    body: 'С главной страницы откройте ленту активности: заявки в друзья, принятие дружбы и другое по профилю.',
   },
   {
     anchor: 'nav-profile',
@@ -63,6 +63,9 @@ export function getStepsForUser(isAdmin: boolean): OnboardingStepDef[] {
 }
 
 export function tourElementIds(anchor: string): { desktop: string; mobile: string } {
+  if (anchor === 'notifications-home') {
+    return { desktop: 'tour-notifications-home', mobile: 'tour-notifications-home' };
+  }
   return { desktop: `tour-dsk-${anchor}`, mobile: `tour-mob-${anchor}` };
 }
 

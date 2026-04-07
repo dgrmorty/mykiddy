@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { User, Role } from '../types';
-import { Outlet, NavLink, Link } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { PageTransition } from './PageTransition';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../contexts/AuthContext';
-import { NotificationProvider, useNotificationSummary } from '../contexts/NotificationContext';
+import { NotificationProvider } from '../contexts/NotificationContext';
 import { OnboardingTour } from './onboarding/OnboardingTour';
 import { supabase } from '../services/supabase';
 
@@ -16,7 +16,6 @@ interface LayoutProps {
 
 function LayoutShell({ user }: LayoutProps) {
   const { openAuthModal } = useAuth();
-  const { unreadCount } = useNotificationSummary();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
   const [logo, setLogo] = useState<string | null>(null);
@@ -56,14 +55,12 @@ function LayoutShell({ user }: LayoutProps) {
     iconName,
     locked,
     label,
-    badgeCount,
     tourAnchor,
   }: {
     to: string;
     iconName: React.ComponentProps<typeof AnimatedIcon>['name'];
     locked: boolean;
     label: string;
-    badgeCount?: number;
     tourAnchor?: string;
   }) => (
     <NavLink
@@ -71,7 +68,7 @@ function LayoutShell({ user }: LayoutProps) {
       to={to}
       onClick={(e) => handleNavClick(e, locked)}
       className={({ isActive }) =>
-        `flex shrink-0 flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-400 ease-spring min-w-[56px]
+        `flex w-full min-w-0 flex-col items-center gap-1 px-1 py-2 rounded-2xl transition-all duration-400 ease-spring
          ${isActive && !locked ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary hover:text-white active:scale-90'}`
       }
     >
@@ -81,11 +78,6 @@ function LayoutShell({ user }: LayoutProps) {
             className={`relative transition-transform duration-400 ease-spring ${isActive && !locked ? 'scale-110 drop-shadow-[0_0_12px_rgba(230,0,43,0.5)]' : ''}`}
           >
             <AnimatedIcon name={iconName} size={22} active={isActive && !locked} />
-            {!locked && badgeCount != null && badgeCount > 0 && (
-              <span className="absolute -right-1 -top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-kiddy-cherry px-0.5 text-[8px] font-bold leading-none text-white">
-                {badgeCount > 9 ? '9+' : badgeCount}
-              </span>
-            )}
             {locked && (
               <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-black bg-kiddy-surfaceElevated">
                 <AnimatedIcon name="lock" size={8} className="text-white" active={false} />
@@ -119,20 +111,6 @@ function LayoutShell({ user }: LayoutProps) {
           <img src="/logo-vtope.png" alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" />
         )}
         <div className="flex items-center gap-2">
-          {!isGuest && (
-            <Link
-              to="/notifications"
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white"
-              aria-label="Уведомления"
-            >
-              <AnimatedIcon name="bell" size={20} active={false} />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-kiddy-cherry px-1 text-[9px] font-bold text-white">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
           <AvatarImage
             src={user.avatar}
             name={user.name}
@@ -148,19 +126,15 @@ function LayoutShell({ user }: LayoutProps) {
         </PageTransition>
       </main>
 
-      <nav className="glass fixed bottom-0 left-0 right-0 z-50 flex items-center justify-start gap-1 overflow-x-auto px-2 py-2.5 pb-safe no-scrollbar md:hidden">
+      <nav
+        className={`glass fixed bottom-0 left-0 right-0 z-50 grid w-full items-stretch px-1 py-2 pb-safe md:hidden ${
+          isAdmin ? 'grid-cols-7' : 'grid-cols-6'
+        }`}
+      >
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" tourAnchor="nav-home" />
         <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" tourAnchor="nav-library" />
         <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" tourAnchor="nav-schedule" />
         <MobileNavItem to="/community" iconName="usersGroup" locked={isGuest} label="Ученики" tourAnchor="nav-community" />
-        <MobileNavItem
-          to="/notifications"
-          iconName="bell"
-          locked={isGuest}
-          label="Активность"
-          badgeCount={!isGuest ? unreadCount : undefined}
-          tourAnchor="nav-notifications"
-        />
         {isAdmin && (
           <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" tourAnchor="nav-admin" />
         )}

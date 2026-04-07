@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { User, Role } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotificationSummary } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabase';
 import { AvatarImage } from './AvatarImage';
 
@@ -11,15 +10,13 @@ interface SidebarProps {
   currentUser: User;
 }
 
-type NavIcon = 'dashboard' | 'book' | 'calendar' | 'usersGroup' | 'bell' | 'user' | 'settings' | 'shield';
+type NavIcon = 'dashboard' | 'book' | 'calendar' | 'usersGroup' | 'user' | 'settings' | 'shield';
 
 interface NavItem {
   iconName: NavIcon;
   label: string;
   path: string;
   locked: boolean;
-  /** Показать счётчик непрочитанных из NotificationContext */
-  notificationBadge?: boolean;
   /** Якорь онбординга → id tour-dsk-${anchor} */
   onboardingAnchor?: string;
 }
@@ -33,7 +30,6 @@ const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const { openAuthModal, signOut } = useAuth();
-  const { unreadCount } = useNotificationSummary();
   const isGuest = currentUser.role === Role.GUEST;
   const isAdmin = currentUser.role === Role.ADMIN;
   const isTeacher = currentUser.role === Role.TEACHER;
@@ -66,14 +62,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
     {
       title: 'Аккаунт',
       items: [
-        {
-          iconName: 'bell',
-          label: 'Уведомления',
-          path: '/notifications',
-          locked: isGuest,
-          notificationBadge: true,
-          onboardingAnchor: 'nav-notifications',
-        },
         { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest, onboardingAnchor: 'nav-profile' },
         { iconName: 'settings', label: 'Настройки', path: '/settings', locked: isGuest, onboardingAnchor: 'nav-settings' },
       ],
@@ -111,9 +99,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-white/[0.015]" />
       <div className="pointer-events-none absolute -left-16 bottom-32 h-48 w-48 rounded-full bg-kiddy-cherry/[0.04] blur-[70px]" />
 
-      <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-6 pt-8">
+      <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-5 pt-7">
         <div
-          className="mb-8 flex items-center gap-3.5 px-1 animate-reveal-up"
+          className="mb-6 flex shrink-0 items-center gap-3.5 px-1 animate-reveal-up"
           style={{ animationDelay: '0.02s' }}
         >
           {logo ? (
@@ -149,14 +137,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
           </div>
         </div>
 
-        <nav className="relative flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-7 overflow-y-auto pr-1 no-scrollbar">
-            {navGroups.map((group, gi) => (
+        <nav className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="shrink-0 space-y-5 pr-1">
+            {navGroups.map((group) => (
               <div key={group.title}>
-                <p className="mb-2.5 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-600">
+                <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-600">
                   {group.title}
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const i = staggerIndex++;
                     return (
@@ -166,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                         to={item.path}
                         onClick={(e) => handleNavClick(e, item.locked)}
                         className={({ isActive: navIsActive }) =>
-                          `flex items-center gap-3.5 rounded-xl border-l-[3px] py-2.5 pl-3 pr-3 text-sm font-semibold transition-all duration-300 ease-entrance
+                          `flex items-center gap-3.5 rounded-xl border-l-[3px] py-2 pl-3 pr-3 text-sm font-semibold transition-all duration-300 ease-entrance
                           ${item.locked ? 'pointer-events-none opacity-40' : 'active:scale-[0.99]'}
                           ${navIsActive && !item.locked ? 'border-kiddy-cherry nav-active shadow-[inset_0_0_0_1px_rgba(230,0,43,0.08)]' : 'border-transparent'}
                           ${!navIsActive || item.locked ? 'text-kiddy-textSecondary hover:bg-white/[0.04] hover:text-white' : ''}`
@@ -188,11 +177,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                               <AnimatedIcon name={item.iconName} size={20} className="shrink-0" active={isActive} />
                             </div>
                             <span className="min-w-0 flex-1 tracking-wide">{item.label}</span>
-                            {item.notificationBadge && !item.locked && unreadCount > 0 && (
-                              <span className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-kiddy-cherry px-1.5 text-[10px] font-bold tabular-nums text-white">
-                                {unreadCount > 99 ? '99+' : unreadCount}
-                              </span>
-                            )}
                             {item.locked && (
                               <AnimatedIcon name="lock" size={14} className="shrink-0 opacity-50" active={false} />
                             )}
@@ -204,33 +188,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                 </div>
               </div>
             ))}
-          </div>
-
-          {!isGuest && (
-            <div
-              className="mt-6 shrink-0 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-kiddy-cherry/[0.08] via-white/[0.02] to-transparent p-4 shadow-[0_0_0_1px_rgba(230,0,43,0.06)_inset]"
-              style={{ animation: 'reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both', animationDelay: '0.35s' }}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-kiddy-textMuted">Прогресс</span>
-                <span className="font-display text-sm font-bold tabular-nums text-white">
-                  Ур. {currentUser.level}
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-black/50 ring-1 ring-white/[0.06]">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-[width] duration-700"
-                  style={{ width: `${xpToNext}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs font-medium text-kiddy-textSecondary">
-                {currentUser.xp.toLocaleString('ru-RU')} XP
-              </p>
             </div>
-          )}
+
+            <div className="min-h-0 flex-1" aria-hidden />
+
+            {!isGuest && (
+              <div
+                className="mt-4 shrink-0 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-kiddy-cherry/[0.08] via-white/[0.02] to-transparent p-3.5 shadow-[0_0_0_1px_rgba(230,0,43,0.06)_inset]"
+                style={{ animation: 'reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both', animationDelay: '0.35s' }}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-kiddy-textMuted">Прогресс</span>
+                  <span className="font-display text-sm font-bold tabular-nums text-white">
+                    Ур. {currentUser.level}
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-black/50 ring-1 ring-white/[0.06]">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-[width] duration-700"
+                    style={{ width: `${xpToNext}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs font-medium text-kiddy-textSecondary">
+                  {currentUser.xp.toLocaleString('ru-RU')} XP
+                </p>
+              </div>
+            )}
+          </div>
         </nav>
 
-        <div className="mt-6 shrink-0 space-y-4 border-t border-white/[0.06] pt-6">
+        <div className="mt-5 shrink-0 space-y-3 border-t border-white/[0.06] pt-5">
           <div className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
             <div className="relative shrink-0">
               <AvatarImage
