@@ -1,13 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { BADGE_CATALOG, BadgeStats, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp } from '../progression';
-
-const STORAGE_KEY = (userId: string) => `mykiddy_equipped_badges_${userId}`;
+import { badgeEquipStorageKey, purgeLegacyEquippedBadgeKeys } from '../utils/badgeStorage';
 
 function loadEquipped(userId: string): string[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY(userId));
+    const raw = localStorage.getItem(badgeEquipStorageKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((x: unknown) => typeof x === 'string') : [];
@@ -17,7 +16,27 @@ function loadEquipped(userId: string): string[] {
 }
 
 function saveEquipped(userId: string, ids: string[]) {
-  localStorage.setItem(STORAGE_KEY(userId), JSON.stringify(ids.slice(0, RING_SLOT_COUNT)));
+  localStorage.setItem(badgeEquipStorageKey(userId), JSON.stringify(ids.slice(0, RING_SLOT_COUNT)));
+}
+
+async function resolveLeaderboardRank(userId: string, xp: number): Promise<number | null> {
+  const { data, error } = await supabase.rpc('profile_xp_rank', { target: userId });
+  const r = typeof data === 'number' ? data : typeof data === 'string' ? Number(data) : NaN;
+  if (!error && Number.isFinite(r) && r >= 1) {
+    return Math.floor(r);
+  }
+  const { count, error: cErr } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .gt('xp', xp);
+  if (cErr) return null;
+  return (count ?? 0) + 1;
+}
+
+function defaultEquippedFromUnlocked(unlocked: Set<string>): string[] {
+  return BADGE_CATALOG.filter((b) => unlocked.has(b.id))
+    .map((b) => b.id)
+    .slice(0, RING_SLOT_COUNT);
 }
 
 export interface UseBadgeProgressOptions {
@@ -30,6 +49,7 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
   const [stats, setStats] = useState<BadgeStats | null>(null);
   const [equippedIds, setEquippedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const didPurgeLegacy = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!userId) {
@@ -40,11 +60,18 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
     }
     setLoading(true);
     try {
-      const [lpRes, hwRes, lbRes] = await Promise.all([
+      if (!didPurgeLegacy.current) {
+        didPurgeLegacy.current = true;
+        purgeLegacyEquippedBadgeKeys();
+      }
+
+      const [lpRes, hwRes, profRes] = await Promise.all([
         supabase.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('homework_submissions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('profiles').select('id, xp').order('xp', { ascending: false }).limit(200),
+        supabase.from('profiles').select('xp, level').eq('id', userId).single(),
       ]);
+
+      const xp = profRes.data?.xp ?? 0;
 
       let aiTotal = 0;
       try {
@@ -56,14 +83,7 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
         /* нет таблицы / RLS */
       }
 
-      let rank: number | null = null;
-      if (lbRes.data && !lbRes.error) {
-        const idx = lbRes.data.findIndex((r: { id: string }) => r.id === userId);
-        rank = idx >= 0 ? idx + 1 : null;
-      }
-
-      const { data: prof } = await supabase.from('profiles').select('xp, level').eq('id', userId).single();
-      const xp = prof?.xp ?? 0;
+      const rank = await resolveLeaderboardRank(userId, xp);
       const level = levelFromXp(xp);
 
       const next: BadgeStats = {
@@ -80,15 +100,12 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
       let nextEquipped: string[];
 
       if (publicView) {
-        nextEquipped = BADGE_CATALOG.filter((b) => unlocked.has(b.id))
-          .map((b) => b.id)
-          .slice(0, RING_SLOT_COUNT);
+        nextEquipped = defaultEquippedFromUnlocked(unlocked);
       } else {
         const equipped = loadEquipped(userId);
         nextEquipped = equipped.filter((id) => unlocked.has(id)).slice(0, RING_SLOT_COUNT);
         if (nextEquipped.length === 0 && unlocked.size > 0) {
-          const first = BADGE_CATALOG.find((b) => unlocked.has(b.id));
-          if (first) nextEquipped = [first.id];
+          nextEquipped = defaultEquippedFromUnlocked(unlocked);
         }
         if (JSON.stringify(equipped) !== JSON.stringify(nextEquipped)) {
           saveEquipped(userId, nextEquipped);
