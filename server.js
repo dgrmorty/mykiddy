@@ -170,7 +170,8 @@ app.use(cors({
         return callback(new Error('Not allowed by CORS'));
     }
 }));
-app.use(express.json());
+// Проверка ДЗ может включать base64 фото/короткое видео
+app.use(express.json({ limit: '14mb' }));
 
 // Rate limit: общий для API (120 запросов в минуту с IP)
 const apiLimiter = rateLimit({
@@ -272,6 +273,93 @@ function extractResponseText(response) {
     return response?.text ?? (response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
 }
 
+const HOMEWORK_MEDIA_LIMITS = {
+    maxFiles: 6,
+    maxVideoFiles: 1,
+    maxImageBytes: 4 * 1024 * 1024,
+    maxVideoBytes: 12 * 1024 * 1024,
+    allowedImage: new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+    allowedVideo: new Set(['video/mp4', 'video/webm', 'video/quicktime']),
+};
+
+function decodeBase64Len(b64) {
+    if (typeof b64 !== 'string' || !b64.length) return 0;
+    const pad = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
+    return Math.max(0, Math.floor((b64.length * 3) / 4) - pad);
+}
+
+/**
+ * Нормализует вложения из тела запроса: [{ mimeType, dataBase64 }]
+ */
+function normalizeHomeworkAttachments(raw) {
+    if (!raw) return [];
+    if (!Array.isArray(raw)) return [];
+    const out = [];
+    let videos = 0;
+    for (const item of raw) {
+        if (out.length >= HOMEWORK_MEDIA_LIMITS.maxFiles) break;
+        if (!item || typeof item !== 'object') continue;
+        let mime = typeof item.mimeType === 'string' ? item.mimeType.trim().toLowerCase() : '';
+        let data = typeof item.dataBase64 === 'string' ? item.dataBase64.trim() : '';
+        const dm = data.match(/^data:([^;]+);base64,(.+)$/i);
+        if (dm) {
+            mime = dm[1].trim().toLowerCase();
+            data = dm[2].trim();
+        }
+        data = data.replace(/\s/g, '');
+        if (!mime || !data) continue;
+        const approx = decodeBase64Len(data);
+        const isVid = HOMEWORK_MEDIA_LIMITS.allowedVideo.has(mime);
+        const isImg = HOMEWORK_MEDIA_LIMITS.allowedImage.has(mime);
+        if (!isImg && !isVid) continue;
+        if (isVid) {
+            videos += 1;
+            if (videos > HOMEWORK_MEDIA_LIMITS.maxVideoFiles) continue;
+            if (approx > HOMEWORK_MEDIA_LIMITS.maxVideoBytes) continue;
+        } else if (approx > HOMEWORK_MEDIA_LIMITS.maxImageBytes) {
+            continue;
+        }
+        out.push({ mimeType: mime, dataBase64: data });
+    }
+    return out;
+}
+
+function buildHomeworkContents(promptText, attachments) {
+    const parts = [{ text: promptText }];
+    for (const a of attachments) {
+        parts.push({ inlineData: { mimeType: a.mimeType, data: a.dataBase64 } });
+    }
+    return [{ role: 'user', parts }];
+}
+
+/** Последняя строка VERDICT: … — для зачёта; убираем из текста для ребёнка. */
+function splitHomeworkVerdict(rawText) {
+    const text = (rawText || '').trim();
+    const re = /\n*(?:VERDICT|ВЕРДИКТ)\s*:\s*(ACCEPTED|NEEDS_WORK|ПРИНЯТО|НУЖНО_ДОРАБОТАТЬ)\s*$/i;
+    const m = text.match(re);
+    if (!m) {
+        return { body: text, verdict: null };
+    }
+    const token = m[1].toUpperCase();
+    const accepted = token === 'ACCEPTED' || token === 'ПРИНЯТО';
+    const needsWork = token === 'NEEDS_WORK' || token === 'НУЖНО_ДОРАБОТАТЬ';
+    const body = text.replace(re, '').trim();
+    return {
+        body,
+        verdict: accepted ? 'accepted' : needsWork ? 'needs_work' : null,
+    };
+}
+
+function polishHomeworkFeedbackText(s) {
+    if (typeof s !== 'string') return '';
+    let t = s.trim();
+    t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
+    t = t.replace(/\*([^*\n]+)\*/g, '$1');
+    t = t.replace(/#{1,6}\s*/gm, '');
+    t = t.replace(/\n{3,}/g, '\n\n');
+    return t.trim();
+}
+
 const FALLBACK_SAFE_TUTOR =
     'Я могу помогать только в спокойном и уважительном тоне. Переформулируй, пожалуйста, вопрос про программирование или урок — и я с радостью отвечу.';
 const FALLBACK_SAFE_HOMEWORK =
@@ -286,6 +374,7 @@ function sanitizeModelOutput(text, fallback) {
 }
 
 // Вызов Gemini с fallback: сначала 2.5, при ошибке модели — 2.0
+// contents — строка или массив сообщений (мультимодальность для ДЗ)
 async function generateWithFallback(contents, config = {}) {
     const mergedConfig = {
         ...config,
@@ -395,6 +484,10 @@ app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
 Язык: РУССКИЙ.
 Кратко, по делу, без лишней воды.
 
+Оформление ответа:
+- 1–3 абзаца; между абзацами оставляй пустую строку.
+- Не используй Markdown: никаких звёздочек * и **, решёток # для заголовков. Код можно короткими строками без блоков \`\`\`.
+
 ${CHILD_SAFE_LANGUAGE_RULES}
 
 Контекст урока/курса: ${ctx}.`,
@@ -405,6 +498,7 @@ ${CHILD_SAFE_LANGUAGE_RULES}
             console.warn('AI Tutor: пустой ответ от модели', JSON.stringify(response?.candidates));
         }
         text = sanitizeModelOutput(text, FALLBACK_SAFE_TUTOR);
+        text = polishHomeworkFeedbackText(text) || text;
 
         if (hasSupabase && accessToken && tutorUserId) {
             await incrementTutorUsage(accessToken, tutorUserId);
@@ -464,14 +558,32 @@ app.post('/api/check-homework', aiLimiter, async (req, res) => {
             homeworkUserId = limit.userId;
         }
 
-        const { task, studentAnswer } = req.body;
-        
-        if (!task || !studentAnswer) {
-            return res.status(400).json({ error: "Task and student answer are required" });
+        const { task, studentAnswer, attachments: attachmentsRaw } = req.body;
+
+        if (task == null || studentAnswer == null) {
+            return res.status(400).json({ error: "Нужны задание и ответ (или комментарий к фото/видео).", code: 'VALIDATION_ERROR' });
         }
 
-        const taskStr = String(task);
-        const answerStr = String(studentAnswer);
+        const taskStr = String(task).trim();
+        const answerStr = String(studentAnswer).trim();
+        const attachments = normalizeHomeworkAttachments(attachmentsRaw);
+        const hasMedia = attachments.length > 0;
+
+        if (!taskStr) {
+            return res.status(400).json({ error: "Текст задания пустой.", code: 'VALIDATION_ERROR' });
+        }
+        if (!hasMedia && answerStr.length < 25) {
+            return res.status(400).json({
+                error: "Опиши решение хотя бы в нескольких предложениях (от 25 символов). Если прикрепляешь фото или видео — можно короче, но добавь пару слов, что на снимке.",
+                code: 'VALIDATION_ERROR',
+            });
+        }
+        if (hasMedia && answerStr.length < 5) {
+            return res.status(400).json({
+                error: "Добавь короткий комментарий к файлу (что показано, что сделал) — хотя бы 5 символов.",
+                code: 'VALIDATION_ERROR',
+            });
+        }
 
         if (taskStr.length > 4000 || answerStr.length > 8000) {
             return res.status(400).json({ error: "Ответ или задание слишком длинные. Попробуйте сократить текст.", code: "VALIDATION_ERROR" });
@@ -486,58 +598,63 @@ app.post('/api/check-homework', aiLimiter, async (req, res) => {
             });
         }
 
+        const mediaNote = hasMedia
+            ? `\nК УЧЕНИКУ ПРИЛОЖЕНЫ ФАЙЛЫ (${attachments.length}): изучи изображения/видео и оцени, соответствуют ли они заданию.`
+            : '';
+
         const prompt = `Ты проверяешь домашнее задание в IT-школе «Дети В ТОПЕ» для детей 8-14 лет.
 
 ЗАДАНИЕ ИЗ УРОКА:
 ${taskStr}
 
-ОТВЕТ УЧЕНИКА:
+ТЕКСТ УЧЕНИКА (решение, объяснение или подпись к работе):
 ${answerStr}
+${mediaNote}
 
-ВАЖНО: Ты работаешь с детьми! Будь максимально поддерживающим и добрым.
-ЗАПРЕЩЕНО: мат, брань, оскорбления, сексуальный или жестокий контент, токсичный юмор — в любом виде.
+ВАЖНО: Ты работаешь с детьми! Поддерживай и не гаси интерес. ЗАПРЕЩЕНО: мат, оскорбления, токсичность.
 
-Проверь ответ ученика на соответствие заданию. Учти:
-1. Правильность выполнения задания
-2. Соответствие требованиям из задания
-3. Качество кода/решения (если применимо)
-4. Полноту ответа
-5. Старание ученика (даже если есть ошибки)
+ФОРМАТ ОТВЕТА (обязательно):
+1) Пиши обычным русским текстом: 2–4 абзаца. Между абзацами — пустая строка.
+2) НЕ используй разметку Markdown: никаких звёздочек *, **, подчёркиваний для «жирного», решёток #, обратных кавычек для кода. Если нужен список — нумеруй строки как «1) … 2) …» или пиши короткими предложениями.
+3) Тон: тёплый педагог, конкретика по заданию, похвала за реальные успехи.
 
-ПРАВИЛА ОЦЕНКИ:
-- Если ответ правильный и соответствует заданию → похвали и подтверди правильность
-- Если ученик старался, но есть небольшие ошибки → похвали за старание и укажи на ошибки мягко
-- Если ответ частично правильный, но видно старание → похвали и предложи улучшения
-- Только если ответ совсем не по теме, пустой или явно случайный → мягко объясни, что нужно переделать
+СТРОГОСТЬ (баланс):
+- VERDICT: ACCEPTED — только если работа по сути соответствует заданию: есть мысль, попытка, видно что ребёнок сделал шаг (допускаются мелкие огрехи).
+- VERDICT: NEEDS_WORK — если ответ пустой по смыслу, случайный набор символов, совсем не по теме, явная отписка без попытки, или фото/видео не относятся к заданию. При этом формулируй мягко: что улучшить и как попробовать ещё раз.
+- Не требуй идеала: хвали честные усилия. Но не принимай откровенную «пустышку».
 
-ВАЖНО: НЕ используй слова "ACCEPTED" или "NEEDS_WORK" в начале ответа. Просто давай дружелюбную обратную связь.
+ЗАВЕРШЕНИЕ (обязательно, отдельной строкой в самом конце, без другого текста после неё):
+VERDICT: ACCEPTED
+или
+VERDICT: NEEDS_WORK
+(выбери одно).`;
 
-Стиль: максимально поддерживающий, дружелюбный, вдохновляющий. Хвали за старание!
-Язык: РУССКИЙ.`;
-
-        const response = await generateWithFallback(prompt, {
-            systemInstruction: `Ты — ИИ-тьютор школы «Дети В ТОПЕ», который проверяет домашние задания для детей 8-14 лет.
-Ты внимательно анализируешь ответ ученика на основе конкретного задания из урока.
-Ты МАКСИМАЛЬНО поддерживающий, дружелюбный и конструктивный.
-Ты работаешь с детьми — будь добрым и терпеливым.
-НЕ используй слова "ACCEPTED" или "NEEDS_WORK" — только живая обратная связь.
-Если ответ правильный — похвали и подтверди правильность.
-Если есть ошибки — мягко укажи и предложи, как исправить.
-Всегда хвали за старание и мотивируй продолжать учиться.
+        const contents = buildHomeworkContents(prompt, attachments);
+        const response = await generateWithFallback(contents, {
+            systemInstruction: `Ты — ИИ-наставник школы «Дети В ТОПЕ», проверяешь домашние задания детей 8–14 лет.
+Анализируй текст и прикреплённые изображения/короткое видео в контексте формулировки урока.
+Будь добрым, конкретным и честным: похвала там, где есть заслуги; мягко запроси доработку, если работа не тянет.
+Соблюдай ФОРМАТ из пользовательского сообщения: абзацы с пустой строкой, без Markdown-звёздочек и **, финальная строка VERDICT.
 
 ${CHILD_SAFE_LANGUAGE_RULES}
 
-Язык ответа: РУССКИЙ, литературный.`,
+Язык: русский литературный.`,
         });
-        let text = extractResponseText(response);
-        if (!text) {
+        let raw = extractResponseText(response);
+        if (!raw) {
             console.warn('Homework check: пустой ответ от модели', JSON.stringify(response?.candidates));
         }
+        raw = sanitizeModelOutput(raw, FALLBACK_SAFE_HOMEWORK);
+        const { body, verdict } = splitHomeworkVerdict(raw);
+        let text = polishHomeworkFeedbackText(body) || polishHomeworkFeedbackText(raw) || FALLBACK_SAFE_HOMEWORK;
         text = sanitizeModelOutput(text, FALLBACK_SAFE_HOMEWORK);
         if (hasSupabase && accessToken && homeworkUserId) {
             await incrementHomeworkUsage(accessToken, homeworkUserId);
         }
-        res.json({ text: text || 'Не удалось получить оценку. Попробуйте ещё раз.' });
+        res.json({
+            text: text || 'Не удалось получить оценку. Попробуйте ещё раз.',
+            verdict: verdict || undefined,
+        });
     } catch (error) {
         const msg = error?.message ?? String(error);
         const code = error?.code ?? error?.status ?? error?.statusCode;

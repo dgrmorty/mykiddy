@@ -4,10 +4,12 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     X, ArrowLeft, PenTool, Sparkles, Send, Loader2, 
-    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock, Search
+    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock, Search, ImagePlus, Trash2
 } from 'lucide-react';
 import { Course, CourseYearTier, COURSE_YEAR_LABELS, Lesson } from '../types';
-import { checkHomework } from '../services/geminiService';
+import { checkHomework, type HomeworkAttachment } from '../services/geminiService';
+import { formatFeedbackForDisplay } from '../utils/formatAiFeedback';
+import { shouldAcceptHomework } from '../utils/homeworkAcceptance';
 import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +20,35 @@ import { useToast } from '../contexts/ToastContext';
 
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { AnimatedLearningScene } from '../components/ui/AnimatedLearningScene';
+
+const HW_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const HW_MAX_VIDEO_BYTES = 12 * 1024 * 1024;
+const HW_MAX_FILES = 6;
+
+type HomeworkLocalMedia = {
+  id: string;
+  mime: string;
+  base64: string;
+  preview: string;
+  name: string;
+};
+
+function readOneFileAsAttachment(file: File): Promise<{ mime: string; base64: string; preview: string } | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const s = reader.result as string;
+      const m = s.match(/^data:([^;]+);base64,(.+)$/);
+      if (!m) {
+        resolve(null);
+        return;
+      }
+      resolve({ mime: m[1], base64: m[2], preview: s });
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
 
 export const CourseDetail: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -31,6 +62,8 @@ export const CourseDetail: React.FC = () => {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isHomeworkOpen, setIsHomeworkOpen] = useState(false);
   const [homeworkAnswer, setHomeworkAnswer] = useState('');
+  const [homeworkMedia, setHomeworkMedia] = useState<HomeworkLocalMedia[]>([]);
+  const homeworkFileInputRef = useRef<HTMLInputElement>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [securityError, setSecurityError] = useState<string | null>(null);
@@ -138,6 +171,9 @@ export const CourseDetail: React.FC = () => {
   // При входе в урок или смене урока — модалку ДЗ не показываем (убираем «выскакивание»)
   useEffect(() => {
     setIsHomeworkOpen(false);
+    setHomeworkMedia([]);
+    setHomeworkAnswer('');
+    setAiFeedback(null);
   }, [activeLesson?.id]);
 
   useEffect(() => {
@@ -175,9 +211,63 @@ export const CourseDetail: React.FC = () => {
       }
   };
 
+  const homeworkCanSubmit =
+    !!activeLesson?.homeworkTask &&
+    (homeworkMedia.length > 0
+      ? homeworkAnswer.trim().length >= 5
+      : homeworkAnswer.trim().length >= 25);
+
+  const addHomeworkFiles = async (list: FileList | null) => {
+    if (!list?.length) return;
+    const picked = Array.from(list);
+    setHomeworkMedia((prev) => {
+      void (async () => {
+        let acc = [...prev];
+        for (const file of picked) {
+          if (acc.length >= HW_MAX_FILES) {
+            showToast(`Максимум ${HW_MAX_FILES} файлов`, 'info');
+            break;
+          }
+          const isVid = file.type.startsWith('video/');
+          const isImg = file.type.startsWith('image/');
+          if (!isImg && !isVid) continue;
+          if (isVid && acc.some((x) => x.mime.startsWith('video/'))) {
+            showToast('Можно прикрепить только одно видео', 'info');
+            continue;
+          }
+          if (isImg && file.size > HW_MAX_IMAGE_BYTES) {
+            showToast(`«${file.name}»: фото до 4 МБ`, 'error');
+            continue;
+          }
+          if (isVid && file.size > HW_MAX_VIDEO_BYTES) {
+            showToast(`«${file.name}»: видео до 12 МБ`, 'error');
+            continue;
+          }
+          const data = await readOneFileAsAttachment(file);
+          if (!data) {
+            showToast(`Не удалось прочитать «${file.name}»`, 'error');
+            continue;
+          }
+          acc = [
+            ...acc,
+            {
+              id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              mime: data.mime,
+              base64: data.base64,
+              preview: data.preview,
+              name: file.name,
+            },
+          ];
+        }
+        setHomeworkMedia(acc);
+      })();
+      return prev;
+    });
+  };
+
   const handleCheckHomework = async () => {
-    if (!activeLesson?.homeworkTask || !homeworkAnswer.trim()) return;
-    
+    if (!activeLesson?.homeworkTask || !homeworkCanSubmit) return;
+
     // Проверяем, не решено ли уже это ДЗ
     if (isHomeworkCompleted) {
         showToast('Это задание уже решено!', 'info');
@@ -188,28 +278,38 @@ export const CourseDetail: React.FC = () => {
     setAiFeedback(null);
     setLastAnswerWasGood(false);
     const cleanAnswer = sanitizeInput(homeworkAnswer);
-    const injectionError = isPotentialInjection(cleanAnswer);
-    if (injectionError) { setSecurityError(injectionError); return; }
+    if (cleanAnswer.trim().length > 0) {
+      const injectionError = isPotentialInjection(cleanAnswer);
+      if (injectionError) { setSecurityError(injectionError); return; }
+    }
     setIsChecking(true);
     try {
         const { data: { session } } = await supabase.auth.getSession();
-        const feedback = await checkHomework(activeLesson.homeworkTask, cleanAnswer, session?.access_token ?? null);
-        setAiFeedback(feedback);
-        
-        // Оцениваем ответ; пока XP начисляются сразу, но логика вынесена в отдельную функцию,
-        // чтобы при необходимости можно было привязать начисление к закрытию окна с ответом наставника
-        const feedbackLower = feedback.toLowerCase();
-        const isGoodAnswer = cleanAnswer.trim().length > 10 && 
-                            !feedbackLower.includes('совсем не') && 
-                            !feedbackLower.includes('пустой') &&
-                            !feedbackLower.includes('не по теме');
-        
+        const attachments: HomeworkAttachment[] = homeworkMedia.map((m) => ({
+          mimeType: m.mime,
+          dataBase64: m.base64,
+        }));
+        const result = await checkHomework(
+          activeLesson.homeworkTask,
+          cleanAnswer,
+          session?.access_token ?? null,
+          attachments.length > 0 ? attachments : undefined,
+        );
+        const display = formatFeedbackForDisplay(result.text);
+        setAiFeedback(display);
+        const hasAtt = attachments.length > 0;
+        const isGoodAnswer = shouldAcceptHomework(
+          result.verdict,
+          result.text,
+          cleanAnswer.trim(),
+          hasAtt,
+        );
         setLastAnswerWasGood(isGoodAnswer);
 
         if (isGoodAnswer) {
             await finalizeHomeworkReward(true);
         } else {
-            showToast('Проверьте комментарии наставника', 'info');
+            showToast('Проверь комментарий наставника — при необходимости доработай работу и отправь снова', 'info');
         }
     } catch (e: any) {
         setAiFeedback(e?.message || "Не удалось проверить задание. Попробуйте еще раз.");
@@ -393,6 +493,52 @@ export const CourseDetail: React.FC = () => {
                                 <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
                             </div>
                         )}
+                        <input
+                            ref={homeworkFileInputRef}
+                            type="file"
+                            accept="image/*,video/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                                void addHomeworkFiles(e.target.files);
+                                e.target.value = '';
+                            }}
+                        />
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <button
+                                type="button"
+                                onClick={() => homeworkFileInputRef.current?.click()}
+                                disabled={isChecking || isHomeworkCompleted}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-kiddy-surfaceHighlight border border-white/[0.08] text-xs font-bold text-kiddy-textSecondary hover:text-white transition-colors disabled:opacity-50"
+                            >
+                                <ImagePlus size={16} />
+                                Фото или видео
+                            </button>
+                            <span className="text-[10px] text-kiddy-textMuted font-medium">
+                                До 6 файлов, одно видео до 12 МБ, фото до 4 МБ — наставник увидит снимки
+                            </span>
+                        </div>
+                        {homeworkMedia.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {homeworkMedia.map((m) => (
+                                    <div key={m.id} className="relative group rounded-xl overflow-hidden border border-white/[0.1]">
+                                        {m.mime.startsWith('video/') ? (
+                                            <video src={m.preview} className="h-20 w-28 object-cover bg-black" muted playsInline />
+                                        ) : (
+                                            <img src={m.preview} alt="" className="h-20 w-28 object-cover" />
+                                        )}
+                                        <button
+                                            type="button"
+                                            aria-label="Убрать файл"
+                                            onClick={() => setHomeworkMedia((p) => p.filter((x) => x.id !== m.id))}
+                                            className="absolute top-1 right-1 p-1 rounded-lg bg-black/70 text-white opacity-90 hover:bg-red-600/90"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         <textarea 
                             value={homeworkAnswer} 
                             onChange={(e) => setHomeworkAnswer(e.target.value)}
@@ -403,7 +549,11 @@ export const CourseDetail: React.FC = () => {
                                 }, 300);
                             }}
                             className="min-h-[200px] md:min-h-0 md:flex-1 bg-black border border-white/[0.08] p-4 md:p-6 rounded-xl md:rounded-2xl text-white outline-none focus:border-kiddy-cherry transition-all font-mono text-sm resize-none" 
-                            placeholder="Вставьте ваш код или текст..." 
+                            placeholder={
+                                homeworkMedia.length > 0
+                                    ? 'Кратко опиши, что на фото/видео и как это связано с заданием (от 5 символов)…'
+                                    : 'Текст или код ответа — минимум 25 символов. При необходимости прикрепи фото или короткое видео.'
+                            }
                         />
                         {securityError && (
                             <div className="mt-4 text-red-500 text-xs font-bold">{securityError}</div>
@@ -414,7 +564,7 @@ export const CourseDetail: React.FC = () => {
                             </button>
                         <button 
                             onClick={handleCheckHomework} 
-                            disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted} 
+                            disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted || !homeworkCanSubmit} 
                             className="flex-1 py-3 md:py-4 bg-kiddy-cherry text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                         >
                             {isChecking ? <Loader2 className="animate-spin" size={20} /> : isHomeworkCompleted ? <><CheckCircle size={18} /> Уже решено</> : <><Send size={18} /> Проверить</>}

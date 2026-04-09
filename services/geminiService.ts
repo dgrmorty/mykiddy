@@ -96,40 +96,76 @@ export const askAiTutor = async (question: string, context: string, accessToken?
   }
 };
 
-const HOMEWORK_TIMEOUT_MS = 60000;
+const HOMEWORK_TIMEOUT_MS = 120000;
 
-async function checkHomeworkOnce(task: string, studentAnswer: string, accessToken?: string | null): Promise<string> {
+export type HomeworkVerdict = 'accepted' | 'needs_work';
+
+export interface HomeworkAttachment {
+  mimeType: string;
+  dataBase64: string;
+}
+
+export interface HomeworkCheckResult {
+  text: string;
+  verdict?: HomeworkVerdict;
+}
+
+async function checkHomeworkOnce(
+  task: string,
+  studentAnswer: string,
+  accessToken?: string | null,
+  attachments?: HomeworkAttachment[],
+): Promise<HomeworkCheckResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), HOMEWORK_TIMEOUT_MS);
   try {
     const response = await fetch(getApiUrl('api/check-homework'), {
       method: 'POST',
       headers: aiHeaders(accessToken),
-      body: JSON.stringify({ task, studentAnswer }),
-      signal: controller.signal
+      body: JSON.stringify({
+        task,
+        studentAnswer,
+        ...(attachments && attachments.length > 0 ? { attachments } : {}),
+      }),
+      signal: controller.signal,
     });
     clearTimeout(timeoutId);
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      const msg =
+        typeof errorData.error === 'string'
+          ? errorData.error
+          : "Не удалось проверить задание. Попробуйте позже.";
       if (response.status === 429) throw new Error(errorData.error || "Лимит проверок на сегодня исчерпан. Попробуйте завтра.");
       if (response.status === 401) throw new Error(errorData.error || "Войдите в аккаунт.");
-      throw new Error("Не удалось проверить задание. Попробуйте позже.");
+      throw new Error(msg);
     }
     const data = await response.json();
-    return data.text || "Не удалось проанализировать ответ. Попробуйте еще раз.";
+    const v = data.verdict;
+    const verdict: HomeworkVerdict | undefined =
+      v === 'accepted' || v === 'needs_work' ? v : undefined;
+    return {
+      text: data.text || "Не удалось проанализировать ответ. Попробуйте еще раз.",
+      verdict,
+    };
   } finally {
     clearTimeout(timeoutId);
   }
 }
 
-export const checkHomework = async (task: string, studentAnswer: string, accessToken?: string | null): Promise<string> => {
+export const checkHomework = async (
+  task: string,
+  studentAnswer: string,
+  accessToken?: string | null,
+  attachments?: HomeworkAttachment[],
+): Promise<HomeworkCheckResult> => {
   try {
-    return await checkHomeworkOnce(task, studentAnswer, accessToken);
+    return await checkHomeworkOnce(task, studentAnswer, accessToken, attachments);
   } catch (error: any) {
     if (isNetworkOrServerError(error)) {
-      await new Promise((r) => setTimeout(r, 2500)); // пауза перед повтором
+      await new Promise((r) => setTimeout(r, 2500));
       try {
-        return await checkHomeworkOnce(task, studentAnswer, accessToken);
+        return await checkHomeworkOnce(task, studentAnswer, accessToken, attachments);
       } catch (retryError: any) {
         if (retryError?.name === 'AbortError') throw new Error("Сервер не успел ответить (таймаут). Попробуйте ещё раз через минуту.");
         throw new Error(isNetworkOrServerError(retryError) ? SERVER_DOWN_MSG : (retryError?.message || "Не удалось отправить задание. Попробуйте позже."));
