@@ -12,6 +12,7 @@ import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
+import { levelFromXp } from '../progression';
 import {
   ChevronLeft,
   Loader2,
@@ -146,7 +147,7 @@ export const UserPublicProfile: React.FC = () => {
   };
 
   const xp = profile?.xp ?? 0;
-  const level = profile?.level ?? Math.floor(xp / 100) + 1;
+  const level = levelFromXp(xp);
   const avatarUrl =
     profile?.avatar ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'U')}&background=random`;

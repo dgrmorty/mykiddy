@@ -4,6 +4,7 @@ import { Card } from '../components/ui/Card';
 import { AvatarImage } from '../components/AvatarImage';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
@@ -88,7 +89,7 @@ export const Community: React.FC = () => {
       name: s?.name || 'Ученик',
       avatar: s?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s?.name || 'U')}&background=random`,
       xp: s?.xp ?? 0,
-      level: s?.level ?? 1,
+      level: levelFromXp(s?.xp ?? 0),
     };
   };
 
@@ -189,7 +190,7 @@ export const Community: React.FC = () => {
               {filteredStudents.map((s, i) => {
                 const avatarUrl =
                   s.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name || 'U')}&background=random`;
-                const lvl = s.level ?? Math.floor((s.xp ?? 0) / 100) + 1;
+                const lvl = levelFromXp(s.xp ?? 0);
                 const hasOutgoing =
                   canFriend && friendRows.some((r) => r.requester_id === myId && r.addressee_id === s.id && r.status === 'pending');
                 const isFriend = friendRows.some(

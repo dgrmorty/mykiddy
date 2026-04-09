@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase, signOut as supabaseSignOut } from '../services/supabase';
 import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
+import { levelFromXp } from '../progression';
 import { AuthModal } from '../components/AuthModal';
 
 // Список админов: в .env обязательно задать VITE_ADMIN_EMAILS=email1@example.com,email2@example.com
@@ -120,11 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!error && profile) {
           const finalRole = normalizeRole(profile.role, profile.email || authUser?.email);
-          // Убеждаемся, что уровень рассчитывается правильно на основе XP (100 XP = 1 уровень)
           const userXp = profile.xp || 0;
-          const calculatedLevel = Math.floor(userXp / 100) + 1;
-          const profileLevel = profile.level || calculatedLevel;
-          
+          const calculatedLevel = levelFromXp(userXp);
+
           setUser((prev) =>
             mergePreserveAvatar(prev, {
               id: userId,
@@ -135,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 profile.avatar ||
                 authUser?.user_metadata?.avatar ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`,
-              level: Math.max(profileLevel, calculatedLevel),
+              level: calculatedLevel,
               xp: userXp,
               isApproved: true,
             }),

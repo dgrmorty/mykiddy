@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { BADGE_CATALOG, BadgeStats, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
+import { levelFromXp } from '../progression';
 
 const STORAGE_KEY = (userId: string) => `mykiddy_equipped_badges_${userId}`;
 
@@ -63,7 +64,7 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
 
       const { data: prof } = await supabase.from('profiles').select('xp, level').eq('id', userId).single();
       const xp = prof?.xp ?? 0;
-      const level = prof?.level ?? Math.floor(xp / 100) + 1;
+      const level = levelFromXp(xp);
 
       const next: BadgeStats = {
         lessonsCompleted: lpRes.count ?? 0,

@@ -18,6 +18,7 @@ import { useSkillData } from '../hooks/useSkillData';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
+import { levelFromXp, xpLevelProgressPercent } from '../progression';
 
 interface ProfileProps {
   user: User;
@@ -67,16 +68,19 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         .limit(50);
       if (error) throw error;
       if (data) {
-        const mapped = data.map(u => ({
-          id: u.id,
-          email: '',
-          name: u.name || 'Анонимный',
-          role: 'Student' as any,
-          avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
-          level: u.level || 1,
-          xp: u.xp || 0,
-          isApproved: true
-        }));
+        const mapped = data.map((u) => {
+          const uxp = u.xp || 0;
+          return {
+            id: u.id,
+            email: '',
+            name: u.name || 'Анонимный',
+            role: 'Student' as any,
+            avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
+            level: levelFromXp(uxp),
+            xp: uxp,
+            isApproved: true,
+          };
+        });
         setLeaderboard(mapped);
 
         const inList = mapped.findIndex(u => u.id === currentUser.id);
@@ -416,12 +420,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             <div className="space-y-2">
                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-kiddy-textMuted">
                     <span>До следующего уровня</span>
-                    <span>{Math.min(100, ((currentUser.xp % 100) / 100) * 100).toFixed(0)}%</span>
+                    <span>{Math.min(100, xpLevelProgressPercent(currentUser.xp)).toFixed(0)}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden">
                     <div 
                         className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover rounded-full progress-glow transition-all duration-1000" 
-                        style={{ width: `${Math.min(100, ((currentUser.xp % 100) / 100) * 100)}%` }} 
+                        style={{ width: `${Math.min(100, xpLevelProgressPercent(currentUser.xp))}%` }} 
                     />
                 </div>
             </div>
