@@ -137,7 +137,7 @@ export const Schedule: React.FC = () => {
   }
 
   return (
-    <div className="animate-slide-up max-w-4xl 2xl:max-w-5xl mx-auto pb-24">
+    <div className="animate-slide-up w-full max-w-none pb-24">
       {/* ─── Week nav ─── */}
       <div className="mb-10">
         <p className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-[0.3em] mb-2">
@@ -197,7 +197,7 @@ export const Schedule: React.FC = () => {
       {/* ─── Days ─── */}
       <div
         key={animKey}
-        className="space-y-4 transition-[opacity,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5 transition-[opacity,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={
           slideDir
             ? {
