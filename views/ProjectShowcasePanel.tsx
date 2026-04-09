@@ -25,6 +25,7 @@ export const ProjectShowcasePanel: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const isStudent = user.role === Role.STUDENT && user.id !== 'guest';
+  const isAdmin = user.role === Role.ADMIN && user.id !== 'guest';
 
   const [posts, setPosts] = useState<ShowcasePostRow[]>([]);
   const [authors, setAuthors] = useState<Record<string, { name: string | null; avatar: string | null }>>({});
@@ -69,14 +70,8 @@ export const ProjectShowcasePanel: React.FC = () => {
     void load();
   }, [load]);
 
-  const handleDeleteOwn = async (postId: string) => {
-    if (
-      !window.confirm(
-        'Убрать этот пост с витрины? Его нельзя будет восстановить, лайки тоже удалятся.',
-      )
-    ) {
-      return;
-    }
+  const handleDeleteAsAdmin = async (postId: string) => {
+    if (!window.confirm('Удалить этот пост с витрины? Лайки тоже сбросятся.')) return;
     setDeletingId(postId);
     try {
       await deleteShowcasePost(postId);
@@ -156,7 +151,6 @@ export const ProjectShowcasePanel: React.FC = () => {
             const media = Array.isArray(p.media) ? p.media : [];
             const liked = !!likeMap[p.id];
             const cnt = countMap[p.id] || 0;
-            const isOwnPost = user.id !== 'guest' && p.author_id === user.id;
             return (
               <li
                 key={p.id}
@@ -203,11 +197,11 @@ export const ProjectShowcasePanel: React.FC = () => {
                       {cnt}
                     </button>
                     <div className="flex items-center gap-2 sm:gap-3">
-                      {isOwnPost && (
+                      {isAdmin && (
                         <button
                           type="button"
                           disabled={deletingId === p.id}
-                          onClick={() => void handleDeleteOwn(p.id)}
+                          onClick={() => void handleDeleteAsAdmin(p.id)}
                           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                         >
                           {deletingId === p.id ? (
