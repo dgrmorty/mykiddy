@@ -4,14 +4,13 @@ import { Card } from '../components/ui/Card';
 import { Calendar, Users } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { AnimatedGrid } from '../components/ui/AnimatedGrid';
 import { supabase } from '../services/supabase';
-import { useNotificationSummary } from '../contexts/NotificationContext';
 import { ScheduleEvent } from '../types';
 import {
   PERMANENT_GROUPS,
@@ -91,7 +90,6 @@ function buildUpcomingEvents(dbEvents: ScheduleEvent[]): DashEvent[] {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { requireAuth, isGuest } = useAuth();
-  const { unreadCount } = useNotificationSummary();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const skillData = useSkillData(courses);
   const [dbScheduleEvents, setDbScheduleEvents] = useState<ScheduleEvent[]>([]);
@@ -137,30 +135,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </h1>
         </div>
       </div>
-
-      {!isGuest && (
-        <Link
-          id="tour-notifications-home"
-          to="/notifications"
-          className="stagger-2 flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 transition-colors hover:border-kiddy-cherry/25 hover:bg-white/[0.05] active:scale-[0.99]"
-        >
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-kiddy-cherry/10 text-kiddy-cherry">
-            <AnimatedIcon name="bell" size={22} active={false} />
-            {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-kiddy-cherry px-1 text-[10px] font-bold tabular-nums text-white">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-display text-base font-bold text-white">Уведомления</p>
-            <p className="text-sm text-kiddy-textSecondary">Заявки в друзья и лента активности</p>
-          </div>
-          <span className="shrink-0 text-kiddy-textMuted" aria-hidden>
-            →
-          </span>
-        </Link>
-      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8">
         <div className="lg:col-span-2 2xl:col-span-3 stagger-2">

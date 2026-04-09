@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { User, Role } from '../types';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, Link } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { PageTransition } from './PageTransition';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../contexts/AuthContext';
-import { NotificationProvider } from '../contexts/NotificationContext';
+import { NotificationProvider, useNotificationSummary } from '../contexts/NotificationContext';
 import { OnboardingTour } from './onboarding/OnboardingTour';
 import { supabase } from '../services/supabase';
 
@@ -16,6 +16,7 @@ interface LayoutProps {
 
 function LayoutShell({ user }: LayoutProps) {
   const { openAuthModal } = useAuth();
+  const { unreadCount } = useNotificationSummary();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
   const [logo, setLogo] = useState<string | null>(null);
@@ -104,13 +105,29 @@ function LayoutShell({ user }: LayoutProps) {
       )}
       <Sidebar currentUser={user} />
 
-      <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between px-5 md:hidden">
+      <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between gap-3 px-5 md:hidden">
         {logo ? (
-          <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" />
+          <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto shrink-0 object-contain" />
         ) : (
-          <img src="/logo-vtope.png" alt="Дети В ТОПЕ" className="h-7 w-auto object-contain" />
+          <img src="/logo-vtope.png" alt="Дети В ТОПЕ" className="h-7 w-auto shrink-0 object-contain" />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          {!isGuest && (
+            <Link
+              id="tour-mob-notifications"
+              to="/notifications"
+              title="Уведомления"
+              aria-label="Уведомления"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-kiddy-textSecondary transition-colors active:scale-95"
+            >
+              <AnimatedIcon name="bell" size={20} active={false} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-kiddy-cherry px-1 text-[8px] font-bold tabular-nums text-white ring-2 ring-[#050505]">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
           <AvatarImage
             src={user.avatar}
             name={user.name}

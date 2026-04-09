@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { User, Role } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotificationSummary } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabase';
 import { AvatarImage } from './AvatarImage';
 
@@ -30,6 +31,7 @@ const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const { openAuthModal, signOut } = useAuth();
+  const { unreadCount } = useNotificationSummary();
   const isGuest = currentUser.role === Role.GUEST;
   const isAdmin = currentUser.role === Role.ADMIN;
   const isTeacher = currentUser.role === Role.TEACHER;
@@ -83,7 +85,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   };
 
   let staggerIndex = 0;
-  const xpToNext = Math.min(100, ((currentUser.xp % 100) / 100) * 100);
 
   const nameWords = schoolName.trim().split(/\s+/).filter(Boolean);
   const isVtopeStyle =
@@ -101,40 +102,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
 
       <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-5 pt-7">
         <div
-          className="mb-6 flex shrink-0 items-center gap-3.5 px-1 animate-reveal-up"
+          className="mb-5 flex shrink-0 items-start justify-between gap-3 px-1 animate-reveal-up"
           style={{ animationDelay: '0.02s' }}
         >
-          {logo ? (
-            <img
-              src={logo}
-              className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
-              alt=""
-            />
-          ) : (
-            <img
-              src="/logo-vtope.png"
-              className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
-              alt=""
-            />
-          )}
-          <div
-            className="h-11 w-px shrink-0 bg-gradient-to-b from-transparent via-kiddy-cherry/45 to-transparent"
-            aria-hidden
-          />
-          <div className="min-w-0 flex-1" aria-label={schoolName}>
-            {isVtopeStyle ? (
-              <p className="font-display text-balance text-[1.0625rem] font-extrabold leading-[1.2] tracking-tight">
-                <span className="text-white">{titleHead}</span>{' '}
-                <span className="bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover bg-clip-text text-transparent italic">
-                  в топе
-                </span>
-              </p>
+          <div className="flex min-w-0 flex-1 items-center gap-3.5">
+            {logo ? (
+              <img
+                src={logo}
+                className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
+                alt=""
+              />
             ) : (
-              <p className="font-display text-balance text-[1.0625rem] font-extrabold leading-[1.2] tracking-tight text-white">
-                {titleTail}
-              </p>
+              <img
+                src="/logo-vtope.png"
+                className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
+                alt=""
+              />
             )}
+            <div
+              className="h-11 w-px shrink-0 bg-gradient-to-b from-transparent via-kiddy-cherry/45 to-transparent"
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1" aria-label={schoolName}>
+              {isVtopeStyle ? (
+                <p className="font-display text-balance text-[1.0625rem] font-extrabold leading-[1.2] tracking-tight">
+                  <span className="text-white">{titleHead}</span>{' '}
+                  <span className="bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover bg-clip-text text-transparent italic">
+                    в топе
+                  </span>
+                </p>
+              ) : (
+                <p className="font-display text-balance text-[1.0625rem] font-extrabold leading-[1.2] tracking-tight text-white">
+                  {titleTail}
+                </p>
+              )}
+            </div>
           </div>
+          {!isGuest && (
+            <Link
+              id="tour-dsk-notifications"
+              to="/notifications"
+              title="Уведомления"
+              aria-label="Уведомления"
+              className="group relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/35 hover:bg-kiddy-cherry/10 hover:text-white"
+            >
+              <AnimatedIcon name="bell" size={20} active={false} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-kiddy-cherry px-1 text-[8px] font-bold tabular-nums text-white ring-2 ring-kiddy-base">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
         </div>
 
         <nav className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -191,29 +210,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
             </div>
 
             <div className="min-h-0 flex-1" aria-hidden />
-
-            {!isGuest && (
-              <div
-                className="mt-4 shrink-0 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-kiddy-cherry/[0.08] via-white/[0.02] to-transparent p-3.5 shadow-[0_0_0_1px_rgba(230,0,43,0.06)_inset]"
-                style={{ animation: 'reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both', animationDelay: '0.35s' }}
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-kiddy-textMuted">Прогресс</span>
-                  <span className="font-display text-sm font-bold tabular-nums text-white">
-                    Ур. {currentUser.level}
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-black/50 ring-1 ring-white/[0.06]">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-[width] duration-700"
-                    style={{ width: `${xpToNext}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs font-medium text-kiddy-textSecondary">
-                  {currentUser.xp.toLocaleString('ru-RU')} XP
-                </p>
-              </div>
-            )}
           </div>
         </nav>
 
@@ -246,6 +242,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                           : `Уровень ${currentUser.level}`}
               </p>
             </div>
+            {!isGuest && (
+              <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                <span className="rounded-lg border border-kiddy-cherry/25 bg-kiddy-cherry/12 px-2 py-0.5 font-display text-[11px] font-bold tabular-nums text-white">
+                  Ур. {currentUser.level}
+                </span>
+                <span className="max-w-[4.5rem] truncate text-[10px] font-medium tabular-nums text-kiddy-textMuted">
+                  {currentUser.xp.toLocaleString('ru-RU')} XP
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">

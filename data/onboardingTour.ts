@@ -33,7 +33,7 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
   {
     anchor: 'notifications-home',
     title: 'Уведомления',
-    body: 'С главной страницы откройте ленту активности: заявки в друзья, принятие дружбы и другое по профилю.',
+    body: 'Колокольчик в боковом меню (на телефоне — в верхней шапке): заявки в друзья, активность и ответы по профилю.',
   },
   {
     anchor: 'nav-profile',
@@ -64,7 +64,7 @@ export function getStepsForUser(isAdmin: boolean): OnboardingStepDef[] {
 
 export function tourElementIds(anchor: string): { desktop: string; mobile: string } {
   if (anchor === 'notifications-home') {
-    return { desktop: 'tour-notifications-home', mobile: 'tour-notifications-home' };
+    return { desktop: 'tour-dsk-notifications', mobile: 'tour-mob-notifications' };
   }
   return { desktop: `tour-dsk-${anchor}`, mobile: `tour-mob-${anchor}` };
 }
