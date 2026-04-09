@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '../types';
+import { User, Role } from '../types';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
@@ -19,6 +19,7 @@ import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
+import { ShowcaseSubmitCard } from './ShowcaseSubmitCard';
 
 interface ProfileProps {
   user: User;
@@ -389,6 +390,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
         </div>
       </section>
+
+      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && <ShowcaseSubmitCard />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>

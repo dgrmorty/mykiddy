@@ -29,7 +29,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { fetchUserShowcasePosts, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
-import { composeShowcaseText, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
+import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 interface PublicProfileRow {
@@ -412,7 +412,7 @@ export const UserPublicProfile: React.FC = () => {
               ) : (
                 <div className="space-y-4">
                   {showcasePosts.map((post) => {
-                    const text = composeShowcaseText((post.phrase_selections || {}) as PhraseSelections);
+                    const text = showcasePostBody((post.phrase_selections || {}) as PhraseSelections);
                     const media = (post.media || []) as MediaItem[];
                     const statusLabel =
                       post.status === 'approved'

@@ -11,7 +11,7 @@ import { User, Role, ScheduleEvent, CourseYearTier, COURSE_YEAR_LABELS, normaliz
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 import { fetchPendingShowcasePosts, moderatePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
-import { composeShowcaseText, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
+import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase';
 
@@ -1084,7 +1084,7 @@ export const AdminPanel: React.FC = () => {
                         <div className="space-y-4 pb-4">
                             {showcasePosts.map((post) => {
                                 const sel = (post.phrase_selections || {}) as PhraseSelections;
-                                const text = composeShowcaseText(sel);
+                                const text = showcasePostBody(sel);
                                 const authorName = showcaseAuthors[post.author_id] || 'Ученик';
                                 const busy = moderatingPostId === post.id;
                                 const media = (post.media || []) as MediaItem[];

@@ -170,7 +170,7 @@ export const Community: React.FC = () => {
             <p className="text-kiddy-textMuted text-sm max-w-xl">
               {page === 'people'
                 ? 'Профили одноклассников, друзья и заявки — в одном месте.'
-                : 'Работы одобрены наставниками. Поставь лайк однокласснику или выложи свой проект.'}
+                : 'Только проверенные работы. Лайкни одноклассника; свой проект отправляй из профиля.'}
             </p>
           </div>
           <div className="flex shrink-0 rounded-2xl border border-white/[0.08] bg-black/30 p-1">

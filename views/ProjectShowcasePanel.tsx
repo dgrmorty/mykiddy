@@ -5,30 +5,22 @@ import { AvatarImage } from '../components/AvatarImage';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
+import { showcasePostBody, type PhraseSelections } from '../data/projectShowcaseCatalog';
 import {
-  SHOWCASE_PHRASE_SLOTS,
-  composeShowcaseText,
-  defaultPhraseSelections,
-  isPhraseSelectionsComplete,
-  type PhraseSelections,
-  SHOWCASE_MAX_MEDIA,
-} from '../data/projectShowcaseCatalog';
-import {
-  createProjectPost,
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
   fetchLikeState,
   mediaPublicUrl,
   toggleLike,
-  uploadShowcaseFile,
   type MediaItem,
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
 import { supabase } from '../services/supabase';
-import { Heart, ImagePlus, Loader2, Send, Trash2, Video, Sparkles } from 'lucide-react';
+import { Heart, Loader2, Sparkles } from 'lucide-react';
 
+/** Лента одобренных постов (форма отправки — только в профиле). */
 export const ProjectShowcasePanel: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const isStudent = user.role === Role.STUDENT && user.id !== 'guest';
@@ -38,11 +30,6 @@ export const ProjectShowcasePanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
   const [countMap, setCountMap] = useState<Record<string, number>>({});
-
-  const [selections, setSelections] = useState<PhraseSelections>(() => defaultPhraseSelections());
-  const [files, setFiles] = useState<File[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [uploadDraftId, setUploadDraftId] = useState(() => crypto.randomUUID());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,10 +48,7 @@ export const ProjectShowcasePanel: React.FC = () => {
 
       const pids = list.map((p) => p.id);
       if (pids.length && user.id !== 'guest') {
-        const [likes, counts] = await Promise.all([
-          fetchLikeState(pids, user.id),
-          fetchLikeCounts(pids),
-        ]);
+        const [likes, counts] = await Promise.all([fetchLikeState(pids, user.id), fetchLikeCounts(pids)]);
         setLikeMap(likes);
         setCountMap(counts);
       } else {
@@ -102,132 +86,23 @@ export const ProjectShowcasePanel: React.FC = () => {
     }
   };
 
-  const submit = async () => {
-    if (!isStudent) return;
-    if (!isPhraseSelectionsComplete(selections)) {
-      showToast('Выбери фразу в каждом блоке', 'info');
-      return;
-    }
-    if (files.length > SHOWCASE_MAX_MEDIA) {
-      showToast(`Максимум ${SHOWCASE_MAX_MEDIA} файлов`, 'info');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const media: MediaItem[] = [];
-      for (const f of files) {
-        const up = await uploadShowcaseFile(user.id, uploadDraftId, f);
-        if (up) media.push({ path: up.path, kind: up.kind });
-      }
-      await createProjectPost(user.id, selections, media);
-      showToast('Отправлено на проверку наставникам!', 'success');
-      setFiles([]);
-      setUploadDraftId(crypto.randomUUID());
-      setSelections(defaultPhraseSelections());
-      void refreshUser();
-    } catch (e: any) {
-      showToast(e?.message || 'Не удалось отправить', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const previewText = composeShowcaseText(selections);
-
   return (
     <div className="space-y-10 pb-20">
-      <header className="space-y-2">
+      <header className="space-y-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Витрина</p>
         <h2 className="font-display text-2xl font-bold italic tracking-tight text-white md:text-3xl">Проекты ребят</h2>
         <p className="max-w-2xl text-sm text-kiddy-textMuted">
-          Здесь только проверенные работы. Выбери готовые фразы, прикрепи скрин или короткое видео — наставник посмотрит и опубликует.
-        </p>
-      </header>
-
-      {isStudent && (
-        <Card className="space-y-6 border-kiddy-cherry/20 bg-kiddy-cherry/[0.04] p-6 md:p-8">
-          <div className="flex items-center gap-2 text-white">
-            <Sparkles className="text-kiddy-cherry" size={22} />
-            <h3 className="font-display text-lg font-bold">Выложить проект</h3>
-          </div>
-          <div className="grid gap-5 md:grid-cols-2">
-            {SHOWCASE_PHRASE_SLOTS.map((slot) => (
-              <div key={slot.id}>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">{slot.label}</p>
-                <select
-                  value={selections[slot.id] || ''}
-                  onChange={(e) => setSelections((s) => ({ ...s, [slot.id]: e.target.value }))}
-                  className="w-full rounded-xl border border-white/[0.1] bg-black/60 px-4 py-3 text-sm text-white outline-none focus:border-kiddy-cherry/50"
-                >
-                  {slot.options.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.text}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-          <div>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Предпросмотр текста</p>
-            <p className="rounded-xl border border-white/[0.08] bg-black/40 p-4 text-sm leading-relaxed text-kiddy-textSecondary">
-              {previewText}
-            </p>
-          </div>
-          <div>
-            <input
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              className="hidden"
-              id="showcase-files"
-              onChange={(e) => {
-                const picked = Array.from(e.target.files || []);
-                e.target.value = '';
-                setFiles((prev) => [...prev, ...picked].slice(0, SHOWCASE_MAX_MEDIA));
-              }}
-            />
-            <label
-              htmlFor="showcase-files"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/40 hover:text-white"
-            >
-              <ImagePlus size={16} />
-              Фото / видео
-            </label>
-            <span className="ml-3 text-[10px] text-kiddy-textMuted">до {SHOWCASE_MAX_MEDIA} файлов</span>
-            {files.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {files.map((f, i) => (
-                  <li
-                    key={`${f.name}-${i}`}
-                    className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/30 px-3 py-1.5 text-xs text-white"
-                  >
-                    {f.type.startsWith('video/') ? <Video size={14} /> : <ImagePlus size={14} />}
-                    <span className="max-w-[140px] truncate">{f.name}</span>
-                    <button
-                      type="button"
-                      aria-label="Убрать"
-                      onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                      className="text-kiddy-textMuted hover:text-red-400"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          Здесь только проверенные работы. Чтобы выложить свой проект, открой{' '}
           <button
             type="button"
-            disabled={submitting}
-            onClick={() => void submit()}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-kiddy-cherry py-4 text-sm font-bold text-white transition-all hover:bg-kiddy-cherryHover disabled:opacity-50 md:w-auto md:px-10"
+            onClick={() => navigate('/profile')}
+            className="font-bold text-kiddy-cherry underline decoration-kiddy-cherry/40 underline-offset-2 hover:decoration-kiddy-cherry"
           >
-            {submitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={18} />}
-            Отправить на модерацию
+            профиль
           </button>
-        </Card>
-      )}
+          — форма отправки на модерацию там.
+        </p>
+      </header>
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -235,7 +110,8 @@ export const ProjectShowcasePanel: React.FC = () => {
         </div>
       ) : posts.length === 0 ? (
         <Card className="p-12 text-center text-sm text-kiddy-textMuted">
-          Пока нет опубликованных работ. Скоро здесь появятся проекты учеников!
+          <Sparkles className="mx-auto mb-4 text-kiddy-cherry/50" size={36} />
+          <p>Пока нет опубликованных работ. Загляни позже или стань первым — через профиль.</p>
         </Card>
       ) : (
         <ul className="space-y-5">
@@ -244,7 +120,7 @@ export const ProjectShowcasePanel: React.FC = () => {
             const name = au?.name || 'Ученик';
             const av =
               au?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-            const body = composeShowcaseText((p.phrase_selections || {}) as PhraseSelections);
+            const body = showcasePostBody((p.phrase_selections || {}) as PhraseSelections);
             const media = Array.isArray(p.media) ? p.media : [];
             const liked = !!likeMap[p.id];
             const cnt = countMap[p.id] || 0;

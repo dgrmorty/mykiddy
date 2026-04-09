@@ -151,9 +151,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <div className="min-w-0">
                 <h3 className="font-display text-lg font-bold text-white tracking-tight">Витрина проектов</h3>
                 <p className="mt-1 text-sm text-kiddy-textMuted leading-relaxed">
-                  Работы одноклассников и твой пост после проверки наставником — в разделе «Сообщество».
+                  Лента проверенных работ одноклассников. Выложить свой проект можно в профиле — здесь только просмотр.
                 </p>
-                <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-kiddy-cherry">Открыть витрину →</span>
+                <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-kiddy-cherry">Открыть ленту →</span>
               </div>
             </div>
           </Card>
