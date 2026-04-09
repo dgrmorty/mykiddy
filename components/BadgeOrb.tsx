@@ -25,14 +25,14 @@ const TIER: Record<BadgeTier, TierPalette> = {
   gold: {
     frame: 'linear-gradient(135deg, #553109, #C08009, #FFE07A)',
     core: 'linear-gradient(135deg, #2B1703, #4A2806)',
-    glow: 'rgba(255, 205, 96, 0.35)',
+    glow: 'rgba(255, 205, 96, 0.38)',
     icon: '#FFF7DB',
   },
-  obsidian: {
-    frame: 'linear-gradient(135deg, #09090B, #3C3D52, #7A7FA5)',
-    core: 'linear-gradient(135deg, #0C0D12, #181A25)',
-    glow: 'rgba(127, 136, 191, 0.28)',
-    icon: '#E7EBFF',
+  mythic: {
+    frame: 'linear-gradient(135deg, #1a0a2e, #5b21b6, #a855f7, #e9d5ff)',
+    core: 'linear-gradient(135deg, #0c0514, #3b0764)',
+    glow: 'rgba(168, 85, 247, 0.5)',
+    icon: '#f5e1ff',
   },
 };
 
