@@ -11,7 +11,7 @@ import { useFriendships, friendshipStateForPair } from '../hooks/useFriendships'
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
-import { BADGE_CATALOG, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
+import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import {
   ChevronLeft,
   Loader2,
@@ -188,24 +188,22 @@ export const UserPublicProfile: React.FC = () => {
               <div className="relative shrink-0">
                 <div className="absolute inset-0 rounded-full bg-kiddy-cherry/20 blur-2xl scale-110" />
                 <div className="relative h-44 w-44 md:h-48 md:w-48">
-                  {Array.from({ length: RING_SLOT_COUNT }).map((_, i) => {
-                    const cx = 88;
-                    const r = 76;
-                    const angle = -Math.PI / 2 + (2 * Math.PI * i) / RING_SLOT_COUNT;
-                    const left = cx + r * Math.cos(angle) - 17;
-                    const top = cx + r * Math.sin(angle) - 17;
-                    const id = equippedIds[i];
-                    const b = id ? getBadgeById(id) : null;
-                    return (
-                      <div key={`slot-${i}`} className="absolute z-20" style={{ left, top, width: 34, height: 34 }}>
-                        {b ? (
+                  {equippedIds
+                    .filter((id): id is string => Boolean(id && getBadgeById(id)))
+                    .map((id, i, placed) => {
+                      const n = placed.length;
+                      const cx = 88;
+                      const r = 76;
+                      const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                      const left = cx + r * Math.cos(angle) - 17;
+                      const top = cx + r * Math.sin(angle) - 17;
+                      const b = getBadgeById(id)!;
+                      return (
+                        <div key={`${id}-${i}`} className="absolute z-20" style={{ left, top, width: 34, height: 34 }}>
                           <BadgeOrb tier={b.tier} icon={b.icon} size={34} />
-                        ) : (
-                          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-[1.5px] border-dashed border-white/[0.12] bg-kiddy-surface/80" />
-                        )}
-                      </div>
-                    );
-                  })}
+                        </div>
+                      );
+                    })}
                   <AvatarImage
                     src={avatarUrl}
                     name={profile.name || 'Ученик'}

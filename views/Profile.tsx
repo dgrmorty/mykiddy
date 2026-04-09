@@ -6,7 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Check, X, Loader2, Camera, Target, 
-    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Plus, Settings2
+    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Settings2
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase, uploadFile } from '../services/supabase';
@@ -17,7 +17,7 @@ import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { BadgeOrb } from '../components/BadgeOrb';
-import { BADGE_CATALOG, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
+import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 
 interface ProfileProps {
   user: User;
@@ -239,33 +239,31 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <div className="absolute inset-0 bg-kiddy-cherry blur-3xl opacity-20 animate-pulse" />
                     {/* Badge ring */}
                     <div className="relative w-44 h-44 md:w-48 md:h-48">
-                      {Array.from({ length: RING_SLOT_COUNT }).map((_, i) => {
-                        const cx = 88;
-                        const r = 76;
-                        const angle = -Math.PI / 2 + (2 * Math.PI * i) / RING_SLOT_COUNT;
-                        const left = cx + r * Math.cos(angle) - 17;
-                        const top = cx + r * Math.sin(angle) - 17;
-                        const id = equippedIds[i];
-                        const b = id ? getBadgeById(id) : null;
-                        return (
-                          <div
-                            key={`slot-${i}`}
-                            className="absolute z-20"
-                            style={{ left, top, width: 34, height: 34 }}
-                          >
-                            {b ? (
-                              <BadgeOrb tier={b.tier} icon={b.icon} size={34} onClick={() => badgeUserId && navigate('/settings', { state: { focusMedals: true } })} />
-                            ) : (
-                              <div
+                      {equippedIds
+                        .filter((id): id is string => Boolean(id && getBadgeById(id)))
+                        .map((id, i, placed) => {
+                          const n = placed.length;
+                          const cx = 88;
+                          const r = 76;
+                          const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                          const left = cx + r * Math.cos(angle) - 17;
+                          const top = cx + r * Math.sin(angle) - 17;
+                          const b = getBadgeById(id)!;
+                          return (
+                            <div
+                              key={`${id}-${i}`}
+                              className="absolute z-20"
+                              style={{ left, top, width: 34, height: 34 }}
+                            >
+                              <BadgeOrb
+                                tier={b.tier}
+                                icon={b.icon}
+                                size={34}
                                 onClick={() => badgeUserId && navigate('/settings', { state: { focusMedals: true } })}
-                                className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-white/[0.12] bg-kiddy-surface flex items-center justify-center cursor-pointer hover:border-white/20 transition-colors"
-                              >
-                                <Plus size={12} className="text-kiddy-textMuted" />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                              />
+                            </div>
+                          );
+                        })}
                       {/* Avatar centered — в режиме редактирования не button, иначе disabled блокирует выбор файла */}
                       {isEditing ? (
                         <div className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black shadow-2xl">
