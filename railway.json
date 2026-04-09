@@ -23,7 +23,10 @@
       "contexts/**",
       "services/**",
       "hooks/**",
-      "data/**"
+      "data/**",
+      "utils/**",
+      "contexts/**",
+      "nixpacks.toml"
     ]
   },
   "deploy": {

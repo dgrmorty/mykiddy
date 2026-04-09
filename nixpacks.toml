@@ -1,3 +1,7 @@
-# Лимит кучи Node при сборке (контейнер 1GB — оставляем место для системы)
+# Railway (Nixpacks): Vite, Tailwind, PostCSS, TypeScript лежат в devDependencies.
+# Без них сборка падает, если npm ставит только production-зависимости.
+[phases.install]
+cmds = ["npm ci --include=dev --prefer-offline --no-audit"]
+
 [phases.build]
-cmds = ["export NODE_OPTIONS=--max-old-space-size=768 && npm run build"]
+cmds = ["npm run build"]
