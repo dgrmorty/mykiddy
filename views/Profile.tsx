@@ -6,7 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Check, X, Loader2, Camera, Target, 
-    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Settings2
+    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Settings2, Sparkles
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase, uploadFile } from '../services/supabase';
@@ -19,7 +19,7 @@ import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
-import { ShowcaseSubmitCard } from './ShowcaseSubmitCard';
+import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
 
 interface ProfileProps {
   user: User;
@@ -34,6 +34,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
@@ -391,7 +392,22 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         </div>
       </section>
 
-      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && <ShowcaseSubmitCard />}
+      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
+        <div className="stagger-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+          <button
+            type="button"
+            onClick={() => setShowcaseModalOpen(true)}
+            className="group inline-flex items-center justify-center gap-2.5 rounded-2xl border border-kiddy-cherry/35 bg-gradient-to-r from-kiddy-cherry/20 via-kiddy-cherry/10 to-transparent px-5 py-3.5 text-sm font-bold text-white shadow-[0_0_40px_-12px_rgba(230,0,43,0.5)] transition-all hover:border-kiddy-cherry/55 hover:shadow-[0_0_48px_-8px_rgba(230,0,43,0.65)] active:scale-[0.99]"
+          >
+            <Sparkles size={18} className="text-kiddy-cherry transition-transform group-hover:rotate-12" strokeWidth={2} />
+            Выложить проект на витрину
+          </button>
+        </div>
+      )}
+
+      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
+        <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>

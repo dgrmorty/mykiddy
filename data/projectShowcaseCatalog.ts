@@ -1,8 +1,10 @@
-/** Фиксированные фразы для витрины: ученик выбирает по одной из каждого блока. */
+/**
+ * Витрина: свободный текст в `phrase_selections.__free_text`.
+ * Блоки SHOWCASE_PHRASE_SLOTS оставлены только для отображения старых постов, созданных из шаблонов.
+ */
 
 export interface ShowcasePhraseOption {
   id: string;
-  /** Готовая фраза (кусок поста) */
   text: string;
 }
 
@@ -12,6 +14,7 @@ export interface ShowcasePhraseSlot {
   options: ShowcasePhraseOption[];
 }
 
+/** @deprecated Легаси: только для showcasePostBody / старых записей */
 export const SHOWCASE_PHRASE_SLOTS: ShowcasePhraseSlot[] = [
   {
     id: 'intro',
@@ -61,28 +64,9 @@ export const SHOWCASE_PHRASE_SLOTS: ShowcasePhraseSlot[] = [
   },
 ];
 
-export const SHOWCASE_SLOT_IDS = SHOWCASE_PHRASE_SLOTS.map((s) => s.id) as readonly string[];
-
 export type PhraseSelections = Record<string, string>;
 
-export function defaultPhraseSelections(): PhraseSelections {
-  const o: PhraseSelections = {};
-  for (const slot of SHOWCASE_PHRASE_SLOTS) {
-    o[slot.id] = slot.options[0]?.id ?? '';
-  }
-  return o;
-}
-
-export function isPhraseSelectionsComplete(sel: PhraseSelections): boolean {
-  return SHOWCASE_PHRASE_SLOTS.every((slot) => typeof sel[slot.id] === 'string' && sel[slot.id].length > 0);
-}
-
-/** Свободный текст поста хранится в phrase_selections под этим ключом (без миграции БД). */
-export const SHOWCASE_FREE_TEXT_KEY = '__free_text';
-
-export const SHOWCASE_MIN_CUSTOM_LEN = 10;
-export const SHOWCASE_MAX_CUSTOM_LEN = 2500;
-
+/** @deprecated Легаси: сборка текста из старых шаблонов */
 export function composeShowcaseText(sel: PhraseSelections): string {
   const parts: string[] = [];
   for (const slot of SHOWCASE_PHRASE_SLOTS) {
@@ -93,7 +77,11 @@ export function composeShowcaseText(sel: PhraseSelections): string {
   return parts.join(' ');
 }
 
-/** Текст для отображения и модерации: приоритет у свободного поля, иначе конструктор из фраз. */
+export const SHOWCASE_FREE_TEXT_KEY = '__free_text';
+
+export const SHOWCASE_MIN_CUSTOM_LEN = 10;
+export const SHOWCASE_MAX_CUSTOM_LEN = 2500;
+
 export function showcasePostBody(sel: PhraseSelections): string {
   const raw = sel[SHOWCASE_FREE_TEXT_KEY];
   if (typeof raw === 'string') {
