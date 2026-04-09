@@ -12,11 +12,12 @@ import {
   fetchLikeState,
   mediaPublicUrl,
   toggleLike,
+  deleteShowcasePost,
   type MediaItem,
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
 import { supabase } from '../services/supabase';
-import { Heart, Loader2, Sparkles } from 'lucide-react';
+import { Heart, Loader2, Sparkles, Trash2 } from 'lucide-react';
 
 /** Лента одобренных постов (форма отправки — только в профиле). */
 export const ProjectShowcasePanel: React.FC = () => {
@@ -30,6 +31,7 @@ export const ProjectShowcasePanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
   const [countMap, setCountMap] = useState<Record<string, number>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +68,36 @@ export const ProjectShowcasePanel: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleDeleteOwn = async (postId: string) => {
+    if (
+      !window.confirm(
+        'Убрать этот пост с витрины? Его нельзя будет восстановить, лайки тоже удалятся.',
+      )
+    ) {
+      return;
+    }
+    setDeletingId(postId);
+    try {
+      await deleteShowcasePost(postId);
+      showToast('Пост удалён', 'success');
+      setPosts((prev) => prev.filter((x) => x.id !== postId));
+      setLikeMap((m) => {
+        const n = { ...m };
+        delete n[postId];
+        return n;
+      });
+      setCountMap((m) => {
+        const n = { ...m };
+        delete n[postId];
+        return n;
+      });
+    } catch {
+      showToast('Не удалось удалить пост', 'error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleLike = async (postId: string, authorId: string) => {
     if (!isStudent || user.id === 'guest') {
@@ -124,6 +156,7 @@ export const ProjectShowcasePanel: React.FC = () => {
             const media = Array.isArray(p.media) ? p.media : [];
             const liked = !!likeMap[p.id];
             const cnt = countMap[p.id] || 0;
+            const isOwnPost = user.id !== 'guest' && p.author_id === user.id;
             return (
               <li
                 key={p.id}
@@ -157,7 +190,7 @@ export const ProjectShowcasePanel: React.FC = () => {
                       })}
                     </div>
                   )}
-                  <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-3">
                     <button
                       type="button"
                       onClick={() => void handleLike(p.id, p.author_id)}
@@ -169,9 +202,26 @@ export const ProjectShowcasePanel: React.FC = () => {
                       <Heart size={18} className={liked ? 'fill-current' : ''} />
                       {cnt}
                     </button>
-                    <span className="text-[10px] text-zinc-600">
-                      {new Date(p.created_at).toLocaleDateString('ru-RU')}
-                    </span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      {isOwnPost && (
+                        <button
+                          type="button"
+                          disabled={deletingId === p.id}
+                          onClick={() => void handleDeleteOwn(p.id)}
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                        >
+                          {deletingId === p.id ? (
+                            <Loader2 className="animate-spin" size={16} />
+                          ) : (
+                            <Trash2 size={16} strokeWidth={2} />
+                          )}
+                          Удалить
+                        </button>
+                      )}
+                      <span className="text-[10px] text-zinc-600 tabular-nums">
+                        {new Date(p.created_at).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
                   </div>
                 </Card>
               </li>

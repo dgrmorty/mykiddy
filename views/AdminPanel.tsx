@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { User, Role, ScheduleEvent, CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
-import { fetchPendingShowcasePosts, moderatePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
+import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase';
@@ -112,6 +112,26 @@ export const AdminPanel: React.FC = () => {
         } catch (e) {
             console.error('[AdminPanel] moderate', e);
             showToast('Не удалось сохранить решение', 'error');
+        } finally {
+            setModeratingPostId(null);
+        }
+    };
+
+    const runDeleteShowcase = async (postId: string) => {
+        if (!window.confirm('Удалить пост из очереди без публикации? Это действие нельзя отменить.')) return;
+        setModeratingPostId(postId);
+        try {
+            await deleteShowcasePost(postId);
+            showToast('Пост удалён', 'success');
+            setShowcasePosts((prev) => prev.filter((p) => p.id !== postId));
+            setRejectDraft((prev) => {
+                const n = { ...prev };
+                delete n[postId];
+                return n;
+            });
+        } catch (e) {
+            console.error('[AdminPanel] delete showcase', e);
+            showToast('Не удалось удалить пост', 'error');
         } finally {
             setModeratingPostId(null);
         }
@@ -1135,6 +1155,14 @@ export const AdminPanel: React.FC = () => {
                                                 className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl border border-white/10 disabled:opacity-50"
                                             >
                                                 Отклонить
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={busy}
+                                                onClick={() => void runDeleteShowcase(post.id)}
+                                                className="px-5 py-2.5 text-red-400/95 hover:bg-red-500/15 text-xs font-bold rounded-xl border border-red-500/25 disabled:opacity-50"
+                                            >
+                                                Удалить
                                             </button>
                                         </div>
                                     </Card>

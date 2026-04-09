@@ -94,7 +94,8 @@ export async function fetchPendingShowcasePosts(): Promise<ShowcasePostRow[]> {
   return (data || []) as ShowcasePostRow[];
 }
 
-export async function deleteOwnPost(postId: string) {
+/** Удаление: свой пост (любой статус) или любой пост у администратора (RLS). */
+export async function deleteShowcasePost(postId: string) {
   const { error } = await supabase.from('project_posts').delete().eq('id', postId);
   if (error) throw error;
 }

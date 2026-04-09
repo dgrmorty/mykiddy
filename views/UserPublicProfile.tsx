@@ -27,8 +27,9 @@ import {
   Check,
   Lock,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
-import { fetchUserShowcasePosts, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
+import { fetchUserShowcasePosts, mediaPublicUrl, deleteShowcasePost, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
@@ -56,6 +57,7 @@ export const UserPublicProfile: React.FC = () => {
   const [actionBusy, setActionBusy] = useState(false);
   const [showcasePosts, setShowcasePosts] = useState<ShowcasePostRow[]>([]);
   const [loadingShowcase, setLoadingShowcase] = useState(false);
+  const [deletingShowcaseId, setDeletingShowcaseId] = useState<string | null>(null);
 
   const myId = user.id !== 'guest' ? user.id : undefined;
   const { rows, loading: loadingFriends, sendRequest, accept, remove } = useFriendships(myId);
@@ -130,6 +132,22 @@ export const UserPublicProfile: React.FC = () => {
   }, [userId, loadError]);
 
   const canUseFriends = user.role === Role.STUDENT && myId;
+  const isAdminViewer = user.role === Role.ADMIN && user.id !== 'guest';
+
+  const handleDeleteShowcasePost = async (postId: string) => {
+    if (!isAdminViewer) return;
+    if (!window.confirm('Удалить этот пост с витрины? Действие нельзя отменить.')) return;
+    setDeletingShowcaseId(postId);
+    try {
+      await deleteShowcasePost(postId);
+      showToast('Пост удалён', 'success');
+      setShowcasePosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch {
+      showToast('Не удалось удалить пост', 'error');
+    } finally {
+      setDeletingShowcaseId(null);
+    }
+  };
 
   const pairState = useMemo(() => {
     if (!myId || !userId) return { row: null, label: 'none' as const };
@@ -422,10 +440,31 @@ export const UserPublicProfile: React.FC = () => {
                           : 'Нужны правки';
                     return (
                       <Card key={post.id} className="border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5">
-                        {statusLabel && (
-                          <span className="mb-3 inline-block rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200">
-                            {statusLabel}
-                          </span>
+                        {(statusLabel || isAdminViewer) && (
+                        <div
+                          className={`mb-3 flex flex-wrap items-center gap-2 ${statusLabel ? 'justify-between' : 'justify-end'}`}
+                        >
+                          {statusLabel && (
+                            <span className="inline-block rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200">
+                              {statusLabel}
+                            </span>
+                          )}
+                          {isAdminViewer && (
+                            <button
+                              type="button"
+                              disabled={deletingShowcaseId === post.id}
+                              onClick={() => void handleDeleteShowcasePost(post.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                            >
+                              {deletingShowcaseId === post.id ? (
+                                <Loader2 className="animate-spin" size={14} />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                              Удалить
+                            </button>
+                          )}
+                        </div>
                         )}
                         <p className="text-sm text-kiddy-textSecondary leading-relaxed whitespace-pre-wrap">{text}</p>
                         {post.status === 'rejected' && post.reject_reason && (
