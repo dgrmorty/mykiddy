@@ -5,10 +5,11 @@ import { Outlet, NavLink, Link } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { PageTransition } from './PageTransition';
 import { AvatarImage } from './AvatarImage';
+import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranding } from '../contexts/BrandingContext';
 import { NotificationProvider, useNotificationSummary } from '../contexts/NotificationContext';
 import { OnboardingTour } from './onboarding/OnboardingTour';
-import { supabase } from '../services/supabase';
 
 interface LayoutProps {
   user: User;
@@ -16,22 +17,11 @@ interface LayoutProps {
 
 function LayoutShell({ user }: LayoutProps) {
   const { openAuthModal } = useAuth();
+  const { logoUrl } = useBranding();
   const { unreadCount } = useNotificationSummary();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
-  const [logo, setLogo] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
-
-  useEffect(() => {
-    supabase
-      .from('settings')
-      .select('*')
-      .eq('id', 'logo_url')
-      .single()
-      .then(({ data }) => {
-        if (data?.value) setLogo(data.value);
-      });
-  }, []);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -106,11 +96,13 @@ function LayoutShell({ user }: LayoutProps) {
       <Sidebar currentUser={user} />
 
       <header className="glass sticky top-0 z-40 flex min-h-[3.25rem] items-center justify-between gap-3 px-4 pt-safe sm:px-5 md:hidden">
-        {logo ? (
-          <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto shrink-0 object-contain" />
-        ) : (
-          <img src="/logo-vtope.png" alt="Дети В ТОПЕ" className="h-7 w-auto shrink-0 object-contain" />
-        )}
+        <BrandLogo
+          url={logoUrl}
+          alt="Дети В ТОПЕ"
+          compactWordmark
+          className="h-7 w-auto max-w-[min(200px,55vw)] shrink-0 object-contain object-left"
+          wordmarkClassName="max-w-[min(220px,58vw)]"
+        />
         <div className="flex shrink-0 items-center gap-2">
           {!isGuest && (
             <Link

@@ -12,6 +12,7 @@ import { Community } from './views/Community';
 import { UserPublicProfile } from './views/UserPublicProfile';
 import { Notifications } from './views/Notifications';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrandingProvider } from './contexts/BrandingContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
 import { Role } from './types';
@@ -39,13 +40,21 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-6" style={{ background: '#050505' }}>
-            <div className="relative">
-              <div className="absolute inset-0 bg-kiddy-cherry/20 rounded-full blur-2xl animate-glow-pulse" />
-              <div className="relative rounded-full border-2 border-white/10 border-t-[#e6002b] animate-spin" style={{ width: 44, height: 44 }} />
-            </div>
-            <img src="/logo-vtope.png" alt="" className="h-7 w-auto opacity-40 animate-fade-in" style={{ animationDelay: '0.3s' }} />
+      <div
+        className="flex min-h-screen min-h-[100dvh] flex-col items-center justify-center gap-5 px-6"
+        style={{ background: '#050505' }}
+      >
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full bg-kiddy-cherry/20 blur-2xl animate-glow-pulse" />
+          <div
+            className="relative animate-spin rounded-full border-2 border-white/10 border-t-[#e6002b]"
+            style={{ width: 44, height: 44 }}
+          />
         </div>
+        <p className="animate-fade-in text-center text-sm font-medium text-kiddy-textSecondary" style={{ animationDelay: '0.2s' }}>
+          Дети В ТОПЕ
+        </p>
+      </div>
     );
   }
 
@@ -112,13 +121,15 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <ContentProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
-      </ContentProvider>
-    </AuthProvider>
+    <BrandingProvider>
+      <AuthProvider>
+        <ContentProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </ContentProvider>
+      </AuthProvider>
+    </BrandingProvider>
   );
 };
 

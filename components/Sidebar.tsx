@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { User, Role } from '../types';
+import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranding } from '../contexts/BrandingContext';
 import { useNotificationSummary } from '../contexts/NotificationContext';
-import { supabase } from '../services/supabase';
 import { AvatarImage } from './AvatarImage';
 
 interface SidebarProps {
@@ -32,24 +33,10 @@ const STAGGER = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45];
 export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const { openAuthModal, signOut } = useAuth();
   const { unreadCount } = useNotificationSummary();
+  const { logoUrl, schoolName } = useBranding();
   const isGuest = currentUser.role === Role.GUEST;
   const isAdmin = currentUser.role === Role.ADMIN;
   const isTeacher = currentUser.role === Role.TEACHER;
-  const [logo, setLogo] = useState<string | null>(null);
-  const [schoolName, setSchoolName] = useState('Дети В ТОПЕ');
-
-  useEffect(() => {
-    const fetchBranding = async () => {
-      const { data } = await supabase.from('settings').select('*');
-      if (data) {
-        const l = data.find((i) => i.id === 'logo_url')?.value;
-        const s = data.find((i) => i.id === 'school_name')?.value;
-        if (l) setLogo(l);
-        if (s) setSchoolName(s);
-      }
-    };
-    fetchBranding();
-  }, []);
 
   const navGroups: NavGroup[] = [
     {
@@ -106,19 +93,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
           style={{ animationDelay: '0.02s' }}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3.5">
-            {logo ? (
-              <img
-                src={logo}
-                className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
-                alt=""
-              />
-            ) : (
-              <img
-                src="/logo-vtope.png"
-                className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
-                alt=""
-              />
-            )}
+            <BrandLogo
+              url={logoUrl}
+              alt=""
+              className="h-11 w-auto max-w-[100px] shrink-0 object-contain object-left"
+              wordmarkClassName="max-w-[100px] truncate"
+            />
             <div
               className="h-11 w-px shrink-0 bg-gradient-to-b from-transparent via-kiddy-cherry/45 to-transparent"
               aria-hidden
