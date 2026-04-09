@@ -40,8 +40,10 @@ export function BadgePickerModal({ isOpen, onClose, stats, equippedIds, onSave }
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-display font-bold text-white">Медали на аватаре</h2>
           <button
+            type="button"
+            disabled={!stats}
             onClick={handleSave}
-            className="px-5 py-2 bg-kiddy-cherry text-white text-sm font-bold rounded-xl hover:bg-kiddy-cherryHover transition-all"
+            className="px-5 py-2 bg-kiddy-cherry text-white text-sm font-bold rounded-xl hover:bg-kiddy-cherryHover transition-all disabled:opacity-40 disabled:pointer-events-none"
           >
             Готово
           </button>

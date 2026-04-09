@@ -8,6 +8,8 @@ export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'obsidian';
 export interface BadgeStats {
   lessonsCompleted: number;
   homeworkSubmitted: number;
+  /** Сумма tutor_count по строкам ai_usage (как в мобильном приложении) */
+  aiTutorPromptsTotal: number;
   level: number;
   xp: number;
   leaderboardRank: number | null;
@@ -63,11 +65,11 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
     id: 'oracle',
     title: 'Оракул',
     subtitle: 'Диалог с ИИ',
-    requirement: 'Сдать 10 домашних работ',
+    requirement: 'Задать наставнику 15 вопросов (всего)',
     icon: MessageCircle,
     tier: 'gold',
-    isUnlocked: (s) => s.homeworkSubmitted >= 10,
-    progress: (s) => clamp01(s.homeworkSubmitted / 10),
+    isUnlocked: (s) => s.aiTutorPromptsTotal >= 15,
+    progress: (s) => clamp01(s.aiTutorPromptsTotal / 15),
   },
   {
     id: 'apex',

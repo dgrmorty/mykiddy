@@ -45,6 +45,16 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
         supabase.from('profiles').select('id, xp').order('xp', { ascending: false }).limit(200),
       ]);
 
+      let aiTotal = 0;
+      try {
+        const aiRes = await supabase.from('ai_usage').select('tutor_count').eq('user_id', userId);
+        if (aiRes.data) {
+          aiTotal = aiRes.data.reduce((acc, row: { tutor_count?: number }) => acc + (row.tutor_count ?? 0), 0);
+        }
+      } catch {
+        /* нет таблицы / RLS */
+      }
+
       let rank: number | null = null;
       if (lbRes.data && !lbRes.error) {
         const idx = lbRes.data.findIndex((r: { id: string }) => r.id === userId);
@@ -58,6 +68,7 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
       const next: BadgeStats = {
         lessonsCompleted: lpRes.count ?? 0,
         homeworkSubmitted: hwRes.count ?? 0,
+        aiTutorPromptsTotal: aiTotal,
         level,
         xp,
         leaderboardRank: rank,
@@ -84,7 +95,14 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
       }
       setEquippedIds(nextEquipped);
     } catch {
-      setStats({ lessonsCompleted: 0, homeworkSubmitted: 0, level: 1, xp: 0, leaderboardRank: null });
+      setStats({
+        lessonsCompleted: 0,
+        homeworkSubmitted: 0,
+        aiTutorPromptsTotal: 0,
+        level: 1,
+        xp: 0,
+        leaderboardRank: null,
+      });
       setEquippedIds(publicView ? [] : loadEquipped(userId));
     } finally {
       setLoading(false);
