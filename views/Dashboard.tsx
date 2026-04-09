@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { Card } from '../components/ui/Card';
-import { Calendar, Users } from 'lucide-react';
+import { Calendar, Users, Flame, Sparkles } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -136,8 +136,60 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8">
-        <div className="lg:col-span-2 2xl:col-span-3 stagger-2">
+      {!isGuest && (
+        <section className="stagger-2 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+          <Card
+            hoverEffect
+            role="button"
+            onClick={() => navigate('/community?v=showcase')}
+            className="group cursor-pointer border border-white/[0.06] bg-kiddy-surfaceElevated/60 p-6 transition-all hover:border-kiddy-cherry/25"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-kiddy-cherry/25 bg-kiddy-cherry/10 text-kiddy-cherry transition-transform group-hover:scale-105">
+                <Sparkles size={22} strokeWidth={2} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-display text-lg font-bold text-white tracking-tight">Витрина проектов</h3>
+                <p className="mt-1 text-sm text-kiddy-textMuted leading-relaxed">
+                  Работы одноклассников и твой пост после проверки наставником — в разделе «Сообщество».
+                </p>
+                <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-kiddy-cherry">Открыть витрину →</span>
+              </div>
+            </div>
+          </Card>
+          <Card className="border border-white/[0.06] bg-kiddy-surfaceElevated/60 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-500/30 bg-orange-500/10 text-orange-300">
+                <Flame size={22} strokeWidth={2} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-display text-lg font-bold text-white tracking-tight">Серия дней</h3>
+                <p className="mt-1 font-display text-3xl font-bold text-white tabular-nums">
+                  {user.streakCurrent ?? 0}{' '}
+                  <span className="text-base font-semibold text-kiddy-textMuted">
+                    {(user.streakCurrent ?? 0) % 10 === 1 && (user.streakCurrent ?? 0) % 100 !== 11
+                      ? 'день'
+                      : [2, 3, 4].includes((user.streakCurrent ?? 0) % 10) && ![12, 13, 14].includes((user.streakCurrent ?? 0) % 100)
+                        ? 'дня'
+                        : 'дней'}
+                  </span>
+                </p>
+                <p className="mt-2 text-xs text-kiddy-textMuted leading-relaxed">
+                  Заходи в приложение каждый день, чтобы не сбрасывать огонёк. Цели:{' '}
+                  <span className="text-kiddy-textSecondary">3</span>,{' '}
+                  <span className="text-kiddy-textSecondary">7</span>,{' '}
+                  <span className="text-kiddy-textSecondary">14</span> и{' '}
+                  <span className="text-kiddy-textSecondary">30</span> дней подряд. Рекорд:{' '}
+                  <span className="font-bold text-white">{user.streakLongest ?? 0}</span>.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </section>
+      )}
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-3">
+        <div className="lg:col-span-2 2xl:col-span-3">
           {loadError ? (
             <Card className="min-h-[400px] flex flex-col items-center justify-center text-center p-8">
               <p className="text-kiddy-textSecondary font-medium mb-4">{loadError}</p>
@@ -187,7 +239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           )}
         </div>
 
-        <div className="stagger-3">
+        <div>
           <Card className="h-full flex flex-col">
             <h3 className="font-display font-bold text-xl text-white tracking-tight mb-1">Навыки</h3>
             <p className="text-kiddy-textMuted text-xs mb-6">По твоим курсам</p>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { AvatarImage } from '../components/AvatarImage';
 import { supabase } from '../services/supabase';
@@ -8,7 +8,8 @@ import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
-import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock } from 'lucide-react';
+import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
+import { ProjectShowcasePanel } from './ProjectShowcasePanel';
 
 interface StudentRow {
   id: string;
@@ -24,9 +25,16 @@ function isStudentRole(role: string | null | undefined): boolean {
 }
 
 type TabKey = 'all' | 'requests' | 'friends';
+type CommunityPage = 'people' | 'showcase';
 
 export const Community: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page: CommunityPage = searchParams.get('v') === 'showcase' ? 'showcase' : 'people';
+  const setPage = (p: CommunityPage) => {
+    if (p === 'showcase') setSearchParams({ v: 'showcase' });
+    else setSearchParams({});
+  };
   const { user } = useAuth();
   const { showToast } = useToast();
   const myId = user.id !== 'guest' ? user.id : undefined;
@@ -152,14 +160,50 @@ export const Community: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
-      <header className="stagger-1 space-y-2">
+      <header className="stagger-1 space-y-4">
         <p className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.35em]">Сообщество</p>
-        <h1 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight italic">Ученики школы</h1>
-        <p className="text-kiddy-textMuted text-sm max-w-xl">
-          Смотрите профили одноклассников, отправляйте заявки в друзья и принимайте входящие — как в соцсети, но только для нашей айтишколы.
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight italic">
+              {page === 'people' ? 'Ученики школы' : 'Витрина проектов'}
+            </h1>
+            <p className="text-kiddy-textMuted text-sm max-w-xl">
+              {page === 'people'
+                ? 'Профили одноклассников, друзья и заявки — в одном месте.'
+                : 'Работы одобрены наставниками. Поставь лайк однокласснику или выложи свой проект.'}
+            </p>
+          </div>
+          <div className="flex shrink-0 rounded-2xl border border-white/[0.08] bg-black/30 p-1">
+            <button
+              type="button"
+              onClick={() => setPage('people')}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                page === 'people' ? 'bg-kiddy-cherry text-white shadow-lg' : 'text-kiddy-textMuted hover:text-white'
+              }`}
+            >
+              <LayoutGrid size={16} />
+              Люди
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage('showcase')}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                page === 'showcase' ? 'bg-kiddy-cherry text-white shadow-lg' : 'text-kiddy-textMuted hover:text-white'
+              }`}
+            >
+              <Sparkles size={16} />
+              Витрина
+            </button>
+          </div>
+        </div>
       </header>
 
+      {page === 'showcase' ? (
+        <div className="stagger-2">
+          <ProjectShowcasePanel />
+        </div>
+      ) : (
+        <>
       <div className="stagger-2 flex flex-wrap gap-2">
         {tabBtn('all', 'Все')}
         {tabBtn('requests', 'Заявки', incomingCount)}
@@ -405,6 +449,8 @@ export const Community: React.FC = () => {
             <div className="space-y-2">{friends.map((row, i) => renderFriendRow(row, i))}</div>
           )}
         </section>
+      )}
+        </>
       )}
     </div>
   );

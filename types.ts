@@ -23,6 +23,9 @@ export interface User {
   level: number;
   xp: number;
   isApproved: boolean;
+  /** Серия дней активности (UTC), из profiles */
+  streakCurrent?: number;
+  streakLongest?: number;
 }
 
 export interface Lesson {

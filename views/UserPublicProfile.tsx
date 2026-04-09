@@ -26,7 +26,10 @@ import {
   BookOpen,
   Check,
   Lock,
+  Sparkles,
 } from 'lucide-react';
+import { fetchUserShowcasePosts, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
+import { composeShowcaseText, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 interface PublicProfileRow {
@@ -51,6 +54,8 @@ export const UserPublicProfile: React.FC = () => {
   const [loadError, setLoadError] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [actionBusy, setActionBusy] = useState(false);
+  const [showcasePosts, setShowcasePosts] = useState<ShowcasePostRow[]>([]);
+  const [loadingShowcase, setLoadingShowcase] = useState(false);
 
   const myId = user.id !== 'guest' ? user.id : undefined;
   const { rows, loading: loadingFriends, sendRequest, accept, remove } = useFriendships(myId);
@@ -100,6 +105,29 @@ export const UserPublicProfile: React.FC = () => {
       cancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId || loadError) {
+      setShowcasePosts([]);
+      setLoadingShowcase(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingShowcase(true);
+      try {
+        const list = await fetchUserShowcasePosts(userId);
+        if (!cancelled) setShowcasePosts(list);
+      } catch {
+        if (!cancelled) setShowcasePosts([]);
+      } finally {
+        if (!cancelled) setLoadingShowcase(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, loadError]);
 
   const canUseFriends = user.role === Role.STUDENT && myId;
 
@@ -369,6 +397,70 @@ export const UserPublicProfile: React.FC = () => {
                 </ResponsiveContainer>
               </div>
             </Card>
+          )}
+
+          {(loadingShowcase || showcasePosts.length > 0) && (
+            <section>
+              <h3 className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white">
+                <Sparkles size={16} className="text-kiddy-cherry" />
+                Витрина
+              </h3>
+              {loadingShowcase ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="animate-spin text-kiddy-cherry/80" size={28} />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {showcasePosts.map((post) => {
+                    const text = composeShowcaseText((post.phrase_selections || {}) as PhraseSelections);
+                    const media = (post.media || []) as MediaItem[];
+                    const statusLabel =
+                      post.status === 'approved'
+                        ? null
+                        : post.status === 'pending'
+                          ? 'На проверке'
+                          : 'Нужны правки';
+                    return (
+                      <Card key={post.id} className="border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5">
+                        {statusLabel && (
+                          <span className="mb-3 inline-block rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200">
+                            {statusLabel}
+                          </span>
+                        )}
+                        <p className="text-sm text-kiddy-textSecondary leading-relaxed whitespace-pre-wrap">{text}</p>
+                        {post.status === 'rejected' && post.reject_reason && (
+                          <p className="mt-2 text-xs text-kiddy-textMuted border-l-2 border-kiddy-cherry/40 pl-3">
+                            Комментарий наставника: {post.reject_reason}
+                          </p>
+                        )}
+                        {media.length > 0 && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {media.map((m, i) =>
+                              m.kind === 'video' ? (
+                                <video
+                                  key={i}
+                                  src={mediaPublicUrl(m.path)}
+                                  className="max-h-48 rounded-xl border border-white/10"
+                                  controls
+                                  muted
+                                />
+                              ) : (
+                                <img
+                                  key={i}
+                                  src={mediaPublicUrl(m.path)}
+                                  alt=""
+                                  className="max-h-48 rounded-xl border border-white/10 object-cover"
+                                />
+                              ),
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           )}
 
           {showProgressSection && courses.length > 0 && (

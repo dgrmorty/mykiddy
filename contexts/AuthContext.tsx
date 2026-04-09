@@ -82,7 +82,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avatar: metadata.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(metadata.name || 'User')}&background=random`,
       level: 1,
       xp: 0,
-      isApproved: true
+      isApproved: true,
+      streakCurrent: 0,
+      streakLongest: 0,
     };
   }, []);
 
@@ -137,8 +139,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               level: calculatedLevel,
               xp: userXp,
               isApproved: true,
+              streakCurrent: profile.streak_current ?? 0,
+              streakLongest: profile.streak_longest ?? 0,
             }),
           );
+          try {
+            const { data: sd } = await supabase.rpc('record_daily_streak');
+            const d = sd as {
+              ok?: boolean;
+              streak_current?: number;
+              streak_longest?: number;
+            } | null;
+            if (d?.ok && typeof d.streak_current === 'number') {
+              setUser((prev) =>
+                prev.id !== userId
+                  ? prev
+                  : {
+                      ...prev,
+                      streakCurrent: d.streak_current!,
+                      streakLongest:
+                        typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
+                    },
+              );
+            }
+          } catch {
+            /* нет RPC до миграции */
+          }
       } else {
           // Если профиль не найден или ошибка, используем данные из auth
           console.warn("[Auth] Profile not found or error, using auth data:", error?.message);

@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
         { iconName: 'dashboard', label: 'Главная', path: '/', locked: false, onboardingAnchor: 'nav-home' },
         { iconName: 'book', label: 'Библиотека', path: '/courses', locked: isGuest, onboardingAnchor: 'nav-library' },
         { iconName: 'calendar', label: 'Расписание', path: '/schedule', locked: isGuest, onboardingAnchor: 'nav-schedule' },
-        { iconName: 'usersGroup', label: 'Ученики', path: '/community', locked: isGuest, onboardingAnchor: 'nav-community' },
+        { iconName: 'usersGroup', label: 'Сообщество', path: '/community', locked: isGuest, onboardingAnchor: 'nav-community' },
       ],
     },
     {

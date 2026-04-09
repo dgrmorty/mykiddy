@@ -29,6 +29,8 @@ export const GUEST_USER: User = {
   level: 0,
   xp: 0,
   isApproved: false,
+  streakCurrent: 0,
+  streakLongest: 0,
 };
 
 export const MOCK_COURSES: Course[] = [

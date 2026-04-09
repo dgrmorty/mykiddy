@@ -143,7 +143,7 @@ function LayoutShell({ user }: LayoutProps) {
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" tourAnchor="nav-home" />
         <MobileNavItem to="/courses" iconName="book" locked={isGuest} label="Курсы" tourAnchor="nav-library" />
         <MobileNavItem to="/schedule" iconName="calendar" locked={isGuest} label="План" tourAnchor="nav-schedule" />
-        <MobileNavItem to="/community" iconName="usersGroup" locked={isGuest} label="Ученики" tourAnchor="nav-community" />
+        <MobileNavItem to="/community" iconName="usersGroup" locked={isGuest} label="Клуб" tourAnchor="nav-community" />
         {isAdmin && (
           <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" tourAnchor="nav-admin" />
         )}

@@ -4,14 +4,16 @@ import { Card } from '../components/ui/Card';
 import { supabase, uploadFile } from '../services/supabase';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
-    Edit2, X, ChevronRight, ChevronDown, Search, Calendar
+    Edit2, X, ChevronRight, ChevronDown, Search, Calendar, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Role, ScheduleEvent, CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
+import { fetchPendingShowcasePosts, moderatePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
+import { composeShowcaseText, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 
-type AdminView = 'content' | 'users' | 'schedule';
+type AdminView = 'content' | 'users' | 'schedule' | 'showcase';
 
 interface EditingState {
     type: 'course' | 'module' | 'lesson' | null;
@@ -48,6 +50,12 @@ export const AdminPanel: React.FC = () => {
     const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
     const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
 
+    const [showcasePosts, setShowcasePosts] = useState<ShowcasePostRow[]>([]);
+    const [showcaseLoading, setShowcaseLoading] = useState(false);
+    const [showcaseAuthors, setShowcaseAuthors] = useState<Record<string, string>>({});
+    const [rejectDraft, setRejectDraft] = useState<Record<string, string>>({});
+    const [moderatingPostId, setModeratingPostId] = useState<string | null>(null);
+
     const courseFileRef = useRef<HTMLInputElement>(null);
     const lessonVideoRef = useRef<HTMLInputElement>(null);
     const editCourseFileRef = useRef<HTMLInputElement>(null);
@@ -56,9 +64,58 @@ export const AdminPanel: React.FC = () => {
 
     useEffect(() => {
         if (currentView === 'content') fetchContent();
-        if (currentView === 'users') fetchUsers();
-        if (currentView === 'schedule') fetchSchedule();
+        else if (currentView === 'users') fetchUsers();
+        else if (currentView === 'schedule') fetchSchedule();
+        else if (currentView === 'showcase') void fetchShowcaseModeration();
     }, [currentView]);
+
+    const fetchShowcaseModeration = async () => {
+        setShowcaseLoading(true);
+        try {
+            const posts = await fetchPendingShowcasePosts();
+            const ids = [...new Set(posts.map((p) => p.author_id))];
+            const map: Record<string, string> = {};
+            if (ids.length > 0) {
+                const { data: profs } = await supabase.from('profiles').select('id, name').in('id', ids);
+                (profs || []).forEach((p: { id: string; name: string | null }) => {
+                    map[p.id] = p.name?.trim() || 'Ученик';
+                });
+            }
+            setShowcaseAuthors(map);
+            setShowcasePosts(posts);
+        } catch (e) {
+            console.error('[AdminPanel] showcase', e);
+            showToast('Не удалось загрузить очередь витрины', 'error');
+            setShowcasePosts([]);
+            setShowcaseAuthors({});
+        } finally {
+            setShowcaseLoading(false);
+        }
+    };
+
+    const runModerate = async (postId: string, approve: boolean) => {
+        const reason = (rejectDraft[postId] || '').trim();
+        if (!approve && reason.length < 3) {
+            showToast('Напишите причину отклонения (от 3 символов)', 'error');
+            return;
+        }
+        setModeratingPostId(postId);
+        try {
+            await moderatePost(postId, approve, user.id, reason || undefined);
+            showToast(approve ? 'Проект опубликован' : 'Отклонено, ученик увидит причину в уведомлениях', 'success');
+            setShowcasePosts((prev) => prev.filter((p) => p.id !== postId));
+            setRejectDraft((prev) => {
+                const n = { ...prev };
+                delete n[postId];
+                return n;
+            });
+        } catch (e) {
+            console.error('[AdminPanel] moderate', e);
+            showToast('Не удалось сохранить решение', 'error');
+        } finally {
+            setModeratingPostId(null);
+        }
+    };
 
     const fetchContent = async () => {
         setLoading(true);
@@ -585,10 +642,11 @@ export const AdminPanel: React.FC = () => {
                     <button onClick={() => setCurrentView('content')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'content' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>КОНТЕНТ</button>
                     <button onClick={() => setCurrentView('users')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'users' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>ПОЛЬЗОВАТЕЛИ</button>
                     <button onClick={() => setCurrentView('schedule')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'schedule' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>РАСПИСАНИЕ</button>
+                    <button onClick={() => setCurrentView('showcase')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1.5 ${currentView === 'showcase' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}><Sparkles size={12} /> ВИТРИНА</button>
                 </div>
             </header>
 
-            {loading && (
+            {loading && currentView !== 'showcase' && (
                 <div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin text-zinc-700" size={40} /></div>
             )}
 
@@ -1005,6 +1063,85 @@ export const AdminPanel: React.FC = () => {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {currentView === 'showcase' && (
+                <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
+                    <Card className="bg-[#121212]/40 border-[#282828] p-6">
+                        <h2 className="text-white font-bold text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <Sparkles size={16} className="text-kiddy-cherry" /> Модерация витрины
+                        </h2>
+                        <p className="text-kiddy-textMuted text-xs max-w-2xl">
+                            Новые посты учеников попадают сюда. После одобрения они видны в разделе «Сообщество → Витрина». При отклонении укажите, что исправить — текст уйдёт в уведомление автору.
+                        </p>
+                    </Card>
+                    {showcaseLoading ? (
+                        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-zinc-600" size={36} /></div>
+                    ) : showcasePosts.length === 0 ? (
+                        <p className="text-kiddy-textMuted text-sm px-2">Нет постов в очереди.</p>
+                    ) : (
+                        <div className="space-y-4 pb-4">
+                            {showcasePosts.map((post) => {
+                                const sel = (post.phrase_selections || {}) as PhraseSelections;
+                                const text = composeShowcaseText(sel);
+                                const authorName = showcaseAuthors[post.author_id] || 'Ученик';
+                                const busy = moderatingPostId === post.id;
+                                const media = (post.media || []) as MediaItem[];
+                                return (
+                                    <Card key={post.id} className="bg-[#121212]/50 border-[#282828] p-5 space-y-4">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Автор</p>
+                                                <p className="text-white font-bold">{authorName}</p>
+                                                <p className="text-kiddy-textMuted text-xs mt-1">{new Date(post.created_at).toLocaleString('ru-RU')}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-kiddy-textSecondary text-sm leading-relaxed whitespace-pre-wrap">{text || '—'}</p>
+                                        {media.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {media.map((m, i) => (
+                                                    m.kind === 'video' ? (
+                                                        <video key={i} src={mediaPublicUrl(m.path)} className="max-h-40 rounded-lg border border-white/10" controls muted />
+                                                    ) : (
+                                                        <img key={i} src={mediaPublicUrl(m.path)} alt="" className="max-h-40 rounded-lg border border-white/10 object-cover" />
+                                                    )
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Причина при отклонении</label>
+                                            <textarea
+                                                value={rejectDraft[post.id] || ''}
+                                                onChange={(e) => setRejectDraft((d) => ({ ...d, [post.id]: e.target.value }))}
+                                                rows={2}
+                                                placeholder="Например: добавь скриншот результата или пересними видео без бликов"
+                                                className="w-full bg-black border border-[#282828] rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-kiddy-cherry resize-none"
+                                            />
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                disabled={busy}
+                                                onClick={() => void runModerate(post.id, true)}
+                                                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                                            >
+                                                Одобрить
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={busy}
+                                                onClick={() => void runModerate(post.id, false)}
+                                                className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl border border-white/10 disabled:opacity-50"
+                                            >
+                                                Отклонить
+                                            </button>
+                                        </div>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
 

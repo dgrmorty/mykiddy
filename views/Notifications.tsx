@@ -4,10 +4,15 @@ import { Card } from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationSummary } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabase';
-import { Loader2, Bell, UserPlus, UserCheck, Inbox } from 'lucide-react';
+import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { AvatarImage } from '../components/AvatarImage';
 
-export type ActivityKind = 'friend_request' | 'friend_accepted';
+export type ActivityKind =
+  | 'friend_request'
+  | 'friend_accepted'
+  | 'project_moderation'
+  | 'project_approved'
+  | 'project_rejected';
 
 export interface ActivityNotificationRow {
   id: string;
@@ -102,6 +107,14 @@ export const Notifications: React.FC = () => {
     if (row.kind === 'friend_request' || row.kind === 'friend_accepted') {
       if (row.actor_id) navigate(`/users/${row.actor_id}`);
       else navigate('/community');
+      return;
+    }
+    if (row.kind === 'project_moderation') {
+      navigate('/admin');
+      return;
+    }
+    if (row.kind === 'project_approved' || row.kind === 'project_rejected') {
+      navigate('/community?v=showcase');
     }
   };
 
@@ -114,7 +127,7 @@ export const Notifications: React.FC = () => {
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Аккаунт</p>
           <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Уведомления</h1>
           <p className="mt-2 max-w-xl text-sm text-kiddy-textMuted">
-            Недавняя активность, связанная с вашим профилем: заявки в друзья и ответы по ним.
+            Заявки в друзья, витрина проектов и ответы наставников по модерации.
           </p>
         </div>
         {unreadOnPage > 0 && (
@@ -139,7 +152,7 @@ export const Notifications: React.FC = () => {
           </div>
           <p className="font-bold text-white">Пока тихо</p>
           <p className="mt-2 max-w-sm text-sm text-kiddy-textMuted">
-            Когда кто-то отправит заявку в друзья или примет вашу, уведомление появится здесь.
+            Здесь появятся заявки в друзья, статус проекта на витрине и напоминания для наставников.
           </p>
         </Card>
       ) : (
@@ -151,11 +164,30 @@ export const Notifications: React.FC = () => {
               act?.avatar ||
               `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
             const unread = !row.read_at;
-            const Icon = row.kind === 'friend_request' ? UserPlus : UserCheck;
-            const title =
-              row.kind === 'friend_request'
-                ? `${name} хочет добавиться в друзья`
-                : `${name} принял(а) вашу заявку в друзья`;
+            const reason =
+              row.kind === 'project_rejected' && typeof row.payload?.reason === 'string'
+                ? row.payload.reason
+                : '';
+            let Icon: LucideIcon = UserPlus;
+            let title = '';
+            if (row.kind === 'friend_request') {
+              Icon = UserPlus;
+              title = `${name} хочет добавиться в друзья`;
+            } else if (row.kind === 'friend_accepted') {
+              Icon = UserCheck;
+              title = `${name} принял(а) вашу заявку в друзья`;
+            } else if (row.kind === 'project_moderation') {
+              Icon = ShieldAlert;
+              title = `${name} прислал(а) проект на витрину`;
+            } else if (row.kind === 'project_approved') {
+              Icon = CheckCircle2;
+              title = `Проект одобрен: ${name}`;
+            } else if (row.kind === 'project_rejected') {
+              Icon = XCircle;
+              title = `Проект нужно доработать (${name})`;
+            } else {
+              title = 'Уведомление';
+            }
             return (
               <li key={row.id} style={{ animation: `fade-in-up 0.45s ease both`, animationDelay: `${Math.min(i, 12) * 0.04}s` }}>
                 <button
@@ -177,6 +209,9 @@ export const Notifications: React.FC = () => {
                     <p className={`text-sm font-bold leading-snug sm:text-base ${unread ? 'text-white' : 'text-kiddy-textSecondary'}`}>
                       {title}
                     </p>
+                    {reason ? (
+                      <p className="mt-1 text-xs text-kiddy-textMuted line-clamp-3">{reason}</p>
+                    ) : null}
                     <p className="mt-1 text-xs text-kiddy-textMuted">{formatActivityRu(row.created_at)}</p>
                   </div>
                   {unread && (
@@ -195,8 +230,7 @@ export const Notifications: React.FC = () => {
         <div className="flex gap-3">
           <Bell className="mt-0.5 shrink-0 text-kiddy-cherry/80" size={18} />
           <p className="text-xs leading-relaxed text-kiddy-textMuted">
-            События создаются автоматически. Открытие уведомления отмечает его прочитанным. Раздел «Ученики» → «Заявки»
-            по-прежнему можно использовать для ответа на входящие.
+            События создаются автоматически. Открытие отмечает уведомление прочитанным. Заявки в друзья по-прежнему можно обработать в «Сообщество» → «Заявки».
           </p>
         </div>
       </Card>
