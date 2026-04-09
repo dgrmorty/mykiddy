@@ -16,6 +16,8 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -28,7 +30,15 @@ body {
   color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── Scrollbar ─── */
@@ -104,11 +114,13 @@ body {
   box-shadow: 0 8px 32px -8px rgba(0,0,0,0.6);
   transition: transform 0.5s var(--ease-entrance), background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.5s ease;
 }
-.card-premium:hover {
-  background-color: rgba(20, 20, 20, 0.95);
-  border-color: rgba(255,255,255,0.08);
-  box-shadow: 0 20px 60px -16px rgba(0,0,0,0.85), 0 0 0 1px rgba(230,0,43,0.06);
-  transform: translateY(-6px);
+@media (hover: hover) and (pointer: fine) {
+  .card-premium:hover {
+    background-color: rgba(20, 20, 20, 0.95);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 20px 60px -16px rgba(0,0,0,0.85), 0 0 0 1px rgba(230,0,43,0.06);
+    transform: translateY(-6px);
+  }
 }
 
 /* ─── Inputs ─── */
@@ -154,8 +166,17 @@ body {
   border-radius: 12px;
 }
 
-/* ─── Safe area ─── */
-.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* ─── Safe area (notch / home indicator) ─── */
+.pb-safe {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.px-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
 
 /* ═══════════════════════════════════════
    KEYFRAMES
@@ -294,6 +315,19 @@ body {
   border: 1px solid rgba(255,255,255,0.06);
 }
 
+/* Тач-устройства: без «залипшего» hover с клавиатуры/мыши на телефоне */
+@media (hover: none), (pointer: coarse) {
+  .btn-cta:hover,
+  .btn-secondary:hover {
+    transform: none;
+  }
+  .hover-lift:hover,
+  .hover-scale:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 /* ─── Focus ring for accessibility ─── */
 *:focus-visible {
   outline: 2px solid rgba(230,0,43,0.5);
@@ -305,6 +339,13 @@ body {
 a, button, input, textarea, select {
   transition-duration: 0.3s;
   transition-timing-function: var(--ease-smooth);
+}
+
+/* Быстрее реакция на тап без двойного тапа для «зума» в старых WebView */
+button,
+a[href],
+[role='button'] {
+  touch-action: manipulation;
 }
 
 /* ─── Progress bar glow ─── */

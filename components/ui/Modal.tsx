@@ -23,7 +23,7 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'max-w-md',
   transparentContainer = false,
   onClosed,
-  maxPanelHeight = 'calc(100dvh - 1rem)',
+  maxPanelHeight = 'min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem))',
   panelClassName = '',
 }) => {
   const [isExiting, setIsExiting] = useState(false);
@@ -73,7 +73,15 @@ export const Modal: React.FC<ModalProps> = ({
   if (!visible) return null;
 
   const modalTree = (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-3 md:p-5">
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-3 md:p-5"
+      style={{
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))',
+      }}
+    >
       <div
         className={`fixed inset-0 bg-black/70 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-entrance ${isExiting ? 'opacity-0' : 'opacity-100'}`}
         onClick={onClose}

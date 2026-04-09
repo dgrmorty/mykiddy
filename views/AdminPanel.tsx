@@ -573,7 +573,7 @@ export const AdminPanel: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-screen animate-slide-up space-y-4 pb-10 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden animate-slide-up space-y-4 pb-6 md:pb-10">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#282828] pb-4 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-kiddy-cherry/10 border border-kiddy-cherry/20 rounded-lg">

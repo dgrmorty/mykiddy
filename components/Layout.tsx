@@ -97,15 +97,15 @@ function LayoutShell({ user }: LayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-transparent font-sans text-white selection:bg-kiddy-cherry/30 selection:text-white flex flex-col md:flex-row">
+    <div className="flex min-h-screen min-h-[100dvh] flex-col bg-transparent font-sans text-white selection:bg-kiddy-cherry/30 selection:text-white md:flex-row">
       {isOffline && (
-        <div className="fixed left-0 right-0 top-0 z-[100] bg-amber-500/95 py-2 px-4 text-center text-sm font-semibold text-black">
+        <div className="fixed left-0 right-0 top-0 z-[100] bg-amber-500/95 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] text-center text-sm font-semibold text-black">
           Нет соединения с интернетом. Часть функций недоступна.
         </div>
       )}
       <Sidebar currentUser={user} />
 
-      <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between gap-3 px-5 md:hidden">
+      <header className="glass sticky top-0 z-40 flex min-h-[3.25rem] items-center justify-between gap-3 px-4 pt-safe sm:px-5 md:hidden">
         {logo ? (
           <img src={logo} alt="Дети В ТОПЕ" className="h-7 w-auto shrink-0 object-contain" />
         ) : (
@@ -137,14 +137,14 @@ function LayoutShell({ user }: LayoutProps) {
         </div>
       </header>
 
-      <main className="min-h-screen flex-1 px-4 py-6 pb-28 md:ml-[288px] md:px-10 md:py-12 md:pb-12 xl:px-16 2xl:px-20">
+      <main className="flex min-h-0 w-full min-w-0 max-w-[100vw] flex-1 flex-col overflow-x-hidden px-3 py-6 pb-28 sm:px-4 md:ml-[288px] md:max-w-none md:min-h-screen md:px-10 md:py-12 md:pb-12 xl:px-16 2xl:px-20">
         <PageTransition>
           <Outlet />
         </PageTransition>
       </main>
 
       <nav
-        className={`glass fixed bottom-0 left-0 right-0 z-50 grid w-full items-stretch px-1 py-2 pb-safe md:hidden ${
+        className={`glass fixed bottom-0 left-0 right-0 z-50 grid w-full max-w-[100vw] items-stretch px-safe py-2 pb-safe md:hidden ${
           isAdmin ? 'grid-cols-7' : 'grid-cols-6'
         }`}
       >
