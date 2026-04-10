@@ -112,7 +112,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Создаем запрос с таймаутом
       const profileRequest = supabase
         .from('profiles')
-        .select('*')
+        .select(
+          'id, email, name, role, avatar, level, xp, is_approved, created_at, updated_at, streak_current, streak_longest, streak_last_activity_date, avatar_accessory',
+        )
         .eq('id', userId)
         .single();
 

@@ -2,8 +2,8 @@
 
 ## Безопасность
 
-1. **Админка только на фронте**  
-   Роль админа задаётся по email в `AuthContext.tsx` (и при необходимости через `VITE_ADMIN_EMAILS`). Доступ к админ-странице закрыт маршрутом, но запросы к Supabase (удаление пользователей, правка курсов, расписания) идут с клиента. **Критично:** в Supabase для таблиц `courses`, `modules`, `lessons`, `schedule_events`, `settings` и для RPC `delete_user_by_admin`, `get_all_users` должны быть настроены RLS-политики так, чтобы эти операции были разрешены только админам (например, по `auth.jwt() ->> 'email'` или по роли в `profiles`). Иначе любой авторизованный пользователь может вызвать те же методы из консоли браузера.
+1. **Админка на фронте + RLS в БД**  
+   На фронте роль админа по `VITE_ADMIN_EMAILS` и `AuthContext.tsx`. В **Supabase** функция `is_admin_user()` и политики на `courses` / `modules` / `lessons` / `schedule_events` / `settings` завязаны на **`profiles.role = 'Admin'`** (миграция `20260418120000_security_hardening.sql`). Учётки админов должны иметь в таблице `profiles` поле **`role = 'Admin'`** (и при необходимости дублировать email в `VITE_ADMIN_EMAILS` для UI). RPC `delete_user_by_admin` / `get_all_users` проверяют того же `is_admin_user()`; `EXECUTE` у `anon` отозван.
 
 2. **Секреты и ключи в коде**  
    В `services/supabase.ts` захардкожены URL и anon-ключ Supabase. Anon-ключ рассчитан на публичное использование, но при смене проекта их нужно менять в коде. Для смены окружений лучше вынести в `import.meta.env.VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`.
