@@ -7,7 +7,6 @@ import { supabase } from '../services/supabase';
 import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { AvatarImage } from '../components/AvatarImage';
 
 export type ActivityKind =
@@ -52,6 +51,7 @@ export const Notifications: React.FC = () => {
       {
         name: string | null;
         avatar: string | null;
+        avatar_accessory?: string | null;
         xp: number | null;
         role: string | null;
       }
@@ -75,12 +75,16 @@ export const Notifications: React.FC = () => {
 
       const ids = [...new Set(list.map((r) => r.actor_id).filter(Boolean))] as string[];
       if (ids.length > 0) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp, role').in('id', ids);
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, name, avatar, avatar_accessory, xp, role')
+          .in('id', ids);
         const map: Record<
           string,
           {
             name: string | null;
             avatar: string | null;
+            avatar_accessory?: string | null;
             xp: number | null;
             role: string | null;
           }
@@ -90,12 +94,14 @@ export const Notifications: React.FC = () => {
             id: string;
             name: string | null;
             avatar: string | null;
+            avatar_accessory?: string | null;
             xp: number | null;
             role: string | null;
           }) => {
             map[p.id] = {
               name: p.name,
               avatar: p.avatar,
+              avatar_accessory: p.avatar_accessory,
               xp: p.xp,
               role: p.role,
             };
@@ -235,8 +241,10 @@ export const Notifications: React.FC = () => {
                     {actorIsStudent ? (
                       <UserAvatar
                         user={{
+                          id: row.actor_id || '',
                           name,
-                          avatar: resolveBundledOrDefault(row.actor_id || '', act?.avatar),
+                          avatar: act?.avatar || '',
+                          avatarAccessory: act?.avatar_accessory ?? 'none',
                         }}
                         size="md"
                       />

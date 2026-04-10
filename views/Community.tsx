@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
-import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
@@ -16,6 +15,7 @@ interface StudentRow {
   id: string;
   name: string | null;
   avatar: string | null;
+  avatar_accessory?: string | null;
   xp: number | null;
   level: number | null;
   role: string | null;
@@ -52,7 +52,7 @@ export const Community: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, role')
+        .select('id, name, avatar, avatar_accessory, xp, level, role')
         .order('name', { ascending: true });
       if (error) throw error;
       const list = (data || []).filter((r) => isStudentRole(r.role)) as StudentRow[];
@@ -96,7 +96,8 @@ export const Community: React.FC = () => {
     const s = studentById.get(id);
     return {
       name: s?.name || 'Ученик',
-      avatar: resolveBundledOrDefault(id, s?.avatar),
+      avatar: s?.avatar || '',
+      avatarAccessory: s?.avatar_accessory ?? 'none',
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
     };
@@ -148,8 +149,10 @@ export const Community: React.FC = () => {
         <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex min-w-0 flex-1 items-center gap-4 text-left">
           <UserAvatar
             user={{
+              id: other,
               name: p.name || 'Ученик',
               avatar: p.avatar || '',
+              avatarAccessory: p.avatarAccessory,
             }}
             size="lg"
           />
@@ -262,8 +265,10 @@ export const Community: React.FC = () => {
                     >
                       <UserAvatar
                         user={{
+                          id: s.id,
                           name: s.name || 'Ученик',
-                          avatar: resolveBundledOrDefault(s.id, s.avatar),
+                          avatar: s.avatar || '',
+                          avatarAccessory: s.avatar_accessory ?? 'none',
                         }}
                         size="lg"
                       />
@@ -352,8 +357,10 @@ export const Community: React.FC = () => {
                           <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
                             <UserAvatar
                               user={{
+                                id: other,
                                 name: p.name || 'Ученик',
                                 avatar: p.avatar || '',
+                                avatarAccessory: p.avatarAccessory,
                               }}
                               size="md"
                             />
@@ -417,8 +424,10 @@ export const Community: React.FC = () => {
                           <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
                             <UserAvatar
                               user={{
+                                id: other,
                                 name: p.name || 'Ученик',
                                 avatar: p.avatar || '',
+                                avatarAccessory: p.avatarAccessory,
                               }}
                               size="md"
                             />

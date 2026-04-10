@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { showcasePostBody, type PhraseSelections } from '../data/projectShowcaseCatalog';
-import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import {
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
@@ -30,7 +29,7 @@ export const ProjectShowcasePanel: React.FC = () => {
 
   const [posts, setPosts] = useState<ShowcasePostRow[]>([]);
   const [authors, setAuthors] = useState<
-    Record<string, { name: string | null; avatar: string | null; xp: number | null }>
+    Record<string, { name: string | null; avatar: string | null; avatar_accessory?: string | null; xp: number | null }>
   >({});
   const [loading, setLoading] = useState(true);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
@@ -44,11 +43,16 @@ export const ProjectShowcasePanel: React.FC = () => {
       setPosts(list);
       const ids = [...new Set(list.map((p) => p.author_id))];
       if (ids.length) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp').in('id', ids);
-        const m: Record<string, { name: string | null; avatar: string | null; xp: number | null }> = {};
-        (profs || []).forEach((p: { id: string; name: string | null; avatar: string | null; xp: number | null }) => {
-          m[p.id] = { name: p.name, avatar: p.avatar, xp: p.xp };
-        });
+        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, avatar_accessory, xp').in('id', ids);
+        const m: Record<
+          string,
+          { name: string | null; avatar: string | null; avatar_accessory?: string | null; xp: number | null }
+        > = {};
+        (profs || []).forEach(
+          (p: { id: string; name: string | null; avatar: string | null; avatar_accessory?: string | null; xp: number | null }) => {
+            m[p.id] = { name: p.name, avatar: p.avatar, avatar_accessory: p.avatar_accessory, xp: p.xp };
+          },
+        );
         setAuthors(m);
       } else setAuthors({});
 
@@ -162,8 +166,10 @@ export const ProjectShowcasePanel: React.FC = () => {
                     <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="shrink-0">
                       <UserAvatar
                         user={{
+                          id: p.author_id,
                           name,
-                          avatar: resolveBundledOrDefault(p.author_id, au?.avatar),
+                          avatar: au?.avatar || '',
+                          avatarAccessory: au?.avatar_accessory ?? 'none',
                         }}
                         size="md"
                       />

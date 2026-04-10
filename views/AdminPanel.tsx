@@ -12,7 +12,7 @@ import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
-import { resolveBundledOrDefault } from '../data/defaultAvatars';
+import { resolveAvatarDisplayPath, resolveBundledOrDefault } from '../data/defaultAvatars';
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase';
 
@@ -221,6 +221,7 @@ export const AdminPanel: React.FC = () => {
                     name: u.name || 'Анонимный пользователь',
                     role: u.role || 'Student',
                     avatar: resolveBundledOrDefault(u.id, u.avatar),
+                    avatar_accessory: u.avatar_accessory ?? 'none',
                     level: u.level || 1,
                     xp: u.xp || 0,
                     isApproved: u.is_approved === true
@@ -238,15 +239,16 @@ export const AdminPanel: React.FC = () => {
                 }
                 
                 if (profilesData) {
-                    setUsersList(profilesData.map(u => ({ 
+                    setUsersList(profilesData.map((u) => ({
                         id: u.id,
                         email: u.email || '',
                         name: u.name || 'Анонимный пользователь',
                         role: u.role || 'Student',
-                        avatar: resolveBundledOrDefault(u.id, u.avatar),
+                        avatar: resolveBundledOrDefault(u.id, (u as { avatar?: string | null }).avatar),
+                        avatar_accessory: (u as { avatar_accessory?: string | null }).avatar_accessory ?? 'none',
                         level: u.level || 0,
                         xp: u.xp || 0,
-                        isApproved: u.is_approved === true
+                        isApproved: (u as { is_approved?: boolean }).is_approved === true,
                     })));
                 } else {
                     setUsersList([]);
@@ -1055,7 +1057,11 @@ export const AdminPanel: React.FC = () => {
                                 filteredUsers.map(u => (
                                     <Card key={u.id} className="bg-black border-[#282828] p-0 flex items-center justify-between group overflow-hidden shadow-xl" noPadding>
                                         <div className="p-4 flex items-center gap-4 flex-1">
-                                            <img src={u.avatar} className="w-12 h-12 rounded-full border border-[#282828] object-cover" alt=""/>
+                                            <img
+                                              src={resolveAvatarDisplayPath(u.id, u.avatar, (u as { avatar_accessory?: string }).avatar_accessory)}
+                                              className="w-12 h-12 rounded-full border border-[#282828] bg-zinc-600 object-cover"
+                                              alt=""
+                                            />
                                             <div className="min-w-0 flex-1">
                                                 <h4 className="text-white font-bold text-sm truncate">{u.name}</h4>
                                                 <p className="text-kiddy-textMuted text-[9px] uppercase tracking-tighter truncate">{u.email || 'БЕЗ_EMAIL'}</p>

@@ -22,7 +22,12 @@ import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
-import { defaultAvatarUrlForUserId, isBundledSchoolAvatar, resolveBundledOrDefault } from '../data/defaultAvatars';
+import {
+  defaultAvatarUrlForUserId,
+  isBundledSchoolAvatar,
+  resolveAvatarDisplayPath,
+  resolveBundledOrDefault,
+} from '../data/defaultAvatars';
 interface ProfileProps {
   user: User;
 }
@@ -55,7 +60,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setEditName(currentUser.name);
   }, [currentUser]);
 
-  const profileAvatarSrc = resolveBundledOrDefault(currentUser.id, currentUser.avatar);
+  const profileAvatarSrc = resolveAvatarDisplayPath(
+    currentUser.id,
+    currentUser.avatar,
+    currentUser.avatarAccessory,
+  );
 
   const [myRank, setMyRank] = useState<number | null>(null);
 
@@ -65,7 +74,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, role')
+        .select('id, name, avatar, avatar_accessory, xp, level, role')
         .order('xp', { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -79,12 +88,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         };
         const mapped = data.map((u) => {
           const uxp = u.xp || 0;
+          const row = u as typeof u & { avatar_accessory?: string | null };
           return {
             id: u.id,
             email: '',
             name: u.name || 'Анонимный',
             role: mapRole(u.role as string | null),
             avatar: resolveBundledOrDefault(u.id, u.avatar),
+            avatarAccessory: row.avatar_accessory ?? 'none',
             level: levelFromXp(uxp),
             xp: uxp,
             isApproved: true,
@@ -158,6 +169,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         email: currentUser.email,
         name,
         avatar: defaultAvatarUrlForUserId(currentUser.id),
+        avatar_accessory: 'none',
         role: 'Student',
         level: 1,
         xp: 0,
