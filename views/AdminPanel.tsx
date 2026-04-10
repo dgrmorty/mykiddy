@@ -12,7 +12,7 @@ import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { resolveBundledOrDefault } from '../data/defaultAvatars';
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase';
 
@@ -220,9 +220,7 @@ export const AdminPanel: React.FC = () => {
                     email: u.email || '',
                     name: u.name || 'Анонимный пользователь',
                     role: u.role || 'Student',
-                    avatar: (u.avatar || '').trim().startsWith('/avatars/student-')
-                        ? u.avatar
-                        : defaultAvatarUrlForUserId(u.id),
+                    avatar: resolveBundledOrDefault(u.id, u.avatar),
                     level: u.level || 1,
                     xp: u.xp || 0,
                     isApproved: u.is_approved === true
@@ -245,9 +243,7 @@ export const AdminPanel: React.FC = () => {
                         email: u.email || '',
                         name: u.name || 'Анонимный пользователь',
                         role: u.role || 'Student',
-                        avatar: (u.avatar || '').trim().startsWith('/avatars/student-')
-                            ? u.avatar
-                            : defaultAvatarUrlForUserId(u.id),
+                        avatar: resolveBundledOrDefault(u.id, u.avatar),
                         level: u.level || 0,
                         xp: u.xp || 0,
                         isApproved: u.is_approved === true

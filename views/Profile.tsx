@@ -22,7 +22,7 @@ import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { defaultAvatarUrlForUserId, isBundledSchoolAvatar, resolveBundledOrDefault } from '../data/defaultAvatars';
 interface ProfileProps {
   user: User;
 }
@@ -55,10 +55,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setEditName(currentUser.name);
   }, [currentUser]);
 
-  const profileAvatarSrc =
-    (currentUser.avatar || '').trim().startsWith('/avatars/student-')
-      ? currentUser.avatar
-      : defaultAvatarUrlForUserId(currentUser.id);
+  const profileAvatarSrc = resolveBundledOrDefault(currentUser.id, currentUser.avatar);
 
   const [myRank, setMyRank] = useState<number | null>(null);
 
@@ -87,10 +84,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             email: '',
             name: u.name || 'Анонимный',
             role: mapRole(u.role as string | null),
-            avatar:
-              (u.avatar || '').trim().startsWith('/avatars/student-')
-                ? u.avatar!
-                : defaultAvatarUrlForUserId(u.id),
+            avatar: resolveBundledOrDefault(u.id, u.avatar),
             level: levelFromXp(uxp),
             xp: uxp,
             isApproved: true,
@@ -147,7 +141,9 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
   const writeProfileToDb = async (name: string) => {
     if (currentUser.id === 'guest') throw new Error('Войдите в аккаунт');
-    const avatar = defaultAvatarUrlForUserId(currentUser.id);
+    const avatar = isBundledSchoolAvatar(currentUser.avatar)
+      ? currentUser.avatar.trim()
+      : defaultAvatarUrlForUserId(currentUser.id);
     const updateData = { name, avatar };
 
     const { data: existingProfile } = await supabase
@@ -251,7 +247,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         })}
                       {/* Avatar centered — в режиме редактирования не button, иначе disabled блокирует выбор файла */}
                       {isEditing ? (
-                        <div className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black shadow-2xl">
+                        <div className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 shadow-2xl">
                           <img src={profileAvatarSrc} className="h-full w-full object-cover" alt="" />
                           {saving && (
                             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
@@ -263,7 +259,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         <button
                           type="button"
                           onClick={() => navigate('/settings')}
-                          className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
+                          className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
                           aria-label="Настройки профиля"
                         >
                           <img src={profileAvatarSrc} className="h-full w-full object-cover" alt="" />

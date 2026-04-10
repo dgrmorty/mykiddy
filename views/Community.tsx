@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
@@ -96,10 +96,7 @@ export const Community: React.FC = () => {
     const s = studentById.get(id);
     return {
       name: s?.name || 'Ученик',
-      avatar:
-        (s?.avatar || '').trim().startsWith('/avatars/student-')
-          ? s!.avatar!
-          : defaultAvatarUrlForUserId(id),
+      avatar: resolveBundledOrDefault(id, s?.avatar),
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
     };
@@ -266,10 +263,7 @@ export const Community: React.FC = () => {
                       <UserAvatar
                         user={{
                           name: s.name || 'Ученик',
-                          avatar:
-                            (s.avatar || '').trim().startsWith('/avatars/student-')
-                              ? s.avatar!
-                              : defaultAvatarUrlForUserId(s.id),
+                          avatar: resolveBundledOrDefault(s.id, s.avatar),
                         }}
                         size="lg"
                       />

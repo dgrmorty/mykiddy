@@ -15,20 +15,24 @@ interface Props {
 /** Аватар с запасным URL, если картинка не загрузилась (сеть, кэш вкладки, истёкший URL). */
 export const AvatarImage: React.FC<Props> = ({ src, name = 'U', alt = '', className }) => {
   const primary = (src || '').trim();
-  const [current, setCurrent] = useState(primary || fallbackUrl(name));
+  const resolved = primary || fallbackUrl(name);
+  const [current, setCurrent] = useState(resolved);
 
   useEffect(() => {
-    setCurrent(primary || fallbackUrl(name));
-  }, [primary, name]);
+    setCurrent(resolved);
+  }, [resolved, name]);
 
   return (
     <img
       src={current}
       alt={alt}
-      className={className}
+      className={`bg-zinc-600 ${className || ''}`.trim()}
+      loading="eager"
+      decoding="async"
       referrerPolicy="no-referrer"
       onError={() => {
-        if (current !== fallbackUrl(name)) setCurrent(fallbackUrl(name));
+        const fb = fallbackUrl(name);
+        if (current !== fb) setCurrent(fb);
       }}
     />
   );

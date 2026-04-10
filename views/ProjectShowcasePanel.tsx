@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { showcasePostBody, type PhraseSelections } from '../data/projectShowcaseCatalog';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import {
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
@@ -163,10 +163,7 @@ export const ProjectShowcasePanel: React.FC = () => {
                       <UserAvatar
                         user={{
                           name,
-                          avatar:
-                            au && (au.avatar || '').trim().startsWith('/avatars/student-')
-                              ? au.avatar!
-                              : defaultAvatarUrlForUserId(p.author_id),
+                          avatar: resolveBundledOrDefault(p.author_id, au?.avatar),
                         }}
                         size="md"
                       />

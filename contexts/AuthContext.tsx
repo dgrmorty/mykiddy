@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase, signOut as supabaseSignOut } from '../services/supabase';
 import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { defaultAvatarUrlForUserId, isBundledSchoolAvatar } from '../data/defaultAvatars';
 import { levelFromXp } from '../progression';
 import { AuthModal } from '../components/AuthModal';
 
@@ -19,7 +19,7 @@ const ADMIN_EMAILS = _adminFromEnv;
 function mergePreserveAvatar(prev: User, next: User): User {
   if (prev.id !== next.id || prev.role === Role.GUEST) return next;
   const nextA = (next.avatar || '').trim();
-  if (nextA.startsWith('/avatars/student-')) return next;
+  if (isBundledSchoolAvatar(nextA)) return next;
   const prevA = (prev.avatar || '').trim();
   if (prevA && !nextA) return { ...next, avatar: prevA };
   return next;
@@ -132,9 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name: profile.name || authUser?.user_metadata?.name || 'Пользователь',
               role: finalRole,
               avatar: (() => {
-                const raw = (profile.avatar as string | null | undefined)?.trim() || '';
-                if (raw.startsWith('/avatars/student-')) return raw;
-                return defaultAvatarUrlForUserId(userId);
+                const raw = profile.avatar as string | null | undefined;
+                return isBundledSchoolAvatar(raw) ? (raw as string).trim() : defaultAvatarUrlForUserId(userId);
               })(),
               level: calculatedLevel,
               xp: userXp,

@@ -23,3 +23,13 @@ export function defaultAvatarUrlForUserId(userId: string): string {
 export function defaultAvatarUrlForSeed(seed: string): string {
   return defaultAvatarUrlForUserId(seed || 'guest');
 }
+
+export function isBundledSchoolAvatar(url: string | null | undefined): boolean {
+  const t = (url || '').trim();
+  return t === AVATAR_BOY_PATH || t === AVATAR_GIRL_PATH;
+}
+
+/** Сохранённый выбор мальчик/девочка или дефолт по UUID. */
+export function resolveBundledOrDefault(userId: string, raw: string | null | undefined): string {
+  return isBundledSchoolAvatar(raw) ? (raw as string).trim() : defaultAvatarUrlForUserId(userId);
+}

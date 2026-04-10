@@ -7,7 +7,7 @@ import { supabase } from '../services/supabase';
 import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { AvatarImage } from '../components/AvatarImage';
 
 export type ActivityKind =
@@ -236,10 +236,7 @@ export const Notifications: React.FC = () => {
                       <UserAvatar
                         user={{
                           name,
-                          avatar:
-                            act && (act.avatar || '').trim().startsWith('/avatars/student-')
-                              ? act.avatar!
-                              : defaultAvatarUrlForUserId(row.actor_id || ''),
+                          avatar: resolveBundledOrDefault(row.actor_id || '', act?.avatar),
                         }}
                         size="md"
                       />

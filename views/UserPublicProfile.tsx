@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { fetchUserShowcasePosts, mediaPublicUrl, deleteShowcasePost, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
-import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
+import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 interface PublicProfileRow {
@@ -248,13 +248,9 @@ export const UserPublicProfile: React.FC = () => {
                         </div>
                       );
                     })}
-                  <div className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-zinc-950 shadow-2xl md:h-32 md:w-32">
+                  <div className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 shadow-2xl md:h-32 md:w-32">
                     <AvatarImage
-                      src={
-                        (profile.avatar || '').trim().startsWith('/avatars/student-')
-                          ? profile.avatar!
-                          : defaultAvatarUrlForUserId(profile.id)
-                      }
+                      src={resolveBundledOrDefault(profile.id, profile.avatar)}
                       name={profile.name || 'У'}
                       alt=""
                       className="h-full w-full object-cover"

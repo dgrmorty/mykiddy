@@ -8,18 +8,24 @@ import {
   Sparkles,
   LogOut,
   HelpCircle,
+  Loader2,
 } from 'lucide-react';
 import { onboardingStorageKey } from '../data/onboardingTour';
+import { AVATAR_BOY_PATH, AVATAR_GIRL_PATH, resolveBundledOrDefault } from '../data/defaultAvatars';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
+import { supabase } from '../services/supabase';
 
 export const Settings: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const medalsRef = useRef<HTMLDivElement>(null);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
 
   const badgeUserId = user.id !== 'guest' ? user.id : undefined;
   const { stats: badgeStats, equippedIds, setEquipped, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
@@ -36,6 +42,23 @@ export const Settings: React.FC = () => {
   const handleLogout = async () => {
     await signOut();
     window.location.href = '/';
+  };
+
+  const effectiveAvatar = resolveBundledOrDefault(user.id, user.avatar);
+
+  const saveBundledAvatar = async (path: typeof AVATAR_BOY_PATH | typeof AVATAR_GIRL_PATH) => {
+    if (user.id === 'guest') return;
+    setAvatarSaving(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ avatar: path }).eq('id', user.id);
+      if (error) throw error;
+      await refreshUser();
+      showToast('Аватар обновлён', 'success');
+    } catch {
+      showToast('Не удалось сохранить', 'error');
+    } finally {
+      setAvatarSaving(false);
+    }
   };
 
   const Row = ({
@@ -95,9 +118,44 @@ export const Settings: React.FC = () => {
         <Row
           icon={UserIcon}
           title="Редактировать профиль"
-          subtitle="Имя, аватар школы, статистика и рейтинг"
+          subtitle="Имя, статистика и рейтинг"
           to="/profile"
         />
+        {user.id !== 'guest' && (
+          <div className="rounded-2xl border border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5">
+            <p className="text-white text-sm font-bold mb-1">Аватар школы</p>
+            <p className="text-kiddy-textMuted text-xs mb-4">ИИ-персонаж: выбери мальчика или девочку.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                disabled={avatarSaving}
+                onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
+                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
+                  effectiveAvatar === AVATAR_BOY_PATH
+                    ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
+                    : 'border-white/[0.1] hover:border-white/25'
+                }`}
+                aria-label="Аватар мальчик"
+              >
+                <img src={AVATAR_BOY_PATH} alt="" className="h-full w-full object-cover" loading="eager" decoding="async" />
+              </button>
+              <button
+                type="button"
+                disabled={avatarSaving}
+                onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
+                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
+                  effectiveAvatar === AVATAR_GIRL_PATH
+                    ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
+                    : 'border-white/[0.1] hover:border-white/25'
+                }`}
+                aria-label="Аватар девочка"
+              >
+                <img src={AVATAR_GIRL_PATH} alt="" className="h-full w-full object-cover" loading="eager" decoding="async" />
+              </button>
+              {avatarSaving && <Loader2 className="animate-spin text-kiddy-cherry" size={22} />}
+            </div>
+          </div>
+        )}
         {user.role === Role.ADMIN && (
           <Row icon={Shield} title="Панель управления" subtitle="Курсы, пользователи, расписание" to="/admin" />
         )}
