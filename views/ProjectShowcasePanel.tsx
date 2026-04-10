@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
-import { AvatarImage } from '../components/AvatarImage';
+import { UserAvatar } from '../components/UserAvatar';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { showcasePostBody, type PhraseSelections } from '../data/projectShowcaseCatalog';
+import { mergeAvatarEquip } from '../data/avatarCatalog';
+import { levelFromXp } from '../progression';
 import {
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
@@ -28,7 +30,9 @@ export const ProjectShowcasePanel: React.FC = () => {
   const isAdmin = user.role === Role.ADMIN && user.id !== 'guest';
 
   const [posts, setPosts] = useState<ShowcasePostRow[]>([]);
-  const [authors, setAuthors] = useState<Record<string, { name: string | null; avatar: string | null }>>({});
+  const [authors, setAuthors] = useState<
+    Record<string, { name: string | null; avatar: string | null; xp: number | null; avatar_cosmetic?: unknown }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
   const [countMap, setCountMap] = useState<Record<string, number>>({});
@@ -41,11 +45,16 @@ export const ProjectShowcasePanel: React.FC = () => {
       setPosts(list);
       const ids = [...new Set(list.map((p) => p.author_id))];
       if (ids.length) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar').in('id', ids);
-        const m: Record<string, { name: string | null; avatar: string | null }> = {};
-        (profs || []).forEach((p: { id: string; name: string | null; avatar: string | null }) => {
-          m[p.id] = { name: p.name, avatar: p.avatar };
-        });
+        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp, avatar_cosmetic').in('id', ids);
+        const m: Record<
+          string,
+          { name: string | null; avatar: string | null; xp: number | null; avatar_cosmetic?: unknown }
+        > = {};
+        (profs || []).forEach(
+          (p: { id: string; name: string | null; avatar: string | null; xp: number | null; avatar_cosmetic?: unknown }) => {
+            m[p.id] = { name: p.name, avatar: p.avatar, xp: p.xp, avatar_cosmetic: p.avatar_cosmetic };
+          },
+        );
         setAuthors(m);
       } else setAuthors({});
 
@@ -145,8 +154,7 @@ export const ProjectShowcasePanel: React.FC = () => {
           {posts.map((p, i) => {
             const au = authors[p.author_id];
             const name = au?.name || 'Ученик';
-            const av =
-              au?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+            const authorLvl = levelFromXp(au?.xp ?? 0);
             const body = showcasePostBody((p.phrase_selections || {}) as PhraseSelections);
             const media = Array.isArray(p.media) ? p.media : [];
             const liked = !!likeMap[p.id];
@@ -159,7 +167,16 @@ export const ProjectShowcasePanel: React.FC = () => {
                 <Card hoverEffect className="overflow-hidden p-0">
                   <div className="flex items-start gap-4 border-b border-white/[0.06] p-5">
                     <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="shrink-0">
-                      <AvatarImage src={av} name={name} alt="" className="h-12 w-12 rounded-xl border border-white/10 object-cover" />
+                      <UserAvatar
+                        user={{
+                          role: Role.STUDENT,
+                          name,
+                          avatar: au?.avatar || '',
+                          level: authorLvl,
+                          avatarCosmetic: mergeAvatarEquip(au?.avatar_cosmetic),
+                        }}
+                        size="md"
+                      />
                     </button>
                     <div className="min-w-0 flex-1">
                       <button

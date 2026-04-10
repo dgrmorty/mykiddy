@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase, signOut as supabaseSignOut } from '../services/supabase';
 import { User, Role } from '../types';
+import { mergeAvatarEquip } from '../data/avatarCatalog';
 import { GUEST_USER } from '../constants';
 import { levelFromXp } from '../progression';
 import { AuthModal } from '../components/AuthModal';
@@ -85,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isApproved: true,
       streakCurrent: 0,
       streakLongest: 0,
+      avatarCosmetic: undefined,
     };
   }, []);
 
@@ -141,6 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isApproved: true,
               streakCurrent: profile.streak_current ?? 0,
               streakLongest: profile.streak_longest ?? 0,
+              avatarCosmetic: mergeAvatarEquip(profile.avatar_cosmetic),
             }),
           );
           try {

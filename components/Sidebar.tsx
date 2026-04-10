@@ -6,7 +6,7 @@ import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { useBranding } from '../contexts/BrandingContext';
 import { useNotificationSummary } from '../contexts/NotificationContext';
-import { AvatarImage } from './AvatarImage';
+import { UserAvatar } from './UserAvatar';
 
 interface SidebarProps {
   currentUser: User;
@@ -196,12 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
         <div className="mt-5 shrink-0 space-y-3 border-t border-white/[0.06] pt-5">
           <div className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
             <div className="relative shrink-0">
-              <AvatarImage
-                src={currentUser.avatar}
-                name={currentUser.name}
-                alt=""
-                className="h-11 w-11 rounded-full border border-white/[0.1] object-cover"
-              />
+              <UserAvatar user={currentUser} size="md" />
               {!isGuest && (
                 <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-kiddy-base bg-emerald-500" />
               )}

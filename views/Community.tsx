@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
-import { AvatarImage } from '../components/AvatarImage';
+import { UserAvatar } from '../components/UserAvatar';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
+import { mergeAvatarEquip } from '../data/avatarCatalog';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
@@ -18,6 +19,7 @@ interface StudentRow {
   xp: number | null;
   level: number | null;
   role: string | null;
+  avatar_cosmetic?: unknown;
 }
 
 function isStudentRole(role: string | null | undefined): boolean {
@@ -51,7 +53,7 @@ export const Community: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, role')
+        .select('id, name, avatar, xp, level, role, avatar_cosmetic')
         .order('name', { ascending: true });
       if (error) throw error;
       const list = (data || []).filter((r) => isStudentRole(r.role)) as StudentRow[];
@@ -98,6 +100,7 @@ export const Community: React.FC = () => {
       avatar: s?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s?.name || 'U')}&background=random`,
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
+      avatar_cosmetic: s?.avatar_cosmetic,
     };
   };
 
@@ -145,7 +148,16 @@ export const Community: React.FC = () => {
         style={{ animation: `fade-in-up 0.45s ease both`, animationDelay: `${i * 0.04}s` }}
       >
         <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex min-w-0 flex-1 items-center gap-4 text-left">
-          <AvatarImage src={p.avatar} name={p.name} alt="" className="h-12 w-12 shrink-0 rounded-full border border-white/10 object-cover" />
+          <UserAvatar
+            user={{
+              role: Role.STUDENT,
+              name: p.name || 'Ученик',
+              avatar: p.avatar || '',
+              level: levelFromXp(p.xp ?? 0),
+              avatarCosmetic: mergeAvatarEquip(p.avatar_cosmetic),
+            }}
+            size="lg"
+          />
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold text-white">{p.name}</p>
             <p className="text-kiddy-textMuted text-xs">
@@ -232,8 +244,6 @@ export const Community: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredStudents.map((s, i) => {
-                const avatarUrl =
-                  s.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name || 'U')}&background=random`;
                 const lvl = levelFromXp(s.xp ?? 0);
                 const hasOutgoing =
                   canFriend && friendRows.some((r) => r.requester_id === myId && r.addressee_id === s.id && r.status === 'pending');
@@ -255,11 +265,15 @@ export const Community: React.FC = () => {
                       onClick={() => navigate(`/users/${s.id}`)}
                       className="flex w-full min-w-0 items-center gap-3 text-left sm:gap-4"
                     >
-                      <AvatarImage
-                        src={avatarUrl}
-                        name={s.name || ''}
-                        alt=""
-                        className="h-12 w-12 shrink-0 rounded-2xl border border-white/[0.08] object-cover sm:h-14 sm:w-14"
+                      <UserAvatar
+                        user={{
+                          role: Role.STUDENT,
+                          name: s.name || 'Ученик',
+                          avatar: s.avatar || '',
+                          level: lvl,
+                          avatarCosmetic: mergeAvatarEquip(s.avatar_cosmetic),
+                        }}
+                        size="lg"
                       />
                       <div className="min-w-0 flex-1">
                         <p className="break-words font-bold text-white leading-snug text-balance [overflow-wrap:anywhere]">
@@ -344,7 +358,16 @@ export const Community: React.FC = () => {
                           style={{ animation: `fade-in-up 0.45s ease both`, animationDelay: `${i * 0.05}s` }}
                         >
                           <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
-                            <AvatarImage src={p.avatar} name={p.name} alt="" className="h-11 w-11 rounded-full border border-white/10 object-cover shrink-0" />
+                            <UserAvatar
+                              user={{
+                                role: Role.STUDENT,
+                                name: p.name || 'Ученик',
+                                avatar: p.avatar || '',
+                                level: levelFromXp(p.xp ?? 0),
+                                avatarCosmetic: mergeAvatarEquip(p.avatar_cosmetic),
+                              }}
+                              size="md"
+                            />
                             <div className="min-w-0">
                               <p className="font-bold text-white truncate">{p.name}</p>
                               <p className="text-kiddy-textMuted text-xs">Хочет дружить</p>
@@ -403,7 +426,16 @@ export const Community: React.FC = () => {
                           className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
-                            <AvatarImage src={p.avatar} name={p.name} alt="" className="h-11 w-11 rounded-full object-cover shrink-0" />
+                            <UserAvatar
+                              user={{
+                                role: Role.STUDENT,
+                                name: p.name || 'Ученик',
+                                avatar: p.avatar || '',
+                                level: levelFromXp(p.xp ?? 0),
+                                avatarCosmetic: mergeAvatarEquip(p.avatar_cosmetic),
+                              }}
+                              size="md"
+                            />
                             <div className="min-w-0">
                               <p className="font-bold text-white truncate">{p.name}</p>
                               <p className="text-kiddy-textMuted text-xs">Ожидает ответа</p>

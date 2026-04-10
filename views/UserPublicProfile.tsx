@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
-import { AvatarImage } from '../components/AvatarImage';
+import { ProgrammerAvatar } from '../components/ProgrammerAvatar';
 import { BadgeOrb } from '../components/BadgeOrb';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { fetchUserShowcasePosts, mediaPublicUrl, deleteShowcasePost, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
+import { clampEquipToLevel, mergeAvatarEquip } from '../data/avatarCatalog';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 interface PublicProfileRow {
@@ -40,6 +41,7 @@ interface PublicProfileRow {
   xp: number | null;
   level: number | null;
   role: string | null;
+  avatar_cosmetic?: unknown;
 }
 
 function isStudentRole(role: string | null | undefined): boolean {
@@ -91,7 +93,7 @@ export const UserPublicProfile: React.FC = () => {
       setLoadError(false);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, role')
+        .select('id, name, avatar, xp, level, role, avatar_cosmetic')
         .eq('id', userId)
         .maybeSingle();
       if (cancelled) return;
@@ -194,10 +196,6 @@ export const UserPublicProfile: React.FC = () => {
 
   const xp = profile?.xp ?? 0;
   const level = levelFromXp(xp);
-  const avatarUrl =
-    profile?.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'U')}&background=random`;
-
   const statsReady = profile && !loadingBadges;
   const showProgressSection = statsReady && !loadingCourses;
 
@@ -251,12 +249,12 @@ export const UserPublicProfile: React.FC = () => {
                         </div>
                       );
                     })}
-                  <AvatarImage
-                    src={avatarUrl}
-                    name={profile.name || 'Ученик'}
-                    alt=""
-                    className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/10 object-cover shadow-2xl md:h-32 md:w-32"
-                  />
+                  <div className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-end justify-center overflow-hidden rounded-2xl border-2 border-white/10 bg-zinc-950 shadow-2xl md:h-32 md:w-32">
+                    <ProgrammerAvatar
+                      equip={clampEquipToLevel(mergeAvatarEquip(profile.avatar_cosmetic), level)}
+                      size={124}
+                    />
+                  </div>
                   <div className="absolute -bottom-1 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] font-bold text-white">
                     LVL {level}
                   </div>

@@ -4,7 +4,7 @@ import { User, Role } from '../types';
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { AnimatedIcon } from './ui/AnimatedIcon';
 import { PageTransition } from './PageTransition';
-import { AvatarImage } from './AvatarImage';
+import { UserAvatar } from './UserAvatar';
 import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { useBranding } from '../contexts/BrandingContext';
@@ -120,12 +120,7 @@ function LayoutShell({ user }: LayoutProps) {
               )}
             </Link>
           )}
-          <AvatarImage
-            src={user.avatar}
-            name={user.name}
-            alt=""
-            className="h-8 w-8 rounded-full border border-white/[0.08] object-cover"
-          />
+          <UserAvatar user={user} size="xs" />
         </div>
       </header>
 

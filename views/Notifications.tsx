@@ -5,6 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotificationSummary } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabase';
 import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
+import { Role } from '../types';
+import { mergeAvatarEquip } from '../data/avatarCatalog';
+import { levelFromXp } from '../progression';
+import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
 
 export type ActivityKind =
@@ -43,7 +47,18 @@ export const Notifications: React.FC = () => {
   const { refreshUnreadCount } = useNotificationSummary();
   const navigate = useNavigate();
   const [rows, setRows] = useState<ActivityNotificationRow[]>([]);
-  const [actors, setActors] = useState<Record<string, { name: string | null; avatar: string | null }>>({});
+  const [actors, setActors] = useState<
+    Record<
+      string,
+      {
+        name: string | null;
+        avatar: string | null;
+        xp: number | null;
+        role: string | null;
+        avatar_cosmetic?: unknown;
+      }
+    >
+  >({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -62,11 +77,35 @@ export const Notifications: React.FC = () => {
 
       const ids = [...new Set(list.map((r) => r.actor_id).filter(Boolean))] as string[];
       if (ids.length > 0) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar').in('id', ids);
-        const map: Record<string, { name: string | null; avatar: string | null }> = {};
-        (profs || []).forEach((p: { id: string; name: string | null; avatar: string | null }) => {
-          map[p.id] = { name: p.name, avatar: p.avatar };
-        });
+        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp, avatar_cosmetic, role').in('id', ids);
+        const map: Record<
+          string,
+          {
+            name: string | null;
+            avatar: string | null;
+            xp: number | null;
+            role: string | null;
+            avatar_cosmetic?: unknown;
+          }
+        > = {};
+        (profs || []).forEach(
+          (p: {
+            id: string;
+            name: string | null;
+            avatar: string | null;
+            xp: number | null;
+            role: string | null;
+            avatar_cosmetic?: unknown;
+          }) => {
+            map[p.id] = {
+              name: p.name,
+              avatar: p.avatar,
+              xp: p.xp,
+              role: p.role,
+              avatar_cosmetic: p.avatar_cosmetic,
+            };
+          },
+        );
         setActors(map);
       } else {
         setActors({});
@@ -160,9 +199,8 @@ export const Notifications: React.FC = () => {
           {rows.map((row, i) => {
             const act = row.actor_id ? actors[row.actor_id] : null;
             const name = act?.name || 'Ученик';
-            const av =
-              act?.avatar ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+            const actorLvl = levelFromXp(act?.xp ?? 0);
+            const actorIsStudent = (act?.role || '').toLowerCase() === 'student';
             const unread = !row.read_at;
             const reason =
               row.kind === 'project_rejected' && typeof row.payload?.reason === 'string'
@@ -200,7 +238,25 @@ export const Notifications: React.FC = () => {
                   }`}
                 >
                   <div className="relative shrink-0">
-                    <AvatarImage src={av} name={name} alt="" className="h-12 w-12 rounded-xl border border-white/10 object-cover sm:h-14 sm:w-14" />
+                    {actorIsStudent ? (
+                      <UserAvatar
+                        user={{
+                          role: Role.STUDENT,
+                          name,
+                          avatar: act?.avatar || '',
+                          level: actorLvl,
+                          avatarCosmetic: mergeAvatarEquip(act?.avatar_cosmetic),
+                        }}
+                        size="md"
+                      />
+                    ) : (
+                      <AvatarImage
+                        src={act?.avatar || undefined}
+                        name={name}
+                        alt=""
+                        className="h-12 w-12 rounded-xl border border-white/10 object-cover sm:h-14 sm:w-14"
+                      />
+                    )}
                     <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-black bg-kiddy-base text-kiddy-cherry">
                       <Icon size={14} strokeWidth={2.5} />
                     </span>

@@ -2,6 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
+import { UserAvatar } from '../components/UserAvatar';
+import { AvatarImage } from '../components/AvatarImage';
+import { mergeAvatarEquip } from '../data/avatarCatalog';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
@@ -20,6 +23,7 @@ import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
+import { AvatarCustomizerSection } from './AvatarCustomizerSection';
 
 interface ProfileProps {
   user: User;
@@ -65,22 +69,30 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level')
+        .select('id, name, avatar, xp, level, role, avatar_cosmetic')
         .order('xp', { ascending: false })
         .limit(50);
       if (error) throw error;
       if (data) {
+        const mapRole = (r: string | null | undefined): Role => {
+          const x = (r || '').toLowerCase();
+          if (x === 'admin') return Role.ADMIN;
+          if (x === 'teacher') return Role.TEACHER;
+          if (x === 'parent') return Role.PARENT;
+          return Role.STUDENT;
+        };
         const mapped = data.map((u) => {
           const uxp = u.xp || 0;
           return {
             id: u.id,
             email: '',
             name: u.name || 'Анонимный',
-            role: 'Student' as any,
+            role: mapRole(u.role as string | null),
             avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
             level: levelFromXp(uxp),
             xp: uxp,
             isApproved: true,
+            avatarCosmetic: mergeAvatarEquip((u as { avatar_cosmetic?: unknown }).avatar_cosmetic),
           };
         });
         setLeaderboard(mapped);
@@ -409,6 +421,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
       )}
 
+      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && <AvatarCustomizerSection />}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
@@ -583,11 +597,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                           )}
                                       </div>
                                       
-                                      <img 
-                                          src={user.avatar} 
-                                          alt={user.name}
-                                          className="w-12 h-12 rounded-full border-2 border-white/[0.08] object-cover"
-                                      />
+                                      {user.role === Role.STUDENT ? (
+                                        <UserAvatar user={user} size="md" />
+                                      ) : (
+                                        <AvatarImage
+                                          src={user.avatar}
+                                          name={user.name}
+                                          alt=""
+                                          className="h-12 w-12 rounded-full border-2 border-white/[0.08] object-cover"
+                                        />
+                                      )}
                                       
                                       <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2">
