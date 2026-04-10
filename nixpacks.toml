@@ -1,7 +1,7 @@
-# Railway (Nixpacks): Vite, Tailwind, PostCSS, TypeScript лежат в devDependencies.
-# Без них сборка падает, если npm ставит только production-зависимости.
+# Railway: Vite + Tailwind + PostCSS теперь в dependencies — сборка проходит и при `npm ci` с NODE_ENV=production.
+# (Раньше здесь был `npm ci --include=dev`, если Railpack/Nixpacks не подхватывал конфиг — падало с «vite: command not found».)
 [phases.install]
-cmds = ["npm ci --include=dev --prefer-offline --no-audit"]
+cmds = ["npm ci --prefer-offline --no-audit"]
 
 [phases.build]
 cmds = ["npm run build"]
