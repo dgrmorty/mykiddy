@@ -248,7 +248,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       {/* Avatar centered — в режиме редактирования не button, иначе disabled блокирует выбор файла */}
                       {isEditing ? (
                         <div className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 shadow-2xl">
-                          <img src={profileAvatarSrc} className="h-full w-full object-cover" alt="" />
+                          <img
+                            src={profileAvatarSrc}
+                            className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                            alt=""
+                          />
                           {saving && (
                             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
                               <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
@@ -262,7 +266,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
                           aria-label="Настройки профиля"
                         >
-                          <img src={profileAvatarSrc} className="h-full w-full object-cover" alt="" />
+                          <img
+                            src={profileAvatarSrc}
+                            className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                            alt=""
+                          />
                         </button>
                       )}
                       {!isEditing && (

@@ -20,16 +20,18 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   className = '',
   photoClassName,
 }) => {
-  const photo =
+  const wrap =
     photoClassName ||
-    `rounded-full border border-white/[0.1] object-cover ${size === 'xs' ? 'h-7 w-7' : size === 'sm' ? 'h-9 w-9' : size === 'md' ? 'h-11 w-11' : size === 'lg' ? 'h-14 w-14' : 'h-24 w-24'}`;
+    `inline-flex shrink-0 overflow-hidden rounded-full border border-white/[0.1] ${size === 'xs' ? 'h-7 w-7' : size === 'sm' ? 'h-9 w-9' : size === 'md' ? 'h-11 w-11' : size === 'lg' ? 'h-14 w-14' : 'h-24 w-24'}`;
 
   return (
-    <AvatarImage
-      src={user.avatar}
-      name={user.name}
-      alt=""
-      className={`${photo} ${className}`.trim()}
-    />
+    <span className={`${wrap} ${className}`.trim()}>
+      <AvatarImage
+        src={user.avatar}
+        name={user.name}
+        alt=""
+        className="block h-full w-full origin-center scale-[1.14] object-cover object-center"
+      />
+    </span>
   );
 };

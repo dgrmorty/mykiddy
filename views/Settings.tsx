@@ -137,7 +137,13 @@ export const Settings: React.FC = () => {
                 }`}
                 aria-label="Аватар мальчик"
               >
-                <img src={AVATAR_BOY_PATH} alt="" className="h-full w-full object-cover" loading="eager" decoding="async" />
+                <img
+                  src={AVATAR_BOY_PATH}
+                  alt=""
+                  className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                  loading="eager"
+                  decoding="async"
+                />
               </button>
               <button
                 type="button"
@@ -150,7 +156,13 @@ export const Settings: React.FC = () => {
                 }`}
                 aria-label="Аватар девочка"
               >
-                <img src={AVATAR_GIRL_PATH} alt="" className="h-full w-full object-cover" loading="eager" decoding="async" />
+                <img
+                  src={AVATAR_GIRL_PATH}
+                  alt=""
+                  className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                  loading="eager"
+                  decoding="async"
+                />
               </button>
               {avatarSaving && <Loader2 className="animate-spin text-kiddy-cherry" size={22} />}
             </div>

@@ -253,7 +253,7 @@ export const UserPublicProfile: React.FC = () => {
                       src={resolveBundledOrDefault(profile.id, profile.avatar)}
                       name={profile.name || 'У'}
                       alt=""
-                      className="h-full w-full object-cover"
+                      className="h-full w-full origin-center scale-[1.14] object-cover object-center"
                     />
                   </div>
                   <div className="absolute -bottom-1 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] font-bold text-white">
