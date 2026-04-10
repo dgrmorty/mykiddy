@@ -194,14 +194,25 @@ const aiLimiter = rateLimit({
 // Это заставляет сервер искать index.html и JS файлы именно там
 app.use(express.static(path.join(__dirname, 'dist')));
 
+/** Ключ Gemini: API_KEY или GEMINI_API_KEY (часто лишние пробелы в Railway — trim). */
+function resolveGeminiApiKey() {
+    const raw = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    const key = typeof raw === 'string' ? raw.trim() : '';
+    return key || null;
+}
+
 const initAI = () => {
-    const key = process.env.API_KEY;
+    const key = resolveGeminiApiKey();
     if (!key) {
-        console.warn("⚠️ API_KEY не задан. ИИ-тьютор и проверка ДЗ работать не будут. Задайте API_KEY в .env (локально) или в Variables (Railway).");
+        console.warn(
+            "⚠️ API_KEY (или GEMINI_API_KEY) не задан. ИИ не будет работать. Укажи переменную в Railway → Variables сервиса, где выполняется node server.js (не только у build-стадии), затем redeploy.",
+        );
         return null;
     }
     try {
-        return new GoogleGenAI({ apiKey: key });
+        const client = new GoogleGenAI({ apiKey: key });
+        console.log(`[AI] Gemini клиент инициализирован (длина ключа: ${key.length} символов).`);
+        return client;
     } catch (e) {
         console.error("AI Init Error:", e);
         return null;
@@ -209,7 +220,21 @@ const initAI = () => {
 };
 
 const ai = initAI();
-if (!ai) console.warn("Запуск без ИИ: проверьте API_KEY и перезапустите сервер.");
+if (!ai) console.warn("Запуск без ИИ: проверьте API_KEY / GEMINI_API_KEY и перезапустите сервер.");
+
+/** Ошибка от Google из‑за ключа/доступа (не путать с пустым message от других сбоев). */
+function isLikelyGeminiAuthError(error) {
+    const msg = String(error?.message ?? error ?? '').toLowerCase();
+    const code = error?.code ?? error?.status ?? error?.statusCode;
+    if (code === 401 || code === 403) return true;
+    return (
+        msg.includes('api key') ||
+        msg.includes('api_key') ||
+        msg.includes('invalid api') ||
+        msg.includes('permission denied') ||
+        msg.includes('unauthenticated')
+    );
+}
 
 // Проверка на prompt injection (серверная дублирующая проверка)
 function isPromptInjection(text) {
@@ -434,7 +459,7 @@ app.get('/api/ai-usage', async (req, res) => {
 app.post('/api/ai-tutor', aiLimiter, async (req, res) => {
     if (!ai) {
         return res.status(503).json({
-            error: "ИИ-сервис не настроен. Задайте API_KEY в .env (локально) или в Railway → Variables.",
+            error: "ИИ-сервис не настроен. Задайте API_KEY или GEMINI_API_KEY в .env (локально) или в Railway → Variables сервиса с node server.js.",
             code: "SERVICE_UNAVAILABLE"
         });
     }
@@ -509,19 +534,20 @@ ${CHILD_SAFE_LANGUAGE_RULES}
         const code = error?.code ?? error?.status ?? error?.statusCode;
         console.error("AI Tutor request failed:", msg, "code:", code, "full:", error);
 
-        if (!msg || msg.includes('API key') || msg.includes('401') || msg.includes('API_KEY') || code === 401) {
+        if (isLikelyGeminiAuthError(error)) {
             return res.status(503).json({
-                error: "Неверный или отсутствующий API ключ Gemini. Задайте API_KEY в Railway Variables и перезапустите сервис.",
+                error: "Google отклонил запрос (ключ Gemini или доступ). Проверь API_KEY / GEMINI_API_KEY в Variables того же Railway-сервиса, что запускает server.js, без кавычек и пробелов по краям; в Google AI Studio включи Generative Language API и создай ключ заново при необходимости.",
                 code: "SERVICE_UNAVAILABLE"
             });
         }
-        if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || code === 429) {
+        const msgLower = msg.toLowerCase();
+        if (msgLower.includes('429') || msgLower.includes('quota') || msgLower.includes('resource_exhausted') || code === 429) {
             return res.status(503).json({
                 error: "Превышена квота Google AI. Попробуйте позже или проверьте лимиты в Google AI Studio.",
                 code: "SERVICE_UNAVAILABLE"
             });
         }
-        if (msg.includes('404') || msg.includes('model') || msg.includes('not found')) {
+        if (msgLower.includes('404') || msgLower.includes('model') || msgLower.includes('not found')) {
             return res.status(503).json({
                 error: "Модель ИИ временно недоступна. Попробуйте позже.",
                 code: "SERVICE_UNAVAILABLE"
@@ -534,7 +560,7 @@ ${CHILD_SAFE_LANGUAGE_RULES}
 app.post('/api/check-homework', aiLimiter, async (req, res) => {
     if (!ai) {
         return res.status(503).json({
-            error: "ИИ-сервис не настроен. Задайте API_KEY в .env (локально) или в Railway → Variables.",
+            error: "ИИ-сервис не настроен. Задайте API_KEY или GEMINI_API_KEY в .env (локально) или в Railway → Variables сервиса с node server.js.",
             code: "SERVICE_UNAVAILABLE"
         });
     }
@@ -659,13 +685,14 @@ ${CHILD_SAFE_LANGUAGE_RULES}
         const msg = error?.message ?? String(error);
         const code = error?.code ?? error?.status ?? error?.statusCode;
         console.error("Homework check failed:", msg, "code:", code, "full:", error);
-        if (!msg || msg.includes('API key') || msg.includes('401') || msg.includes('API_KEY') || code === 401) {
+        if (isLikelyGeminiAuthError(error)) {
             return res.status(503).json({
-                error: "Неверный или отсутствующий API ключ Gemini. Задайте API_KEY в Railway Variables и перезапустите сервис.",
+                error: "Google отклонил запрос (ключ Gemini или доступ). Проверь API_KEY / GEMINI_API_KEY в Variables сервиса с server.js; ключ без кавычек; в AI Studio — новый ключ и доступ к API.",
                 code: "SERVICE_UNAVAILABLE"
             });
         }
-        if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || code === 429) {
+        const msgLower = msg.toLowerCase();
+        if (msgLower.includes('429') || msgLower.includes('quota') || msgLower.includes('resource_exhausted') || code === 429) {
             return res.status(503).json({
                 error: "Превышена квота Google AI. Попробуйте позже.",
                 code: "SERVICE_UNAVAILABLE"
