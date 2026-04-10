@@ -426,23 +426,39 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       )}
 
       {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-        <div className="stagger-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
-          <button
-            type="button"
-            onClick={() => setShowcaseModalOpen(true)}
-            className="group inline-flex items-center justify-center gap-2.5 rounded-2xl border border-kiddy-cherry/35 bg-gradient-to-r from-kiddy-cherry/20 via-kiddy-cherry/10 to-transparent px-5 py-3.5 text-sm font-bold text-white shadow-[0_0_40px_-12px_rgba(230,0,43,0.5)] transition-all hover:border-kiddy-cherry/55 hover:shadow-[0_0_48px_-8px_rgba(230,0,43,0.65)] active:scale-[0.99]"
-          >
-            <Sparkles size={18} className="text-kiddy-cherry transition-transform group-hover:rotate-12" strokeWidth={2} />
-            Выложить проект на витрину
-          </button>
-        </div>
-      )}
-
-      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
         <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
+          <Card className="stagger-2 lg:col-span-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]">
+                  <Sparkles className="text-kiddy-cherry" size={22} strokeWidth={2} />
+                </div>
+                <div className="min-w-0">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-kiddy-textMuted">Витрина</p>
+                  <h3 className="font-display text-lg font-bold tracking-tight text-white md:text-xl">
+                    Выложить проект на витрину
+                  </h3>
+                  <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-kiddy-textMuted">
+                    Расскажи о работе в паре фраз, прикрепи скрин или видео — наставник проверит и опубликует в разделе «Сообщество».
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowcaseModalOpen(true)}
+                className="group inline-flex shrink-0 items-center justify-center gap-2 self-stretch rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/[0.12] px-5 py-3.5 text-sm font-bold text-white transition-all hover:border-kiddy-cherry/50 hover:bg-kiddy-cherry/20 active:scale-[0.99] sm:self-auto"
+              >
+                Выложить проект
+                <ChevronRight size={18} className="text-kiddy-cherry transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
+              </button>
+            </div>
+          </Card>
+        )}
+
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
                 <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
