@@ -194,19 +194,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
         </nav>
 
         <div className="mt-5 shrink-0 space-y-3 border-t border-white/[0.06] pt-5">
-          <div className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
-            <div className="relative shrink-0">
-              <UserAvatar user={currentUser} size="md" />
-              {!isGuest && (
+          {!isGuest ? (
+            <Link
+              to="/profile"
+              title="Мой профиль"
+              className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 transition-colors hover:border-white/[0.1] hover:bg-white/[0.04]"
+            >
+              <div className="relative shrink-0">
+                <UserAvatar user={currentUser} size="md" />
                 <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-kiddy-base bg-emerald-500" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold tracking-wide text-white">{currentUser.name.split(' ')[0]}</p>
-              <p className="mt-0.5 text-xs font-medium text-kiddy-textMuted">
-                {isGuest
-                  ? 'Гость'
-                  : isAdmin
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold tracking-wide text-white">{currentUser.name.split(' ')[0]}</p>
+                <p className="mt-0.5 text-xs font-medium text-kiddy-textMuted">
+                  {isAdmin
                     ? 'Админ'
                     : isTeacher
                       ? 'Преподаватель'
@@ -215,9 +216,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                         : currentUser.role === Role.STUDENT
                           ? 'Ученик'
                           : `Уровень ${currentUser.level}`}
-              </p>
-            </div>
-            {!isGuest && (
+                </p>
+              </div>
               <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
                 <span className="rounded-lg border border-kiddy-cherry/25 bg-kiddy-cherry/12 px-2 py-0.5 font-display text-[11px] font-bold tabular-nums text-white">
                   Ур. {currentUser.level}
@@ -226,8 +226,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                   {currentUser.xp.toLocaleString('ru-RU')} XP
                 </span>
               </div>
-            )}
-          </div>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
+              <div className="relative shrink-0">
+                <UserAvatar user={currentUser} size="md" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold tracking-wide text-white">{currentUser.name.split(' ')[0]}</p>
+                <p className="mt-0.5 text-xs font-medium text-kiddy-textMuted">Гость</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1">
             {isGuest ? (

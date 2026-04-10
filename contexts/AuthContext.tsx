@@ -84,7 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isApproved: true,
       streakCurrent: 0,
       streakLongest: 0,
-      avatarAccessory: 'none',
     };
   }, []);
 
@@ -141,7 +140,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isApproved: true,
               streakCurrent: profile.streak_current ?? 0,
               streakLongest: profile.streak_longest ?? 0,
-              avatarAccessory: (profile as { avatar_accessory?: string | null }).avatar_accessory ?? 'none',
             }),
           );
           try {

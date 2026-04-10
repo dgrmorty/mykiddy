@@ -51,7 +51,6 @@ export const Notifications: React.FC = () => {
       {
         name: string | null;
         avatar: string | null;
-        avatar_accessory?: string | null;
         xp: number | null;
         role: string | null;
       }
@@ -77,14 +76,13 @@ export const Notifications: React.FC = () => {
       if (ids.length > 0) {
         const { data: profs } = await supabase
           .from('profiles')
-          .select('id, name, avatar, avatar_accessory, xp, role')
+          .select('id, name, avatar, xp, role')
           .in('id', ids);
         const map: Record<
           string,
           {
             name: string | null;
             avatar: string | null;
-            avatar_accessory?: string | null;
             xp: number | null;
             role: string | null;
           }
@@ -94,14 +92,12 @@ export const Notifications: React.FC = () => {
             id: string;
             name: string | null;
             avatar: string | null;
-            avatar_accessory?: string | null;
             xp: number | null;
             role: string | null;
           }) => {
             map[p.id] = {
               name: p.name,
               avatar: p.avatar,
-              avatar_accessory: p.avatar_accessory,
               xp: p.xp,
               role: p.role,
             };
@@ -244,7 +240,6 @@ export const Notifications: React.FC = () => {
                           id: row.actor_id || '',
                           name,
                           avatar: act?.avatar || '',
-                          avatarAccessory: act?.avatar_accessory ?? 'none',
                         }}
                         size="md"
                       />

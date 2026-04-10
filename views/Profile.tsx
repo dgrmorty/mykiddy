@@ -6,9 +6,24 @@ import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
-import { 
-    Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Check, X, Loader2, Target, 
-    LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Settings2, Sparkles
+import {
+  Award,
+  Zap,
+  Crown,
+  Fingerprint,
+  ChevronRight,
+  Edit2,
+  Check,
+  X,
+  Loader2,
+  Target,
+  LogOut,
+  AlertTriangle,
+  Trophy,
+  Medal,
+  Lock,
+  Settings2,
+  Sparkles,
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase } from '../services/supabase';
@@ -23,9 +38,10 @@ import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
 import {
+  AVATAR_BOY_PATH,
+  AVATAR_GIRL_PATH,
   defaultAvatarUrlForUserId,
   isBundledSchoolAvatar,
-  resolveAvatarDisplayPath,
   resolveBundledOrDefault,
 } from '../data/defaultAvatars';
 interface ProfileProps {
@@ -44,6 +60,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const navigate = useNavigate();
   const { showToast } = useToast();
   
@@ -60,11 +77,23 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setEditName(currentUser.name);
   }, [currentUser]);
 
-  const profileAvatarSrc = resolveAvatarDisplayPath(
-    currentUser.id,
-    currentUser.avatar,
-    currentUser.avatarAccessory,
-  );
+  const profileAvatarSrc = resolveBundledOrDefault(currentUser.id, currentUser.avatar);
+  const effectiveBundledAvatar = resolveBundledOrDefault(currentUser.id, currentUser.avatar);
+
+  const saveBundledAvatar = async (path: typeof AVATAR_BOY_PATH | typeof AVATAR_GIRL_PATH) => {
+    if (currentUser.id === 'guest') return;
+    setAvatarSaving(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ avatar: path }).eq('id', currentUser.id);
+      if (error) throw error;
+      await refreshUser();
+      showToast('Персонаж обновлён', 'success');
+    } catch {
+      showToast('Не удалось сохранить', 'error');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
 
   const [myRank, setMyRank] = useState<number | null>(null);
 
@@ -74,7 +103,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, avatar_accessory, xp, level, role')
+        .select('id, name, avatar, xp, level, role')
         .order('xp', { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -88,14 +117,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         };
         const mapped = data.map((u) => {
           const uxp = u.xp || 0;
-          const row = u as typeof u & { avatar_accessory?: string | null };
           return {
             id: u.id,
             email: '',
             name: u.name || 'Анонимный',
             role: mapRole(u.role as string | null),
             avatar: resolveBundledOrDefault(u.id, u.avatar),
-            avatarAccessory: row.avatar_accessory ?? 'none',
             level: levelFromXp(uxp),
             xp: uxp,
             isApproved: true,
@@ -169,7 +196,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         email: currentUser.email,
         name,
         avatar: defaultAvatarUrlForUserId(currentUser.id),
-        avatar_accessory: 'none',
         role: 'Student',
         level: 1,
         xp: 0,
@@ -272,18 +298,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           )}
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/settings')}
-                          className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
-                          aria-label="Настройки профиля"
+                        <div
+                          className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 shadow-2xl"
+                          aria-hidden
                         >
                           <img
                             src={profileAvatarSrc}
                             className="h-full w-full origin-center scale-[1.14] object-cover object-center"
                             alt=""
                           />
-                        </button>
+                        </div>
                       )}
                       {!isEditing && (
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-full border border-black z-20 shadow-lg">
@@ -352,6 +376,54 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
         </div>
       </section>
+
+      {currentUser.id !== 'guest' && (
+        <div className="stagger-1 -mt-4 w-full max-w-3xl rounded-2xl border border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5 backdrop-blur-md">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-kiddy-textMuted">Персонаж</p>
+          <p className="mb-4 text-sm text-kiddy-textMuted">Мальчик или девочка — нажми на вариант, он сразу сохранится в профиле.</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              disabled={avatarSaving}
+              onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
+              className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
+                effectiveBundledAvatar === AVATAR_BOY_PATH
+                  ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
+                  : 'border-white/[0.1] hover:border-white/25'
+              }`}
+              aria-label="Персонаж мальчик"
+            >
+              <img
+                src={AVATAR_BOY_PATH}
+                alt=""
+                className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                loading="eager"
+                decoding="async"
+              />
+            </button>
+            <button
+              type="button"
+              disabled={avatarSaving}
+              onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
+              className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
+                effectiveBundledAvatar === AVATAR_GIRL_PATH
+                  ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
+                  : 'border-white/[0.1] hover:border-white/25'
+              }`}
+              aria-label="Персонаж девочка"
+            >
+              <img
+                src={AVATAR_GIRL_PATH}
+                alt=""
+                className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                loading="eager"
+                decoding="async"
+              />
+            </button>
+            {avatarSaving && <Loader2 className="animate-spin text-kiddy-cherry" size={22} />}
+          </div>
+        </div>
+      )}
 
       {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
         <div className="stagger-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">

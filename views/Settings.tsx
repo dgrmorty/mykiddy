@@ -8,32 +8,19 @@ import {
   Sparkles,
   LogOut,
   HelpCircle,
-  Loader2,
 } from 'lucide-react';
 import { onboardingStorageKey } from '../data/onboardingTour';
-import {
-  AVATAR_ACCESSORY_IDS,
-  AVATAR_ACCESSORY_LABELS,
-  AVATAR_BOY_PATH,
-  AVATAR_GIRL_PATH,
-  normalizeAvatarAccessory,
-  resolveAvatarDisplayPath,
-  resolveBundledOrDefault,
-} from '../data/defaultAvatars';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
-import { supabase } from '../services/supabase';
 
 export const Settings: React.FC = () => {
-  const { user, signOut, refreshUser } = useAuth();
-  const { showToast } = useToast();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const medalsRef = useRef<HTMLDivElement>(null);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
-  const [avatarSaving, setAvatarSaving] = useState(false);
 
   const badgeUserId = user.id !== 'guest' ? user.id : undefined;
   const { stats: badgeStats, equippedIds, setEquipped, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
@@ -50,40 +37,6 @@ export const Settings: React.FC = () => {
   const handleLogout = async () => {
     await signOut();
     window.location.href = '/';
-  };
-
-  const effectiveBase = resolveBundledOrDefault(user.id, user.avatar);
-  const effectiveAccessory = normalizeAvatarAccessory(user.avatarAccessory);
-
-  const saveBundledAvatar = async (path: typeof AVATAR_BOY_PATH | typeof AVATAR_GIRL_PATH) => {
-    if (user.id === 'guest') return;
-    setAvatarSaving(true);
-    try {
-      const { error } = await supabase.from('profiles').update({ avatar: path }).eq('id', user.id);
-      if (error) throw error;
-      await refreshUser();
-      showToast('Персонаж обновлён', 'success');
-    } catch {
-      showToast('Не удалось сохранить', 'error');
-    } finally {
-      setAvatarSaving(false);
-    }
-  };
-
-  const saveAccessory = async (next: 'none' | (typeof AVATAR_ACCESSORY_IDS)[number]) => {
-    if (user.id === 'guest') return;
-    const value = normalizeAvatarAccessory(next);
-    setAvatarSaving(true);
-    try {
-      const { error } = await supabase.from('profiles').update({ avatar_accessory: value }).eq('id', user.id);
-      if (error) throw error;
-      await refreshUser();
-      showToast('Аксессуар сохранён', 'success');
-    } catch {
-      showToast('Не удалось сохранить', 'error');
-    } finally {
-      setAvatarSaving(false);
-    }
   };
 
   const Row = ({
@@ -143,101 +96,9 @@ export const Settings: React.FC = () => {
         <Row
           icon={UserIcon}
           title="Редактировать профиль"
-          subtitle="Имя, статистика и рейтинг"
+          subtitle="Имя, персонаж, статистика и рейтинг"
           to="/profile"
         />
-        {user.id !== 'guest' && (
-          <div className="space-y-5 rounded-2xl border border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5">
-            <div>
-              <p className="text-white text-sm font-bold mb-1">Персонаж</p>
-              <p className="text-kiddy-textMuted text-xs mb-4">Мальчик или девочка — отдельные картинки; аксессуар тоже отдельный PNG (подменяешь файлы в проекте).</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <button
-                  type="button"
-                  disabled={avatarSaving}
-                  onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
-                  className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
-                    effectiveBase === AVATAR_BOY_PATH
-                      ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
-                      : 'border-white/[0.1] hover:border-white/25'
-                  }`}
-                  aria-label="Аватар мальчик"
-                >
-                  <img
-                    src={resolveAvatarDisplayPath(user.id, AVATAR_BOY_PATH, user.avatarAccessory)}
-                    alt=""
-                    className="h-full w-full origin-center scale-[1.14] object-cover object-center"
-                    loading="eager"
-                    decoding="async"
-                  />
-                </button>
-                <button
-                  type="button"
-                  disabled={avatarSaving}
-                  onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
-                  className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
-                    effectiveBase === AVATAR_GIRL_PATH
-                      ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
-                      : 'border-white/[0.1] hover:border-white/25'
-                  }`}
-                  aria-label="Аватар девочка"
-                >
-                  <img
-                    src={resolveAvatarDisplayPath(user.id, AVATAR_GIRL_PATH, user.avatarAccessory)}
-                    alt=""
-                    className="h-full w-full origin-center scale-[1.14] object-cover object-center"
-                    loading="eager"
-                    decoding="async"
-                  />
-                </button>
-                {avatarSaving && <Loader2 className="animate-spin text-kiddy-cherry" size={22} />}
-              </div>
-            </div>
-            <div className="border-t border-white/[0.06] pt-5">
-              <p className="text-white text-sm font-bold mb-1">Аксессуар</p>
-              <p className="text-kiddy-textMuted text-xs mb-3">
-                Файлы: <span className="font-mono text-kiddy-textSecondary">public/avatars/student-boy-cap.png</span> и т.д. — замени своими генерациями с теми же именами.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={avatarSaving}
-                  onClick={() => void saveAccessory('none')}
-                  className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all disabled:opacity-50 ${
-                    effectiveAccessory === 'none'
-                      ? 'border-kiddy-cherry/60 bg-kiddy-cherry/15 text-white'
-                      : 'border-white/[0.1] bg-white/[0.04] text-kiddy-textSecondary hover:border-white/20 hover:text-white'
-                  }`}
-                >
-                  Без
-                </button>
-                {AVATAR_ACCESSORY_IDS.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    disabled={avatarSaving}
-                    onClick={() => void saveAccessory(id)}
-                    className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all disabled:opacity-50 ${
-                      effectiveAccessory === id
-                        ? 'border-kiddy-cherry/60 bg-kiddy-cherry/15 text-white'
-                        : 'border-white/[0.1] bg-white/[0.04] text-kiddy-textSecondary hover:border-white/20 hover:text-white'
-                    }`}
-                  >
-                    {AVATAR_ACCESSORY_LABELS[id]}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-4 flex h-24 w-24 overflow-hidden rounded-2xl border border-white/[0.1] bg-zinc-600">
-                <img
-                  src={resolveAvatarDisplayPath(user.id, user.avatar, user.avatarAccessory)}
-                  alt=""
-                  className="h-full w-full origin-center scale-[1.14] object-cover object-center"
-                  loading="eager"
-                />
-              </div>
-            </div>
-          </div>
-        )}
         {user.role === Role.ADMIN && (
           <Row icon={Shield} title="Панель управления" subtitle="Курсы, пользователи, расписание" to="/admin" />
         )}

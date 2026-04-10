@@ -15,7 +15,6 @@ interface StudentRow {
   id: string;
   name: string | null;
   avatar: string | null;
-  avatar_accessory?: string | null;
   xp: number | null;
   level: number | null;
   role: string | null;
@@ -52,7 +51,7 @@ export const Community: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, avatar_accessory, xp, level, role')
+        .select('id, name, avatar, xp, level, role')
         .order('name', { ascending: true });
       if (error) throw error;
       const list = (data || []).filter((r) => isStudentRole(r.role)) as StudentRow[];
@@ -97,7 +96,6 @@ export const Community: React.FC = () => {
     return {
       name: s?.name || 'Ученик',
       avatar: s?.avatar || '',
-      avatarAccessory: s?.avatar_accessory ?? 'none',
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
     };
@@ -152,7 +150,6 @@ export const Community: React.FC = () => {
               id: other,
               name: p.name || 'Ученик',
               avatar: p.avatar || '',
-              avatarAccessory: p.avatarAccessory,
             }}
             size="lg"
           />
@@ -268,7 +265,6 @@ export const Community: React.FC = () => {
                           id: s.id,
                           name: s.name || 'Ученик',
                           avatar: s.avatar || '',
-                          avatarAccessory: s.avatar_accessory ?? 'none',
                         }}
                         size="lg"
                       />
@@ -360,7 +356,6 @@ export const Community: React.FC = () => {
                                 id: other,
                                 name: p.name || 'Ученик',
                                 avatar: p.avatar || '',
-                                avatarAccessory: p.avatarAccessory,
                               }}
                               size="md"
                             />
@@ -427,7 +422,6 @@ export const Community: React.FC = () => {
                                 id: other,
                                 name: p.name || 'Ученик',
                                 avatar: p.avatar || '',
-                                avatarAccessory: p.avatarAccessory,
                               }}
                               size="md"
                             />

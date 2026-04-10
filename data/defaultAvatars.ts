@@ -1,22 +1,10 @@
 /**
- * Школьные ИИ-аватары — отдельный PNG на каждую комбинацию (не слои в рантайме).
- * Положи файлы в `public/avatars/`:
- *   - student-boy.png, student-girl.png — база без аксессуара
- *   - student-boy-cap.png, student-girl-cap.png, … glasses, headphones — полные кадры с аксессуаром
- * В БД: `profiles.avatar` = boy|girl путь; `profiles.avatar_accessory` = none | cap | glasses | headphones.
+ * Школьные ИИ-аватары — PNG в `public/avatars/`:
+ *   student-boy.png, student-girl.png
+ * В БД: `profiles.avatar` — путь к одному из этих файлов.
  */
 export const AVATAR_BOY_PATH = '/avatars/student-boy.png';
 export const AVATAR_GIRL_PATH = '/avatars/student-girl.png';
-
-/** Идентификаторы аксессуаров = суффикс в имени файла после `student-{boy|girl}-`. */
-export const AVATAR_ACCESSORY_IDS = ['cap', 'glasses', 'headphones'] as const;
-export type AvatarAccessoryId = (typeof AVATAR_ACCESSORY_IDS)[number];
-
-export const AVATAR_ACCESSORY_LABELS: Record<AvatarAccessoryId, string> = {
-  cap: 'Кепка',
-  glasses: 'Очки',
-  headphones: 'Наушники',
-};
 
 /** Первый байт UUID — тот же принцип, что в миграции `get_byte(uuid_send(id), 0)`. */
 function uuidFirstByte(id: string): number {
@@ -48,29 +36,4 @@ export function isBundledSchoolAvatar(url: string | null | undefined): boolean {
 /** Сохранённый выбор мальчик/девочка или дефолт по UUID. */
 export function resolveBundledOrDefault(userId: string, raw: string | null | undefined): string {
   return isBundledSchoolAvatar(raw) ? (raw as string).trim() : defaultAvatarUrlForUserId(userId);
-}
-
-export function normalizeAvatarAccessory(raw: string | null | undefined): 'none' | AvatarAccessoryId {
-  const a = (raw || 'none').toLowerCase().trim();
-  if (a === 'cap' || a === 'glasses' || a === 'headphones') return a;
-  return 'none';
-}
-
-function genderKeyFromBasePath(basePath: string): 'boy' | 'girl' {
-  return basePath.includes('girl') ? 'girl' : 'boy';
-}
-
-/**
- * Итоговый URL картинки: база (boy/girl) + при аксессуаре файл `student-{boy|girl}-{cap|glasses|headphones}.png`.
- */
-export function resolveAvatarDisplayPath(
-  userId: string,
-  baseAvatarPath: string | null | undefined,
-  accessoryRaw: string | null | undefined,
-): string {
-  const base = resolveBundledOrDefault(userId, baseAvatarPath);
-  const acc = normalizeAvatarAccessory(accessoryRaw);
-  if (acc === 'none') return base;
-  const g = genderKeyFromBasePath(base);
-  return `/avatars/student-${g}-${acc}.png`;
 }

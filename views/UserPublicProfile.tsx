@@ -31,14 +31,13 @@ import {
 } from 'lucide-react';
 import { fetchUserShowcasePosts, mediaPublicUrl, deleteShowcasePost, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
-import { resolveAvatarDisplayPath } from '../data/defaultAvatars';
+import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 interface PublicProfileRow {
   id: string;
   name: string | null;
   avatar: string | null;
-  avatar_accessory?: string | null;
   xp: number | null;
   level: number | null;
   role: string | null;
@@ -93,7 +92,7 @@ export const UserPublicProfile: React.FC = () => {
       setLoadError(false);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, avatar_accessory, xp, level, role')
+        .select('id, name, avatar, xp, level, role')
         .eq('id', userId)
         .maybeSingle();
       if (cancelled) return;
@@ -251,7 +250,7 @@ export const UserPublicProfile: React.FC = () => {
                     })}
                   <div className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 shadow-2xl md:h-32 md:w-32">
                     <AvatarImage
-                      src={resolveAvatarDisplayPath(profile.id, profile.avatar, profile.avatar_accessory)}
+                      src={resolveBundledOrDefault(profile.id, profile.avatar)}
                       name={profile.name || 'У'}
                       alt=""
                       className="h-full w-full origin-center scale-[1.14] object-cover object-center"

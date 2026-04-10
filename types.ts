@@ -25,8 +25,6 @@ export interface User {
   /** Серия дней активности (UTC), из profiles */
   streakCurrent?: number;
   streakLongest?: number;
-  /** Аксессуар школьного ИИ-аватара: none | cap | glasses | headphones */
-  avatarAccessory?: string | null;
 }
 
 export interface Lesson {
