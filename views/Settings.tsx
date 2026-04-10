@@ -95,7 +95,7 @@ export const Settings: React.FC = () => {
         <Row
           icon={UserIcon}
           title="Редактировать профиль"
-          subtitle="Имя, фото, статистика и рейтинг"
+          subtitle="Имя, аватар школы, статистика и рейтинг"
           to="/profile"
         />
         {user.role === Role.ADMIN && (
@@ -132,7 +132,7 @@ export const Settings: React.FC = () => {
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm text-white">Медали на аватаре</p>
               <p className="text-kiddy-textMuted text-xs mt-0.5">
-                До 6 значков вокруг фото — только за достижения
+                До 6 значков вокруг аватара — только за достижения
               </p>
             </div>
             <ChevronRight size={18} className="text-kiddy-cherry shrink-0" />

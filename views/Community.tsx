@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
+import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
@@ -95,7 +96,10 @@ export const Community: React.FC = () => {
     const s = studentById.get(id);
     return {
       name: s?.name || 'Ученик',
-      avatar: s?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s?.name || 'U')}&background=random`,
+      avatar:
+        (s?.avatar || '').trim().startsWith('/avatars/student-')
+          ? s!.avatar!
+          : defaultAvatarUrlForUserId(id),
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
     };
@@ -262,7 +266,10 @@ export const Community: React.FC = () => {
                       <UserAvatar
                         user={{
                           name: s.name || 'Ученик',
-                          avatar: s.avatar || '',
+                          avatar:
+                            (s.avatar || '').trim().startsWith('/avatars/student-')
+                              ? s.avatar!
+                              : defaultAvatarUrlForUserId(s.id),
                         }}
                         size="lg"
                       />

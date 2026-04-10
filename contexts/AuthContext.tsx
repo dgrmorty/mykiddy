@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase, signOut as supabaseSignOut } from '../services/supabase';
 import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
+import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
 import { levelFromXp } from '../progression';
 import { AuthModal } from '../components/AuthModal';
 
@@ -14,15 +15,13 @@ const _adminFromEnv = (import.meta.env.VITE_ADMIN_EMAILS || '')
   .filter(Boolean);
 const ADMIN_EMAILS = _adminFromEnv;
 
-/** Не затираем аватар при возврате на вкладку, если ответ БД пустой, а в UI уже был URL (например из Storage). */
+/** Сохраняем аватар из ответа БД; штатные ИИ — пути `/avatars/student-*.png`. */
 function mergePreserveAvatar(prev: User, next: User): User {
   if (prev.id !== next.id || prev.role === Role.GUEST) return next;
-  const prevA = (prev.avatar || '').trim();
   const nextA = (next.avatar || '').trim();
+  if (nextA.startsWith('/avatars/student-')) return next;
+  const prevA = (prev.avatar || '').trim();
   if (prevA && !nextA) return { ...next, avatar: prevA };
-  const prevCustom = prevA.includes('supabase.co') || prevA.includes('/storage/');
-  const nextGeneric = nextA.includes('ui-avatars.com');
-  if (prevCustom && nextGeneric) return { ...next, avatar: prevA };
   return next;
 }
 
@@ -79,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: authUser.email,
       name: metadata.name || authUser.email?.split('@')[0] || 'Ученик',
       role: role,
-      avatar: metadata.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(metadata.name || 'User')}&background=random`,
+      avatar: defaultAvatarUrlForUserId(authUser.id),
       level: 1,
       xp: 0,
       isApproved: true,
@@ -132,10 +131,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: profile.email || authUser?.email,
               name: profile.name || authUser?.user_metadata?.name || 'Пользователь',
               role: finalRole,
-              avatar:
-                profile.avatar ||
-                authUser?.user_metadata?.avatar ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`,
+              avatar: (() => {
+                const raw = (profile.avatar as string | null | undefined)?.trim() || '';
+                if (raw.startsWith('/avatars/student-')) return raw;
+                return defaultAvatarUrlForUserId(userId);
+              })(),
               level: calculatedLevel,
               xp: userXp,
               isApproved: true,

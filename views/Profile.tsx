@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
@@ -7,11 +7,11 @@ import { AvatarImage } from '../components/AvatarImage';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
-    Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Check, X, Loader2, Camera, Target, 
+    Award, Zap, Crown, Fingerprint, ChevronRight, Edit2, Check, X, Loader2, Target, 
     LogOut, AlertTriangle, Trophy, Medal, Lock, Check, Settings2, Sparkles
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
-import { supabase, uploadFile } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useContentContext } from '../contexts/ContentContext';
@@ -22,6 +22,7 @@ import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
+import { defaultAvatarUrlForUserId } from '../data/defaultAvatars';
 interface ProfileProps {
   user: User;
 }
@@ -33,7 +34,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const skillData = useSkillData(courses);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
@@ -50,13 +50,15 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   useEffect(() => { refreshBadges(); }, [currentUser.xp, currentUser.level]);
   
   const [editName, setEditName] = useState(currentUser.name);
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setEditName(currentUser.name);
-    setEditAvatar(currentUser.avatar);
   }, [currentUser]);
+
+  const profileAvatarSrc =
+    (currentUser.avatar || '').trim().startsWith('/avatars/student-')
+      ? currentUser.avatar
+      : defaultAvatarUrlForUserId(currentUser.id);
 
   const [myRank, setMyRank] = useState<number | null>(null);
 
@@ -85,7 +87,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             email: '',
             name: u.name || 'Анонимный',
             role: mapRole(u.role as string | null),
-            avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=random`,
+            avatar:
+              (u.avatar || '').trim().startsWith('/avatars/student-')
+                ? u.avatar!
+                : defaultAvatarUrlForUserId(u.id),
             level: levelFromXp(uxp),
             xp: uxp,
             isApproved: true,
@@ -140,8 +145,9 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     return userMessage;
   };
 
-  const writeProfileToDb = async (name: string, avatar: string) => {
+  const writeProfileToDb = async (name: string) => {
     if (currentUser.id === 'guest') throw new Error('Войдите в аккаунт');
+    const avatar = defaultAvatarUrlForUserId(currentUser.id);
     const updateData = { name, avatar };
 
     const { data: existingProfile } = await supabase
@@ -155,7 +161,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         id: currentUser.id,
         email: currentUser.email,
         name,
-        avatar,
+        avatar: defaultAvatarUrlForUserId(currentUser.id),
         role: 'Student',
         level: 1,
         xp: 0,
@@ -174,46 +180,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (currentUser.id === 'guest') return;
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    const looksImage =
-      file.type.startsWith('image/') ||
-      validMimes.includes(file.type) ||
-      ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
-    if (!looksImage) {
-      showToast('Выберите изображение (JPG, PNG, GIF или WEBP)', 'error');
-      e.target.value = '';
-      return;
-    }
-    setUploading(true);
-    try {
-      const publicUrl = await uploadFile(file, 'avatars');
-      if (!publicUrl) {
-        showToast('Ошибка загрузки изображения', 'error');
-        return;
-      }
-      setEditAvatar(publicUrl);
-      await writeProfileToDb(editName, publicUrl);
-      await refreshUser();
-      showToast('Фото сохранено', 'success');
-    } catch (err: any) {
-      console.error('[Profile] Avatar save error:', err);
-      showToast(mapSaveError(err), 'error');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
   const handleSave = async () => {
-    if (saving || uploading || currentUser.id === 'guest') return;
+    if (saving || currentUser.id === 'guest') return;
     setSaving(true);
     try {
-      await writeProfileToDb(editName, editAvatar);
+      await writeProfileToDb(editName);
       await refreshUser();
       setIsEditing(false);
       showToast('Изменения сохранены', 'success');
@@ -281,38 +252,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       {/* Avatar centered — в режиме редактирования не button, иначе disabled блокирует выбор файла */}
                       {isEditing ? (
                         <div className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black shadow-2xl">
-                          <img
-                            src={
-                              editAvatar ||
-                              currentUser.avatar ||
-                              `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`
-                            }
-                            className="h-full w-full object-cover"
-                            alt=""
-                          />
-                          {(uploading || saving) && (
+                          <img src={profileAvatarSrc} className="h-full w-full object-cover" alt="" />
+                          {saving && (
                             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
                               <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
                             </div>
-                          )}
-                          {!uploading && !saving && (
-                            <>
-                              <label
-                                htmlFor="profile-avatar-input"
-                                className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center rounded-full bg-black/45 transition-colors hover:bg-black/55"
-                              >
-                                <Camera className="pointer-events-none text-white" size={24} aria-hidden />
-                                <span className="sr-only">Выбрать фото профиля</span>
-                              </label>
-                              <input
-                                id="profile-avatar-input"
-                                ref={fileInputRef}
-                                type="file"
-                                className="sr-only"
-                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/*"
-                                onChange={handleFileChange}
-                              />
-                            </>
                           )}
                         </div>
                       ) : (
@@ -322,15 +266,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
                           aria-label="Настройки профиля"
                         >
-                          <img
-                            src={
-                              editAvatar ||
-                              currentUser.avatar ||
-                              `https://ui-avatars.com/api/?name=${encodeURIComponent(editName || currentUser.name || 'U')}&background=random`
-                            }
-                            className="h-full w-full object-cover"
-                            alt=""
-                          />
+                          <img src={profileAvatarSrc} className="h-full w-full object-cover" alt="" />
                         </button>
                       )}
                       {!isEditing && (
@@ -384,7 +320,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                             <button
                               type="button"
                               onClick={handleSave}
-                              disabled={saving || uploading}
+                              disabled={saving}
                               className="rounded-xl bg-kiddy-cherry p-3 text-white shadow-lg shadow-kiddy-cherry/20 transition-all hover:bg-kiddy-cherryHover"
                               aria-label="Сохранить имя"
                             >

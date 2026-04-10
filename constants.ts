@@ -1,11 +1,11 @@
-
+import { AVATAR_BOY_PATH, AVATAR_GIRL_PATH } from './data/defaultAvatars';
 import { Course, CourseType, Role, User } from './types';
 
 export const CURRENT_USER_STUDENT: User = {
   id: 'u1',
   name: 'Алекс Новик',
   role: Role.STUDENT,
-  avatar: 'https://picsum.photos/100/100',
+  avatar: AVATAR_BOY_PATH,
   level: 12,
   xp: 4520,
   isApproved: true,
@@ -15,7 +15,7 @@ export const CURRENT_USER_PARENT: User = {
   id: 'p1',
   name: 'Елена Новик',
   role: Role.PARENT,
-  avatar: 'https://picsum.photos/101/101',
+  avatar: AVATAR_GIRL_PATH,
   level: 0,
   xp: 0,
   isApproved: true,
@@ -25,7 +25,7 @@ export const GUEST_USER: User = {
   id: 'guest',
   name: 'Гость',
   role: Role.GUEST,
-  avatar: 'https://ui-avatars.com/api/?name=Guest&background=27272a&color=fff',
+  avatar: AVATAR_BOY_PATH,
   level: 0,
   xp: 0,
   isApproved: false,

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { defaultAvatarUrlForSeed } from '../data/defaultAvatars';
 
 function fallbackUrl(name: string) {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=27272a&color=fff`;
+  return defaultAvatarUrlForSeed(name || 'user');
 }
 
 interface Props {
