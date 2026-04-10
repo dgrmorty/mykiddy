@@ -1,5 +1,3 @@
-import type { AvatarEquipMap } from './data/avatarCatalog';
-
 export enum Role {
   STUDENT = 'Student',
   PARENT = 'Parent',
@@ -27,8 +25,6 @@ export interface User {
   /** Серия дней активности (UTC), из profiles */
   streakCurrent?: number;
   streakLongest?: number;
-  /** Слои аватара-программиста (ученики), из profiles.avatar_cosmetic */
-  avatarCosmetic?: AvatarEquipMap;
 }
 
 export interface Lesson {

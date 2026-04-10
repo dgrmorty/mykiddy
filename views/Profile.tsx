@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
-import { mergeAvatarEquip } from '../data/avatarCatalog';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
@@ -23,8 +22,6 @@ import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
-import { AvatarCustomizerSection } from './AvatarCustomizerSection';
-
 interface ProfileProps {
   user: User;
 }
@@ -69,7 +66,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, role, avatar_cosmetic')
+        .select('id, name, avatar, xp, level, role')
         .order('xp', { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -92,7 +89,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             level: levelFromXp(uxp),
             xp: uxp,
             isApproved: true,
-            avatarCosmetic: mergeAvatarEquip((u as { avatar_cosmetic?: unknown }).avatar_cosmetic),
           };
         });
         setLeaderboard(mapped);
@@ -324,6 +320,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           type="button"
                           onClick={() => navigate('/settings')}
                           className="absolute left-1/2 top-1/2 z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/10 bg-black text-left shadow-2xl transition-all hover:border-kiddy-cherry/40 hover:ring-2 hover:ring-kiddy-cherry/20"
+                          aria-label="Настройки профиля"
                         >
                           <img
                             src={
@@ -420,8 +417,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
         <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
       )}
-
-      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && <AvatarCustomizerSection />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
@@ -649,7 +644,16 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                               <div className="flex items-center justify-center w-12">
                                 <span className="text-sm font-display font-bold text-kiddy-cherry">#{myRank}</span>
                               </div>
-                              <img src={currentUser.avatar} alt={currentUser.name} className="w-12 h-12 rounded-full border-2 border-kiddy-cherry/30 object-cover" />
+                              {currentUser.role === Role.STUDENT ? (
+                                <UserAvatar user={currentUser} size="md" />
+                              ) : (
+                                <AvatarImage
+                                  src={currentUser.avatar}
+                                  name={currentUser.name}
+                                  alt=""
+                                  className="h-12 w-12 rounded-full border-2 border-kiddy-cherry/30 object-cover"
+                                />
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <h4 className="font-bold text-sm truncate text-kiddy-cherry">{currentUser.name}</h4>

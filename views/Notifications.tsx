@@ -6,8 +6,6 @@ import { useNotificationSummary } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabase';
 import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { Role } from '../types';
-import { mergeAvatarEquip } from '../data/avatarCatalog';
-import { levelFromXp } from '../progression';
 import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
 
@@ -55,7 +53,6 @@ export const Notifications: React.FC = () => {
         avatar: string | null;
         xp: number | null;
         role: string | null;
-        avatar_cosmetic?: unknown;
       }
     >
   >({});
@@ -77,7 +74,7 @@ export const Notifications: React.FC = () => {
 
       const ids = [...new Set(list.map((r) => r.actor_id).filter(Boolean))] as string[];
       if (ids.length > 0) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp, avatar_cosmetic, role').in('id', ids);
+        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp, role').in('id', ids);
         const map: Record<
           string,
           {
@@ -85,7 +82,6 @@ export const Notifications: React.FC = () => {
             avatar: string | null;
             xp: number | null;
             role: string | null;
-            avatar_cosmetic?: unknown;
           }
         > = {};
         (profs || []).forEach(
@@ -95,14 +91,12 @@ export const Notifications: React.FC = () => {
             avatar: string | null;
             xp: number | null;
             role: string | null;
-            avatar_cosmetic?: unknown;
           }) => {
             map[p.id] = {
               name: p.name,
               avatar: p.avatar,
               xp: p.xp,
               role: p.role,
-              avatar_cosmetic: p.avatar_cosmetic,
             };
           },
         );
@@ -199,7 +193,6 @@ export const Notifications: React.FC = () => {
           {rows.map((row, i) => {
             const act = row.actor_id ? actors[row.actor_id] : null;
             const name = act?.name || 'Ученик';
-            const actorLvl = levelFromXp(act?.xp ?? 0);
             const actorIsStudent = (act?.role || '').toLowerCase() === 'student';
             const unread = !row.read_at;
             const reason =
@@ -241,11 +234,8 @@ export const Notifications: React.FC = () => {
                     {actorIsStudent ? (
                       <UserAvatar
                         user={{
-                          role: Role.STUDENT,
                           name,
                           avatar: act?.avatar || '',
-                          level: actorLvl,
-                          avatarCosmetic: mergeAvatarEquip(act?.avatar_cosmetic),
                         }}
                         size="md"
                       />

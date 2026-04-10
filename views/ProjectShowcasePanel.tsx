@@ -6,8 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { showcasePostBody, type PhraseSelections } from '../data/projectShowcaseCatalog';
-import { mergeAvatarEquip } from '../data/avatarCatalog';
-import { levelFromXp } from '../progression';
 import {
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
@@ -31,7 +29,7 @@ export const ProjectShowcasePanel: React.FC = () => {
 
   const [posts, setPosts] = useState<ShowcasePostRow[]>([]);
   const [authors, setAuthors] = useState<
-    Record<string, { name: string | null; avatar: string | null; xp: number | null; avatar_cosmetic?: unknown }>
+    Record<string, { name: string | null; avatar: string | null; xp: number | null }>
   >({});
   const [loading, setLoading] = useState(true);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
@@ -45,16 +43,11 @@ export const ProjectShowcasePanel: React.FC = () => {
       setPosts(list);
       const ids = [...new Set(list.map((p) => p.author_id))];
       if (ids.length) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp, avatar_cosmetic').in('id', ids);
-        const m: Record<
-          string,
-          { name: string | null; avatar: string | null; xp: number | null; avatar_cosmetic?: unknown }
-        > = {};
-        (profs || []).forEach(
-          (p: { id: string; name: string | null; avatar: string | null; xp: number | null; avatar_cosmetic?: unknown }) => {
-            m[p.id] = { name: p.name, avatar: p.avatar, xp: p.xp, avatar_cosmetic: p.avatar_cosmetic };
-          },
-        );
+        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp').in('id', ids);
+        const m: Record<string, { name: string | null; avatar: string | null; xp: number | null }> = {};
+        (profs || []).forEach((p: { id: string; name: string | null; avatar: string | null; xp: number | null }) => {
+          m[p.id] = { name: p.name, avatar: p.avatar, xp: p.xp };
+        });
         setAuthors(m);
       } else setAuthors({});
 
@@ -154,7 +147,6 @@ export const ProjectShowcasePanel: React.FC = () => {
           {posts.map((p, i) => {
             const au = authors[p.author_id];
             const name = au?.name || 'Ученик';
-            const authorLvl = levelFromXp(au?.xp ?? 0);
             const body = showcasePostBody((p.phrase_selections || {}) as PhraseSelections);
             const media = Array.isArray(p.media) ? p.media : [];
             const liked = !!likeMap[p.id];
@@ -169,11 +161,8 @@ export const ProjectShowcasePanel: React.FC = () => {
                     <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="shrink-0">
                       <UserAvatar
                         user={{
-                          role: Role.STUDENT,
                           name,
                           avatar: au?.avatar || '',
-                          level: authorLvl,
-                          avatarCosmetic: mergeAvatarEquip(au?.avatar_cosmetic),
                         }}
                         size="md"
                       />

@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
-import { mergeAvatarEquip } from '../data/avatarCatalog';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
@@ -19,7 +18,6 @@ interface StudentRow {
   xp: number | null;
   level: number | null;
   role: string | null;
-  avatar_cosmetic?: unknown;
 }
 
 function isStudentRole(role: string | null | undefined): boolean {
@@ -53,7 +51,7 @@ export const Community: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, xp, level, role, avatar_cosmetic')
+        .select('id, name, avatar, xp, level, role')
         .order('name', { ascending: true });
       if (error) throw error;
       const list = (data || []).filter((r) => isStudentRole(r.role)) as StudentRow[];
@@ -100,7 +98,6 @@ export const Community: React.FC = () => {
       avatar: s?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s?.name || 'U')}&background=random`,
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
-      avatar_cosmetic: s?.avatar_cosmetic,
     };
   };
 
@@ -150,11 +147,8 @@ export const Community: React.FC = () => {
         <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex min-w-0 flex-1 items-center gap-4 text-left">
           <UserAvatar
             user={{
-              role: Role.STUDENT,
               name: p.name || 'Ученик',
               avatar: p.avatar || '',
-              level: levelFromXp(p.xp ?? 0),
-              avatarCosmetic: mergeAvatarEquip(p.avatar_cosmetic),
             }}
             size="lg"
           />
@@ -267,11 +261,8 @@ export const Community: React.FC = () => {
                     >
                       <UserAvatar
                         user={{
-                          role: Role.STUDENT,
                           name: s.name || 'Ученик',
                           avatar: s.avatar || '',
-                          level: lvl,
-                          avatarCosmetic: mergeAvatarEquip(s.avatar_cosmetic),
                         }}
                         size="lg"
                       />
@@ -360,11 +351,8 @@ export const Community: React.FC = () => {
                           <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
                             <UserAvatar
                               user={{
-                                role: Role.STUDENT,
                                 name: p.name || 'Ученик',
                                 avatar: p.avatar || '',
-                                level: levelFromXp(p.xp ?? 0),
-                                avatarCosmetic: mergeAvatarEquip(p.avatar_cosmetic),
                               }}
                               size="md"
                             />
@@ -428,11 +416,8 @@ export const Community: React.FC = () => {
                           <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
                             <UserAvatar
                               user={{
-                                role: Role.STUDENT,
                                 name: p.name || 'Ученик',
                                 avatar: p.avatar || '',
-                                level: levelFromXp(p.xp ?? 0),
-                                avatarCosmetic: mergeAvatarEquip(p.avatar_cosmetic),
                               }}
                               size="md"
                             />
