@@ -194,11 +194,40 @@ const aiLimiter = rateLimit({
 // Это заставляет сервер искать index.html и JS файлы именно там
 app.use(express.static(path.join(__dirname, 'dist')));
 
-/** Ключ Gemini: API_KEY или GEMINI_API_KEY (часто лишние пробелы в Railway — trim). */
+/**
+ * Нормализация ключа из Railway / .env: BOM, кавычки, пробелы и переносы **внутри** строки
+ * (в UI ключ часто ломается на две строки — trim() этого не убирает).
+ */
+function normalizeGeminiKeyFromEnv(raw) {
+    if (raw == null) return '';
+    let s = String(raw).trim().replace(/^\uFEFF/, '');
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1).trim();
+    }
+    const before = s;
+    s = s.replace(/\s+/g, '');
+    if (before !== s && before.length > 0) {
+        console.warn('[AI] В значении ключа были пробелы/переносы — удалены для запроса к Gemini.');
+    }
+    return s;
+}
+
+/** Ключ Gemini: GEMINI_API_KEY, API_KEY, GOOGLE_* (порядок — от более явного к общему). */
 function resolveGeminiApiKey() {
-    const raw = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
-    const key = typeof raw === 'string' ? raw.trim() : '';
-    return key || null;
+    const sources = [
+        ['GEMINI_API_KEY', process.env.GEMINI_API_KEY],
+        ['API_KEY', process.env.API_KEY],
+        ['GOOGLE_API_KEY', process.env.GOOGLE_API_KEY],
+        ['GOOGLE_GENERATIVE_AI_API_KEY', process.env.GOOGLE_GENERATIVE_AI_API_KEY],
+    ];
+    for (const [name, raw] of sources) {
+        const key = normalizeGeminiKeyFromEnv(raw);
+        if (key.length >= 30) {
+            if (name !== 'API_KEY') console.log(`[AI] Ключ взят из переменной ${name} (длина ${key.length}).`);
+            return key;
+        }
+    }
+    return null;
 }
 
 const initAI = () => {
@@ -231,8 +260,11 @@ function isLikelyGeminiAuthError(error) {
         msg.includes('api key') ||
         msg.includes('api_key') ||
         msg.includes('invalid api') ||
+        msg.includes('invalidargument') ||
         msg.includes('permission denied') ||
-        msg.includes('unauthenticated')
+        msg.includes('unauthenticated') ||
+        msg.includes('request had invalid authentication') ||
+        msg.includes('api_key_invalid')
     );
 }
 
