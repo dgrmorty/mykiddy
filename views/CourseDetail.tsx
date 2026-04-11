@@ -25,6 +25,43 @@ const HW_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const HW_MAX_VIDEO_BYTES = 12 * 1024 * 1024;
 const HW_MAX_FILES = 6;
 
+function homeworkFeedbackStorageKey(userId: string, lessonId: string) {
+  return `kiddy_hw_feedback_v1_${userId}_${lessonId}`;
+}
+
+function loadStoredHomeworkFeedback(userId: string, lessonId: string): string | null {
+  if (!userId || userId === 'guest' || !lessonId) return null;
+  try {
+    const raw = localStorage.getItem(homeworkFeedbackStorageKey(userId, lessonId));
+    if (!raw) return null;
+    const o = JSON.parse(raw) as { text?: string };
+    return typeof o?.text === 'string' && o.text.length > 0 ? o.text : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredHomeworkFeedback(userId: string, lessonId: string, text: string) {
+  if (!userId || userId === 'guest' || !lessonId || !text.trim()) return;
+  try {
+    localStorage.setItem(
+      homeworkFeedbackStorageKey(userId, lessonId),
+      JSON.stringify({ text, at: Date.now() }),
+    );
+  } catch {
+    /* quota */
+  }
+}
+
+function clearStoredHomeworkFeedback(userId: string, lessonId: string) {
+  if (!userId || userId === 'guest' || !lessonId) return;
+  try {
+    localStorage.removeItem(homeworkFeedbackStorageKey(userId, lessonId));
+  } catch {
+    /* ignore */
+  }
+}
+
 type HomeworkLocalMedia = {
   id: string;
   mime: string;
@@ -173,8 +210,14 @@ export const CourseDetail: React.FC = () => {
     setIsHomeworkOpen(false);
     setHomeworkMedia([]);
     setHomeworkAnswer('');
-    setAiFeedback(null);
-  }, [activeLesson?.id]);
+    const lid = activeLesson?.id;
+    if (lid && user.id !== 'guest') {
+      const saved = loadStoredHomeworkFeedback(user.id, lid);
+      setAiFeedback(saved);
+    } else {
+      setAiFeedback(null);
+    }
+  }, [activeLesson?.id, user.id]);
 
   useEffect(() => {
     if (activeLesson) setVideoLoading(true);
@@ -297,6 +340,9 @@ export const CourseDetail: React.FC = () => {
         );
         const display = formatFeedbackForDisplay(result.text);
         setAiFeedback(display);
+        if (activeLesson?.id && user.id !== 'guest') {
+          saveStoredHomeworkFeedback(user.id, activeLesson.id, display);
+        }
         const hasAtt = attachments.length > 0;
         const isGoodAnswer = shouldAcceptHomework(
           result.verdict,
@@ -479,6 +525,24 @@ export const CourseDetail: React.FC = () => {
                                     </>
                                 )}
                             </Card>
+                            {aiFeedback && activeLesson?.homeworkTask && !isHomeworkCompleted && (
+                              <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/90 p-6">
+                                <div className="mb-3 flex items-center gap-2">
+                                  <Sparkles size={18} className="text-kiddy-cherry shrink-0" />
+                                  <h3 className="font-display text-base font-bold text-white">Комментарий наставника</h3>
+                                </div>
+                                <div className="max-h-56 overflow-y-auto custom-scrollbar text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
+                                  {aiFeedback}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsHomeworkOpen(true)}
+                                  className="mt-4 w-full rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/10 py-3 text-xs font-bold uppercase tracking-wider text-kiddy-cherry transition-colors hover:bg-kiddy-cherry/20"
+                                >
+                                  Открыть форму сдачи
+                                </button>
+                              </Card>
+                            )}
                         </div>
                     )}
                 </div>
@@ -580,9 +644,16 @@ export const CourseDetail: React.FC = () => {
                                     <Sparkles size={24} className="text-kiddy-cherry" />
                                     Ответ от наставника
                                 </h2>
-                                <button 
-                                    onClick={() => setAiFeedback(null)} 
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (activeLesson?.id && user.id !== 'guest') {
+                                        clearStoredHomeworkFeedback(user.id, activeLesson.id);
+                                      }
+                                      setAiFeedback(null);
+                                    }}
                                     className="p-2 hover:bg-kiddy-surfaceHighlight rounded-lg transition-colors"
+                                    aria-label="Скрыть комментарий"
                                 >
                                     <X size={20} className="text-kiddy-textSecondary" />
                                 </button>

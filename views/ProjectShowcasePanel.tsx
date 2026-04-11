@@ -10,13 +10,13 @@ import {
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
   fetchLikeState,
+  fetchShowcaseAuthorsForFeed,
   mediaPublicUrl,
   toggleLike,
   deleteShowcasePost,
   type MediaItem,
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
-import { supabase } from '../services/supabase';
 import { Heart, Loader2, Sparkles, Trash2 } from 'lucide-react';
 
 /** Лента одобренных постов (форма отправки — только в профиле). */
@@ -43,12 +43,7 @@ export const ProjectShowcasePanel: React.FC = () => {
       setPosts(list);
       const ids = [...new Set(list.map((p) => p.author_id))];
       if (ids.length) {
-        const { data: profs } = await supabase.from('profiles').select('id, name, avatar, xp').in('id', ids);
-        const m: Record<string, { name: string | null; avatar: string | null; xp: number | null }> = {};
-        (profs || []).forEach((p: { id: string; name: string | null; avatar: string | null; xp: number | null }) => {
-          m[p.id] = { name: p.name, avatar: p.avatar, xp: p.xp };
-        });
-        setAuthors(m);
+        setAuthors(await fetchShowcaseAuthorsForFeed(ids));
       } else setAuthors({});
 
       const pids = list.map((p) => p.id);
@@ -56,6 +51,9 @@ export const ProjectShowcasePanel: React.FC = () => {
         const [likes, counts] = await Promise.all([fetchLikeState(pids, user.id), fetchLikeCounts(pids)]);
         setLikeMap(likes);
         setCountMap(counts);
+      } else if (pids.length) {
+        setLikeMap({});
+        setCountMap(await fetchLikeCounts(pids));
       } else {
         setLikeMap({});
         setCountMap({});

@@ -73,6 +73,37 @@ export async function fetchApprovedShowcasePosts(limit = 40): Promise<ShowcasePo
   return (data || []) as ShowcasePostRow[];
 }
 
+function mapProfilesToAuthorMap(
+  rows: { id: string; name: string | null; avatar: string | null; xp: number | null }[] | null | undefined,
+): Record<string, { name: string | null; avatar: string | null; xp: number | null }> {
+  const m: Record<string, { name: string | null; avatar: string | null; xp: number | null }> = {};
+  (rows || []).forEach((p) => {
+    m[p.id] = { name: p.name, avatar: p.avatar, xp: p.xp };
+  });
+  return m;
+}
+
+/** Обход RLS на profiles при пакетной подгрузке авторов ленты (см. list_showcase_authors). */
+export async function fetchShowcaseAuthorsForFeed(
+  authorIds: string[],
+): Promise<Record<string, { name: string | null; avatar: string | null; xp: number | null }>> {
+  if (!authorIds.length) return {};
+  const { data, error } = await supabase.rpc('list_showcase_authors', { author_ids: authorIds });
+  if (!error) {
+    return mapProfilesToAuthorMap(data as { id: string; name: string | null; avatar: string | null; xp: number | null }[]);
+  }
+  console.warn('[showcase] list_showcase_authors', error);
+  const { data: profs, error: profErr } = await supabase
+    .from('profiles')
+    .select('id, name, avatar, xp')
+    .in('id', authorIds);
+  if (profErr) {
+    console.warn('[showcase] profiles fallback', profErr);
+    return {};
+  }
+  return mapProfilesToAuthorMap(profs);
+}
+
 export async function fetchUserShowcasePosts(userId: string): Promise<ShowcasePostRow[]> {
   const { data, error } = await supabase
     .from('project_posts')
