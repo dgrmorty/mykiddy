@@ -28,12 +28,23 @@ export function defaultAvatarUrlForSeed(seed: string): string {
   return defaultAvatarUrlForUserId(seed || 'guest');
 }
 
+/** Локальный путь, полный URL или вариант без ведущего слэша — всё считаем «школьным» PNG. */
 export function isBundledSchoolAvatar(url: string | null | undefined): boolean {
-  const t = (url || '').trim();
-  return t === AVATAR_BOY_PATH || t === AVATAR_GIRL_PATH;
+  return bundledAvatarCanonical(url) != null;
+}
+
+/** Приводит к `/avatars/student-boy.png` или `...girl.png`, иначе `null`. */
+export function bundledAvatarCanonical(url: string | null | undefined): string | null {
+  const t = (url || '').trim().replace(/\\/g, '/');
+  if (!t) return null;
+  const l = t.toLowerCase();
+  if (l.endsWith('student-girl.png')) return AVATAR_GIRL_PATH;
+  if (l.endsWith('student-boy.png')) return AVATAR_BOY_PATH;
+  return null;
 }
 
 /** Сохранённый выбор мальчик/девочка или дефолт по UUID. */
 export function resolveBundledOrDefault(userId: string, raw: string | null | undefined): string {
-  return isBundledSchoolAvatar(raw) ? (raw as string).trim() : defaultAvatarUrlForUserId(userId);
+  const c = bundledAvatarCanonical(raw);
+  return c ?? defaultAvatarUrlForUserId(userId);
 }

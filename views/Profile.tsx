@@ -90,11 +90,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         p_avatar: path,
       });
       if (error) throw error;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const meta = session.user.user_metadata || {};
-        await supabase.auth.updateUser({ data: { ...meta, name: displayName, avatar: path } });
-      }
+      // Не вызываем updateUser здесь: USER_UPDATED запускает второй fetchProfile и из‑за гонки
+      // можно получить старый аватар поверх только что сохранённого.
       await refreshUser();
       showToast('Персонаж обновлён', 'success');
     } catch {
@@ -202,14 +199,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       p_avatar: avatar,
     });
     if (error) throw error;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const meta = session.user.user_metadata || {};
-      await supabase.auth.updateUser({
-        data: { ...meta, name: trimName, avatar },
-      });
-    }
   };
 
   const handleSave = async () => {
@@ -218,6 +207,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     try {
       await writeProfileToDb(editName);
       await refreshUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const meta = session.user.user_metadata || {};
+        await supabase.auth.updateUser({ data: { ...meta, name: editName.trim() } });
+      }
       setIsEditing(false);
       showToast('Изменения сохранены', 'success');
     } catch (error: any) {

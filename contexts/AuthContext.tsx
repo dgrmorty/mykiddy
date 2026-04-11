@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase, signOut as supabaseSignOut } from '../services/supabase';
 import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
-import { defaultAvatarUrlForUserId, isBundledSchoolAvatar } from '../data/defaultAvatars';
+import { bundledAvatarCanonical, defaultAvatarUrlForUserId, isBundledSchoolAvatar } from '../data/defaultAvatars';
 import { levelFromXp } from '../progression';
 import { AuthModal } from '../components/AuthModal';
 
@@ -46,6 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadingRef = React.useRef(false);
   const userRef = React.useRef<User>(user);
   const lastProfileRefreshRef = React.useRef(0);
+  /** Сбрасываем устаревшие ответы fetchProfile (гонка USER_UPDATED / параллельные запросы). */
+  const profileFetchSerialRef = React.useRef(0);
   userRef.current = user;
 
   const setAuthLoading = (val: boolean) => {
@@ -73,12 +75,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isAdminEmail = email && ADMIN_EMAILS.includes(email);
     const role = normalizeRole(metadata.role, isAdminEmail ? email : undefined);
     
+    const metaAvatar = bundledAvatarCanonical(metadata.avatar as string | undefined);
     return {
       id: authUser.id,
       email: authUser.email,
       name: metadata.name || authUser.email?.split('@')[0] || 'Ученик',
       role: role,
-      avatar: defaultAvatarUrlForUserId(authUser.id),
+      avatar: metaAvatar ?? defaultAvatarUrlForUserId(authUser.id),
       level: 1,
       xp: 0,
       isApproved: true,
@@ -106,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, 5000);
 
+    const fetchSerial = ++profileFetchSerialRef.current;
+
     try {
       console.log("[Auth] Fetching profile for:", userId);
       
@@ -126,9 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const finalRole = normalizeRole(profile.role, profile.email || authUser?.email);
           const userXp = profile.xp || 0;
           const calculatedLevel = levelFromXp(userXp);
+          const rawAvatar = profile.avatar as string | null | undefined;
+          const resolvedAvatar =
+            bundledAvatarCanonical(rawAvatar) ?? defaultAvatarUrlForUserId(userId);
 
-          setUser((prev) =>
-            mergePreserveAvatar(prev, {
+          setUser((prev) => {
+            if (fetchSerial !== profileFetchSerialRef.current) return prev;
+            return mergePreserveAvatar(prev, {
               id: userId,
               email: profile.email || authUser?.email,
               name:
@@ -136,17 +145,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   ? profile.name.trim()
                   : authUser?.user_metadata?.name) || 'Пользователь',
               role: finalRole,
-              avatar: (() => {
-                const raw = profile.avatar as string | null | undefined;
-                return isBundledSchoolAvatar(raw) ? (raw as string).trim() : defaultAvatarUrlForUserId(userId);
-              })(),
+              avatar: resolvedAvatar,
               level: calculatedLevel,
               xp: userXp,
               isApproved: true,
               streakCurrent: profile.streak_current ?? 0,
               streakLongest: profile.streak_longest ?? 0,
-            }),
-          );
+            });
+          });
           try {
             const { data: sd } = await supabase.rpc('record_daily_streak');
             const d = sd as {
@@ -155,16 +161,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               streak_longest?: number;
             } | null;
             if (d?.ok && typeof d.streak_current === 'number') {
-              setUser((prev) =>
-                prev.id !== userId
-                  ? prev
-                  : {
-                      ...prev,
-                      streakCurrent: d.streak_current!,
-                      streakLongest:
-                        typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
-                    },
-              );
+              setUser((prev) => {
+                if (fetchSerial !== profileFetchSerialRef.current) return prev;
+                if (prev.id !== userId) return prev;
+                return {
+                  ...prev,
+                  streakCurrent: d.streak_current!,
+                  streakLongest:
+                    typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
+                };
+              });
             }
           } catch {
             /* нет RPC до миграции */
@@ -173,7 +179,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Если профиль не найден или ошибка, используем данные из auth
           console.warn("[Auth] Profile not found or error, using auth data:", error?.message);
           if (authUser) {
-            setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(authUser)));
+            setUser((prev) => {
+              if (fetchSerial !== profileFetchSerialRef.current) return prev;
+              return mergePreserveAvatar(prev, mapAuthToUser(authUser));
+            });
           }
       }
     } catch (e: any) {
@@ -181,7 +190,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // При таймауте или другой ошибке используем данные из auth
       if (authUser) {
         console.log("[Auth] Falling back to auth user data");
-        setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(authUser)));
+        setUser((prev) => {
+          if (fetchSerial !== profileFetchSerialRef.current) return prev;
+          return mergePreserveAvatar(prev, mapAuthToUser(authUser));
+        });
       } else {
         // Если нет authUser, устанавливаем гостя
         setUser(GUEST_USER);
