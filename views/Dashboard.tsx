@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { Card } from '../components/ui/Card';
-import { Calendar, Users, Flame, Sparkles } from 'lucide-react';
+import { Calendar, Users, Flame, Sparkles, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -117,9 +117,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   if (loading && courses.length === 0) {
     return (
-      <div className="space-y-8 pb-10">
-        <div className="skeleton h-[350px] w-full" />
-        <div className="skeleton h-48 w-full" />
+      <div className="flex min-h-[min(420px,70vh)] flex-col items-center justify-center gap-4 pb-10">
+        <Loader2 className="animate-spin text-kiddy-cherry" size={40} strokeWidth={2} />
+        <p className="text-center text-sm font-medium text-kiddy-textMuted">Загружаем курсы…</p>
+        <div className="mt-4 w-full max-w-2xl space-y-3">
+          <div className="skeleton h-40 w-full rounded-2xl" />
+          <div className="skeleton h-32 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }

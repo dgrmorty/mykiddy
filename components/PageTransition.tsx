@@ -20,7 +20,7 @@ export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ childr
       setDisplayChildren(children);
       setTransitioning(false);
       containerRef.current?.scrollTo({ top: 0 });
-    }, 200);
+    }, 120);
 
     return () => clearTimeout(timer);
   }, [location.pathname, children]);
@@ -28,11 +28,11 @@ export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <div
       ref={containerRef}
-      className="flex min-h-0 flex-1 flex-col transition-all duration-300 ease-entrance"
+      className="flex min-h-0 flex-1 flex-col transition-all duration-200 ease-entrance"
       style={{
-        opacity: transitioning ? 0 : 1,
-        transform: transitioning ? 'translateY(12px)' : 'translateY(0)',
-        filter: transitioning ? 'blur(4px)' : 'blur(0)',
+        opacity: 1,
+        transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
+        filter: transitioning ? 'blur(1px)' : 'blur(0)',
       }}
     >
       {displayChildren}
