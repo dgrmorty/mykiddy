@@ -50,15 +50,13 @@ export const Community: React.FC = () => {
   const loadStudents = useCallback(async () => {
     setLoadingStudents(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, avatar, xp, level, role')
-        .order('name', { ascending: true });
+      const { data, error } = await supabase.rpc('list_community_students');
       if (error) throw error;
-      const list = (data || []).filter((r) => isStudentRole(r.role)) as StudentRow[];
+      const list = ((data as StudentRow[] | null) || []).filter((r) => isStudentRole(r.role));
       setStudents(list);
       loadStudentsErrorToastShown.current = false;
-    } catch {
+    } catch (e) {
+      console.warn('[Community] list_community_students:', e);
       setStudents([]);
       if (!loadStudentsErrorToastShown.current) {
         loadStudentsErrorToastShown.current = true;
