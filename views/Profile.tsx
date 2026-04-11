@@ -90,9 +90,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         p_avatar: path,
       });
       if (error) throw error;
-      // Не вызываем updateUser здесь: USER_UPDATED запускает второй fetchProfile и из‑за гонки
-      // можно получить старый аватар поверх только что сохранённого.
       await refreshUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const meta = session.user.user_metadata || {};
+        await supabase.auth.updateUser({
+          data: { ...meta, name: displayName, avatar: path },
+        });
+      }
       showToast('Персонаж обновлён', 'success');
     } catch {
       showToast('Не удалось сохранить', 'error');

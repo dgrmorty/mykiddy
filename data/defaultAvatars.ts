@@ -35,11 +35,26 @@ export function isBundledSchoolAvatar(url: string | null | undefined): boolean {
 
 /** Приводит к `/avatars/student-boy.png` или `...girl.png`, иначе `null`. */
 export function bundledAvatarCanonical(url: string | null | undefined): string | null {
-  const t = (url || '').trim().replace(/\\/g, '/');
-  if (!t) return null;
-  const l = t.toLowerCase();
-  if (l.endsWith('student-girl.png')) return AVATAR_GIRL_PATH;
-  if (l.endsWith('student-boy.png')) return AVATAR_BOY_PATH;
+  let raw = (url || '').trim().replace(/\\/g, '/');
+  if (!raw) return null;
+  try {
+    raw = decodeURIComponent(raw);
+  } catch {
+    /* ignore */
+  }
+  raw = raw.split('#')[0].split('?')[0];
+  if (raw.includes('://')) {
+    try {
+      raw = new URL(raw.startsWith('//') ? `https:${raw}` : raw).pathname || raw;
+    } catch {
+      /* keep */
+    }
+  }
+  while (raw.length > 1 && raw.endsWith('/')) raw = raw.slice(0, -1);
+  const l = raw.toLowerCase();
+  // Сначала девочка: редкие полные URL не всегда заканчиваются ровно на `.png`
+  if (l.includes('student-girl')) return AVATAR_GIRL_PATH;
+  if (l.includes('student-boy')) return AVATAR_BOY_PATH;
   return null;
 }
 
