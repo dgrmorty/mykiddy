@@ -131,7 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             mergePreserveAvatar(prev, {
               id: userId,
               email: profile.email || authUser?.email,
-              name: profile.name || authUser?.user_metadata?.name || 'Пользователь',
+              name:
+                (typeof profile.name === 'string' && profile.name.trim() !== ''
+                  ? profile.name.trim()
+                  : authUser?.user_metadata?.name) || 'Пользователь',
               role: finalRole,
               avatar: (() => {
                 const raw = profile.avatar as string | null | undefined;

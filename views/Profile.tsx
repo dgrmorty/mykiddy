@@ -84,8 +84,17 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     if (currentUser.id === 'guest') return;
     setAvatarSaving(true);
     try {
-      const { error } = await supabase.from('profiles').update({ avatar: path }).eq('id', currentUser.id);
+      const displayName = (currentUser.name || 'Ученик').trim();
+      const { error } = await supabase.rpc('update_own_profile_patch', {
+        p_name: displayName,
+        p_avatar: path,
+      });
       if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const meta = session.user.user_metadata || {};
+        await supabase.auth.updateUser({ data: { ...meta, name: displayName, avatar: path } });
+      }
       await refreshUser();
       showToast('Персонаж обновлён', 'success');
     } catch {
@@ -167,11 +176,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
   const mapSaveError = (error: any): string => {
     let userMessage = 'Не удалось сохранить изменения';
-    if (error?.message?.includes('row-level security') || error?.message?.includes('RLS')) {
+    const msg = String(error?.message || error?.details || '');
+    if (msg.toLowerCase().includes('empty name')) {
+      userMessage = 'Введите имя';
+    } else if (msg.includes('row-level security') || msg.includes('RLS')) {
       userMessage = 'Недостаточно прав для выполнения операции';
-    } else if (error?.message?.includes('permission') || error?.message?.includes('доступ')) {
+    } else if (msg.includes('permission') || msg.includes('доступ')) {
       userMessage = 'Недостаточно прав для выполнения операции';
-    } else if (error?.message?.includes('not found') || error?.message?.includes('не найден')) {
+    } else if (msg.includes('not found') || msg.includes('не найден')) {
       userMessage = 'Профиль не найден';
     }
     return userMessage;
@@ -179,38 +191,24 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
   const writeProfileToDb = async (name: string) => {
     if (currentUser.id === 'guest') throw new Error('Войдите в аккаунт');
+    const trimName = name.trim();
+    if (!trimName) throw new Error('empty name');
     const avatar = isBundledSchoolAvatar(currentUser.avatar)
       ? currentUser.avatar.trim()
       : defaultAvatarUrlForUserId(currentUser.id);
-    const updateData = { name, avatar };
 
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', currentUser.id)
-      .single();
+    const { error } = await supabase.rpc('update_own_profile_patch', {
+      p_name: trimName,
+      p_avatar: avatar,
+    });
+    if (error) throw error;
 
-    if (!existingProfile) {
-      const { error: insertError } = await supabase.from('profiles').insert({
-        id: currentUser.id,
-        email: currentUser.email,
-        name,
-        avatar: defaultAvatarUrlForUserId(currentUser.id),
-        role: 'Student',
-        level: 1,
-        xp: 0,
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const meta = session.user.user_metadata || {};
+      await supabase.auth.updateUser({
+        data: { ...meta, name: trimName, avatar },
       });
-      if (insertError) throw insertError;
-    } else {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', currentUser.id)
-        .select();
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        throw new Error('Профиль не найден или нет прав на обновление');
-      }
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { UserAvatar } from '../components/UserAvatar';
@@ -45,6 +45,7 @@ export const Community: React.FC = () => {
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<TabKey>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const loadStudentsErrorToastShown = useRef(false);
 
   const loadStudents = useCallback(async () => {
     setLoadingStudents(true);
@@ -56,9 +57,13 @@ export const Community: React.FC = () => {
       if (error) throw error;
       const list = (data || []).filter((r) => isStudentRole(r.role)) as StudentRow[];
       setStudents(list);
+      loadStudentsErrorToastShown.current = false;
     } catch {
       setStudents([]);
-      showToast('Не удалось загрузить список', 'error');
+      if (!loadStudentsErrorToastShown.current) {
+        loadStudentsErrorToastShown.current = true;
+        showToast('Не удалось загрузить список', 'error');
+      }
     } finally {
       setLoadingStudents(false);
     }

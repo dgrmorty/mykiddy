@@ -26,6 +26,7 @@
       "data/**",
       "utils/**",
       "contexts/**",
+      "supabase/migrations/**",
       "nixpacks.toml"
     ]
   },
