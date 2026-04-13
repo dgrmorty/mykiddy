@@ -1,0 +1,37 @@
+# mykiddy (Дети В ТОПЕ) — правила для агента
+
+## База знаний проекта (Obsidian / Cursor)
+
+- Точка входа: **`knowledge-base/README.md`**, затем **`knowledge-base/Index.md`**, глубокий онбординг кода: **`knowledge-base/cursor-rules/PROJECT.md`**.
+- Разделы: **`knowledge-base/Features/`**, **`Roles/`**, **`Architecture/`**; снимок SQL из миграций: **`knowledge-base/DATABASE.md`** (сверять с `supabase/migrations/`).
+- Перед крупными задачами по домену — искать ответы в этих `.md`, учитывать **`[[wikilinks]]`**.
+
+## Проект
+
+- Веб-приложение: **Vite + React 18 + TypeScript**, стили **Tailwind**, роутинг **react-router-dom v6**.
+- Бэкенд BFF/прокси: **`server.js`** (Express), AI через `@google/genai`; переменные окружения для продакшена (`GEMINI_API_KEY`, и т.д.).
+- Данные: **Supabase** (`services/supabase.ts`, `@supabase/supabase-js`). Клиентские вызовы к таблицам и RPC — через типизированные сервисы в `services/`.
+- Рядом в монорепозитории может быть **`mykiddymobile`** (Expo/React Native) — при правках общей логики сверяй API и типы.
+
+## База данных и миграции
+
+- Схема, RLS, функции — только через **`supabase/migrations/*.sql`**. Не описывать «ручные» правки в Dashboard без миграции в git.
+- Для проверки/применения к связанному проекту: **`supabase db push --linked`** (или эквивалент в CI). Локальная папка миграций — источник истины.
+- Сложные выборки при жёстком RLS (например каталоги, публичные ленты) — паттерн **`SECURITY DEFINER` RPC** + узкий `GRANT` на `authenticated` / при необходимости `anon`. Не ослаблять RLS «на весь стол» без необходимости.
+
+## Архитектура фронта
+
+- Состояние пользователя: **`contexts/AuthContext.tsx`**, контент курсов: **`contexts/ContentContext.tsx`**.
+- Страницы: **`views/`**, переиспользуемые блоки: **`components/`**.
+- Новые фичи — по существующим паттернам (Card, Modal, Toast), без лишних зависимостей.
+
+## Стиль кода
+
+- Минимальный дифф: только то, что нужно задаче; не рефакторить соседний код без запроса.
+- Не добавлять лишнюю документацию в markdown, если пользователь не просил (исключение — папка **`knowledge-base/`** по запросу).
+- Ошибки сети/RPC логировать осмысленно (`console.warn` / `console.error` с контекстом), пустые `catch` — только с комментарием «почему молчим».
+
+## Переменные окружения (фронт)
+
+- Префикс **`VITE_`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`, `VITE_ADMIN_EMAILS` и т.д. Не хардкодить секреты в репозиторий.
+
