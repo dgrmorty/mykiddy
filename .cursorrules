@@ -2,9 +2,10 @@
 
 ## База знаний проекта (Obsidian / Cursor)
 
-- Точка входа: **`knowledge-base/README.md`**, затем **`knowledge-base/Index.md`**, глубокий онбординг кода: **`knowledge-base/cursor-rules/PROJECT.md`**.
-- Разделы: **`knowledge-base/Features/`**, **`Roles/`**, **`Architecture/`**; снимок SQL из миграций: **`knowledge-base/DATABASE.md`** (сверять с `supabase/migrations/`).
-- Перед крупными задачами по домену — искать ответы в этих `.md`, учитывать **`[[wikilinks]]`**.
+- **Обязательный порядок:** `knowledge-base/README.md` → **`knowledge-base/Index.md`** (мастер-карта всех разделов) → углубление в `Architecture/`, `Code/`, `Features/`, `Operations/`, `Репозитории/`, `Risks/`.
+- Глубокий стек и запреты: **`knowledge-base/cursor-rules/PROJECT.md`**.
+- Снимок SQL: **`knowledge-base/DATABASE.md`** + живые файлы в **`supabase/migrations/`**.
+- Учитывать **`[[wikilinks]]`** между заметками.
 
 ## Проект
 

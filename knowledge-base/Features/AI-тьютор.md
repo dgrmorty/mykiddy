@@ -1,58 +1,46 @@
 # AI-тьютор
+
 #feature #ai #gemini
-
-## Что это
-Чат-бот внутри урока. Знает контекст текущей темы, отвечает только по делу, защищён от нерелевантных вопросов.
-
-## Архитектура
-```
-Компонент (views/CourseDetail)
-  → getApiUrl('/api/chat')  ← config.ts
-    → server.js (Express, Railway)
-      → Google Gemini API
-```
-
-## Промпт-инжиниринг
-- В промпт передаётся: тема урока, тип курса, уровень ученика
-- Защита от prompt injection — санитизация входных данных на сервере
-- Ответы строго по теме урока
-
-## Лимиты
-- Rate limit по JWT (per user)
-- Лимит запросов в день
-- Статистика: `GET /api/ai-usage`
-
-## ⚠️ Правило
-Никогда не вызывай Gemini напрямую с фронта. Только через `/api/chat`.
-
-## Связи
-→ [[Features/Проверка домашних заданий]]
-→ [[Окружение и деплой]]
-→ [[Антипаттерны]]
 
 ---
 
-# Проверка домашних заданий
-#feature #ai #homework
+## Назначение
 
-## Что это
-Ученик отправляет ответ на домашнее задание — AI анализирует и выдаёт развёрнутый фидбэк.
+Внутри **урока** (`CourseDetail`): чат по теме урока, контекст передаётся на сервер вместе с вопросом.
 
-## Поток
+---
+
+## Реальный поток (код)
+
 ```
-1. Урок содержит homeworkTask (текст задания)
-2. Ученик пишет ответ в UI
-3. POST /api/check-homework { lessonId, homeworkTask, studentAnswer }
-4. Gemini: анализирует правильность + стиль + советы
-5. Фидбэк отображается ученику
+CourseDetail
+  → geminiService.askAiTutor(question, context, accessToken)
+  → fetch POST getApiUrl('api/ai-tutor')  // не /api/chat
+  → server.js → Google Gemini
+  → опционально incrementTutorUsage → таблица ai_usage
 ```
 
-## Сервер (server.js)
-- Эндпоинт: `POST /api/check-homework`
-- Проверяет JWT токен
-- Санитизирует ввод
-- Rate limit: нельзя спамить проверками
+---
 
-## Связи
-→ [[Features/Видеоуроки]]
-→ [[Features/AI-тьютор]]
+## Сервер
+
+- **`POST /api/ai-tutor`**, тело JSON: `{ question, context }`.
+- Лимит дня: **`AI_DAILY_TUTOR_LIMIT`**, проверка через Supabase с JWT.
+- Таймаут на клиенте ~90 с (`geminiService.ts`).
+
+---
+
+## Безопасность
+
+- Промпт и санитизация на сервере; ключ Gemini только в env Railway.
+- **Не** вызывать Gemini из браузера напрямую.
+
+---
+
+## Квота в UI
+
+- **`GET /api/ai-usage`** — остаток на сегодня (`getAiUsageQuota`).
+
+---
+
+→ [[Architecture/Сервер-Express-и-AI]] · [[Features/Видеоуроки]] · [[Code/Сервисы]]

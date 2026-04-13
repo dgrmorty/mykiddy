@@ -1,29 +1,40 @@
 # Knowledge Base Entry Point
 
-Start here when exploring the knowledge base for **MyKiddy** (Дети В ТОПЕ).
+**Проект:** MyKiddy (Дети В ТОПЕ) · [github.com/dgrmorty/mykiddy](https://github.com/dgrmorty/mykiddy)
 
-## How to use (Cursor / AI)
-
-1. Read this file first, then open **`Index.md`** for the full map and wikilinks.
-2. Deep product + stack rules: **`cursor-rules/PROJECT.md`** (обязательно перед крупными изменениями кода).
-3. **Supabase schema snapshot (авто из миграций):** `DATABASE.md` — сверяй с `supabase/migrations/`; при расхождении источник истины — миграции и `supabase db push`.
-
-## Main sections
-
-| Section | Path |
-|--------|------|
-| **Features** | [`Features/`](Features/) — витрина, AI-тьютор, видеоуроки |
-| **Roles** | [`Roles/`](Roles/) — роли пользователей и доступ |
-| **Architecture** | [`Architecture/`](Architecture/) — архитектура, база данных (описание домена) |
-
-## Корневые файлы
-
-| File | Purpose |
-|------|---------|
-| [`Index.md`](Index.md) | Карта всей базы, быстрые факты, навигация `[[wikilinks]]` |
-| [`DATABASE.md`](DATABASE.md) | Таблицы и RPC из локальных SQL-миграций (дополнение к «База данных.md») |
-| [`cursor-rules/PROJECT.md`](cursor-rules/PROJECT.md) | Правила разработки и стек для Cursor |
+Эта база — **полная карта продукта и кода** для Cursor / разработчиков / Obsidian. Не ограничивайся одним файлом: агенту нужно пройти **Index → разделы по задаче**.
 
 ---
 
-Always begin analysis from **this file**, then **`Index.md`**.
+## Как пользоваться агенту (порядок чтения)
+
+1. **`Index.md`** — мастер-карта: все разделы и быстрые ссылки.
+2. **`Architecture/Полная-карта-системы.md`** — один экран: слои, доверие, потоки.
+3. **`cursor-rules/PROJECT.md`** — стек, запреты, структура папок (обязательно перед крупными PR).
+4. По задаче:
+   - БД / RLS → **`Architecture/База данных`**, **`DATABASE.md`**, **`Architecture/RLS-RPC-и-безопасность`**
+   - Роуты / экраны → **`Code/Роутинг-и-страницы`**
+   - Состояние → **`Code/Контексты`**
+   - AI / лимиты → **`Architecture/Сервер-Express-и-AI`**, **`Features/AI-тьютор`**, **`Features/Проверка домашних заданий`**
+   - Деплой / env → **`Operations/Деплой-и-переменные-среды`**
+5. **`mykiddymobile`** (Expo) — **`Репозитории/Монорепо-mykinymobile`**, если трогаешь мобильный клиент.
+
+---
+
+## Структура папок (оглавление)
+
+| Папка | Содержание |
+|-------|------------|
+| **`Architecture/`** | Архитектура, БД, RLS/RPC, сервер AI, полная карта системы |
+| **`Code/`** | Контексты React, роутинг, сервисы, антипаттерны |
+| **`Features/`** | Продуктовые фичи end-to-end |
+| **`Roles/`** | Роли и доступ |
+| **`Operations/`** | Деплой, env, Supabase CLI |
+| **`Репозитории/`** | Связь web + mobile |
+| **`cursor-rules/`** | PROJECT.md — правила реализации |
+
+Корень: **`Index.md`**, **`DATABASE.md`** (снимок из миграций + дополнения).
+
+---
+
+Always begin from **this file**, then **`Index.md`**, then углубляйся в подразделы по задаче.

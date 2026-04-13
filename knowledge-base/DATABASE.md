@@ -1,48 +1,60 @@
-# DATABASE — снимок схемы из репозитория миграций
+# DATABASE — инвентарь схемы (репозиторий + домен)
 
-> **Источник истины:** папка [`../supabase/migrations/`](../supabase/migrations/) и связанный проект Supabase (`supabase db push --linked`).  
-> Этот файл дополняет человекочитаемое описание в [`Architecture/База данных.md`](Architecture/База%20данных.md).  
-> Полный дамп БД через CLI локально может требовать Docker (`supabase db dump`).
+> Первичный источник DDL: **`supabase/migrations/`**. Этот файл — **навигация** для агента и людей. Полный `pg_dump` может требовать Docker.
 
-## Таблицы (упоминания `create table` в миграциях)
+---
 
-| Таблица | Файл миграции (первое появление) |
-|---------|-----------------------------------|
+## Таблицы из `create table` в миграциях
+
+| Таблица | Файл (первое появление) |
+|---------|-------------------------|
 | `friendships` | `20260405190000_friendships_and_student_profiles_read.sql` |
 | `activity_notifications` | `20260405210000_activity_notifications.sql` |
 | `project_posts` | `20260410120000_showcase_streaks.sql` |
 | `project_post_likes` | `20260410120000_showcase_streaks.sql` |
 
-Таблицы **`profiles`**, **`courses`**, **`modules`**, **`lessons`**, **`user_progress`**, **`homework_submissions`**, **`schedule_events`** и др. описаны в [`Architecture/База данных.md`](Architecture/База%20данных.md); DDL части из них могут быть созданы вне текущей папки миграций в истории проекта — при сомнениях смотри **SQL Editor** в Supabase или `pg_dump` с продакшена.
+## Таблицы, используемые кодом (DDL может быть в более ранней истории или вне текущей папки)
 
-## Колонки / ALTER (примеры из миграций)
-
-- `profiles`: стрики, `avatar_accessory`, бандлы аватаров — см. `20260410120000_showcase_streaks.sql`, `20260415180000_*`, `20260416100000_*`.
-- `courses`: `course_year_tier` — `20260405140000_add_course_year_tier.sql`.
-
-## Функции и RPC (публичные, по grep миграций)
-
-| Функция | Назначение (кратко) |
-|---------|---------------------|
-| `record_daily_streak()` | Ежедневный стрик в `profiles` |
-| `list_community_students()` | Каталог учеников для сообщества |
-| `list_showcase_authors(uuid[])` | Авторы витрины (обход RLS на `profiles`) |
-| `list_approved_showcase_posts(int)` | Лента одобренных постов (SECURITY DEFINER) |
-| `showcase_like_counts(uuid[])` | Счётчики лайков по постам |
-| `update_own_profile_patch(...)` | Патч имени/аватара |
-| `is_admin_user()` | Проверка админа по `profiles.role` |
-| `increment_xp(integer)` | Начисление XP (+50) |
-| `profile_xp_rank(uuid)` | Ранг по XP |
-| `delete_user_by_admin(uuid)` | Удаление пользователя админом |
-| `get_all_users()` | Список пользователей (админ) |
-| Триггерные notify для витрины / дружбы | `fn_notify_*`, `fn_activity_notify_friendship` |
-
-Актуальные сигнатуры и `GRANT` — в соответствующих `.sql` файлах.
-
-## RLS и безопасность
-
-Центральный файл: `20260418120000_security_hardening.sql` (политики `profiles`, лайки витрины, отзывы grant на RPC).
+`profiles`, `courses`, `modules`, `lessons`, `user_progress`, `schedule_events`, `settings`, `homework_submissions`, `ai_usage` — см. **`services/`**, **`views/`**, [[Architecture/База данных]].
 
 ---
 
-*Сгенерировано для Cursor; обновляйте вручную при крупных изменениях схемы или регенерируйте список из `rg 'create table' supabase/migrations`.*
+## Функции и RPC (grep по миграциям)
+
+| Имя | Назначение |
+|-----|------------|
+| `record_daily_streak()` | Стрик, UTC |
+| `increment_xp(integer)` | XP +50 (ограничения в теле) |
+| `is_admin_user()` | Админ? |
+| `handle_new_user()` | Триггер профиля |
+| `profile_xp_rank(uuid)` | Ранг |
+| `delete_user_by_admin(uuid)` | Удаление юзера |
+| `get_all_users()` | Список для админки |
+| `list_community_students()` | Каталог учеников |
+| `list_showcase_authors(uuid[])` | Авторы витрины |
+| `list_approved_showcase_posts(int)` | Лента approved |
+| `showcase_like_counts(uuid[])` | Лайки |
+| `update_own_profile_patch(...)` | Патч профиля |
+| `fn_notify_admins_project_moderation` | Триггер витрины |
+| `fn_notify_author_project_moderation` | Триггер витрины |
+| `fn_activity_notify_friendship` | Дружба → уведомления |
+
+`GRANT`/`REVOKE` менялись в **`20260418120000_security_hardening.sql`** и последующих.
+
+---
+
+## Индексы и вспомогательное
+
+- FK индексы (например `activity_notifications_actor_id`, `project_posts_moderator_id`) — см. `security_hardening` и соседние миграции.
+
+---
+
+## Практика для агента
+
+1. Менять схему **только** новым файлом в `supabase/migrations/`.
+2. После правок — **`supabase db push --linked`** на целевой проект.
+3. При расхождении доки и кода — **код и миграции** побеждают.
+
+---
+
+→ [[Architecture/База данных]] · [[Architecture/RLS-RPC-и-безопасность]] · [[Operations/Деплой-и-переменные-среды]]
