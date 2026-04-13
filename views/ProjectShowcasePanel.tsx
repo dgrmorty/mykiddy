@@ -58,7 +58,10 @@ export const ProjectShowcasePanel: React.FC = () => {
         setLikeMap({});
         setCountMap({});
       }
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const code = typeof err === 'object' && err !== null && 'code' in err ? String((err as { code?: string }).code) : '';
+      console.error('[Showcase] load failed', msg, code, err);
       setPosts([]);
       showToast('Не удалось загрузить витрину', 'error');
     } finally {

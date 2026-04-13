@@ -154,26 +154,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           });
           try {
-            const { data: sd } = await supabase.rpc('record_daily_streak');
-            const d = sd as {
-              ok?: boolean;
-              streak_current?: number;
-              streak_longest?: number;
-            } | null;
-            if (d?.ok && typeof d.streak_current === 'number') {
-              setUser((prev) => {
-                if (fetchSerial !== profileFetchSerialRef.current) return prev;
-                if (prev.id !== userId) return prev;
-                return {
-                  ...prev,
-                  streakCurrent: d.streak_current!,
-                  streakLongest:
-                    typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
-                };
-              });
+            const { data: sess } = await supabase.auth.getSession();
+            if (!sess?.session) {
+              console.warn('[Auth] record_daily_streak skipped: no active session');
+            } else {
+              const { data: sd, error: streakRpcError } = await supabase.rpc('record_daily_streak');
+              if (streakRpcError) {
+                console.warn('[Auth] record_daily_streak RPC error', streakRpcError.message, streakRpcError.code);
+              } else {
+                const d = sd as {
+                  ok?: boolean;
+                  error?: string;
+                  streak_current?: number;
+                  streak_longest?: number;
+                } | null;
+                if (d?.ok === false) {
+                  console.warn('[Auth] record_daily_streak returned ok:false', d?.error ?? d);
+                } else if (d?.ok && typeof d.streak_current === 'number') {
+                  setUser((prev) => {
+                    if (fetchSerial !== profileFetchSerialRef.current) return prev;
+                    if (prev.id !== userId) return prev;
+                    return {
+                      ...prev,
+                      streakCurrent: d.streak_current!,
+                      streakLongest:
+                        typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
+                    };
+                  });
+                }
+              }
             }
-          } catch {
-            /* нет RPC до миграции */
+          } catch (e) {
+            console.warn('[Auth] record_daily_streak exception', e);
           }
       } else {
           // Если профиль не найден или ошибка, используем данные из auth

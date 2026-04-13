@@ -63,14 +63,21 @@ export async function createProjectPost(
 }
 
 export async function fetchApprovedShowcasePosts(limit = 40): Promise<ShowcasePostRow[]> {
+  const cap = Math.min(Math.max(limit, 1), 100);
   const { data, error } = await supabase
     .from('project_posts')
     .select('id, author_id, status, phrase_selections, media, reject_reason, created_at')
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return (data || []) as ShowcasePostRow[];
+    .limit(cap);
+  if (!error) return (data || []) as ShowcasePostRow[];
+
+  console.warn('[showcase] project_posts select failed, trying list_approved_showcase_posts', error.message, error.code);
+  const { data: rpcRows, error: rpcErr } = await supabase.rpc('list_approved_showcase_posts', {
+    p_limit: cap,
+  });
+  if (rpcErr) throw rpcErr;
+  return (rpcRows || []) as ShowcasePostRow[];
 }
 
 function mapProfilesToAuthorMap(
