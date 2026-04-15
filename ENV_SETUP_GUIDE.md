@@ -150,3 +150,35 @@
 **PORT** и **VITE_API_URL** часто можно не задавать (подставляются по умолчанию или из окружения Railway).
 
 После того как заполнишь `.env` по этой инструкции, можно прислать только **список имён** переменных (без значений), и я проверю, что ничего не забыто.
+
+---
+
+## Supabase CLI и продакшн
+
+Проект уже **связан** с облачным проектом (после `supabase login` и `supabase link` в каталоге репозитория).
+
+### Проверки перед релизом
+
+В корне репозитория:
+
+| Команда | Зачем |
+|--------|--------|
+| `npm run supabase:migrations` | Локальные миграции совпадают с облаком |
+| `npm run supabase:lint` | Схема на сервере без ошибок линтера |
+| `npm run supabase:push` | Применить **новые** SQL-миграции из `supabase/migrations/` к облаку |
+
+Сейчас база **на месте**: все миграции применены, `db lint --linked` без ошибок.
+
+### OAuth и URL (обязательно для Google-входа)
+
+1. В **Supabase Dashboard** → **Authentication** → **URL Configuration**:
+   - **Site URL** — публичный адрес фронта (например `https://твой-сервис.up.railway.app/` или свой домен **со слешем в конце**, если так принято в настройках).
+   - **Redirect URLs** — добавь **точно** тот же корень, что в коде после входа: `https://твой-домен/` (как в `AuthModal`: редирект на корень SPA).
+2. В **Google Cloud Console** (OAuth-клиент для этого проекта) в **Authorized redirect URIs** должна быть ссылка вида  
+   `https://<project-ref>.supabase.co/auth/v1/callback` (её даёт Supabase в настройках провайдера).
+
+Не выполняй `supabase config push`, пока в `supabase/config.toml` в секции `[auth]` стоят **локальные** `127.0.0.1` — иначе можно затереть боевые URL в облаке. Для прода удобнее править **Site URL / Redirect URLs в Dashboard**; `config push` используй только осознанно, с прод-URL в `site_url` и в `additional_redirect_urls`.
+
+### Локальный Supabase (Docker)
+
+`supabase start` поднимает Postgres и Auth в Docker — нужен запущенный Docker Desktop. Для работы приложения с **облачным** проектом достаточно переменных `VITE_SUPABASE_*` в `.env`, локальный стек не обязателен.
