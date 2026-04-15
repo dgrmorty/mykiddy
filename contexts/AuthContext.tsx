@@ -166,40 +166,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               streakLongest: profile.streak_longest ?? 0,
             });
           });
-          try {
-            const { data: sess } = await supabase.auth.getSession();
-            if (!sess?.session) {
-              console.warn('[Auth] record_daily_streak skipped: no active session');
-            } else {
+          // Не блокируем finally: при зависании RPC UI навсегда оставался бы на глобальном лоадере.
+          void (async () => {
+            try {
+              const { data: sess } = await supabase.auth.getSession();
+              if (!sess?.session) {
+                console.warn('[Auth] record_daily_streak skipped: no active session');
+                return;
+              }
               const { data: sd, error: streakRpcError } = await supabase.rpc('record_daily_streak');
               if (streakRpcError) {
                 console.warn('[Auth] record_daily_streak RPC error', streakRpcError.message, streakRpcError.code);
-              } else {
-                const d = sd as {
-                  ok?: boolean;
-                  error?: string;
-                  streak_current?: number;
-                  streak_longest?: number;
-                } | null;
-                if (d?.ok === false) {
-                  console.warn('[Auth] record_daily_streak returned ok:false', d?.error ?? d);
-                } else if (d?.ok && typeof d.streak_current === 'number') {
-                  setUser((prev) => {
-                    if (fetchSerial !== profileFetchSerialRef.current) return prev;
-                    if (prev.id !== userId) return prev;
-                    return {
-                      ...prev,
-                      streakCurrent: d.streak_current!,
-                      streakLongest:
-                        typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
-                    };
-                  });
-                }
+                return;
               }
+              const d = sd as {
+                ok?: boolean;
+                error?: string;
+                streak_current?: number;
+                streak_longest?: number;
+              } | null;
+              if (d?.ok === false) {
+                console.warn('[Auth] record_daily_streak returned ok:false', d?.error ?? d);
+              } else if (d?.ok && typeof d.streak_current === 'number') {
+                setUser((prev) => {
+                  if (fetchSerial !== profileFetchSerialRef.current) return prev;
+                  if (prev.id !== userId) return prev;
+                  return {
+                    ...prev,
+                    streakCurrent: d.streak_current!,
+                    streakLongest:
+                      typeof d.streak_longest === 'number' ? d.streak_longest : prev.streakLongest ?? 0,
+                  };
+                });
+              }
+            } catch (e) {
+              console.warn('[Auth] record_daily_streak exception', e);
             }
-          } catch (e) {
-            console.warn('[Auth] record_daily_streak exception', e);
-          }
+          })();
       } else {
           // Если профиль не найден или ошибка, используем данные из auth
           console.warn("[Auth] Profile not found or error, using auth data:", error?.message);
@@ -324,6 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Не затирать гостя, если в URL ещё обрабатывается OAuth (иначе гонка с initAuth)
         if (isLikelyOAuthReturn()) {
           console.log("[Auth] INITIAL_SESSION empty but OAuth params in URL — skip forcing guest");
+          setAuthLoading(false);
         } else {
           console.log("[Auth] No initial session");
           setUser(GUEST_USER);
