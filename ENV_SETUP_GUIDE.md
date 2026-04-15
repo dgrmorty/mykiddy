@@ -171,11 +171,29 @@
 
 ### OAuth и URL (обязательно для Google-входа)
 
-1. В **Supabase Dashboard** → **Authentication** → **URL Configuration**:
-   - **Site URL** — публичный адрес фронта (например `https://твой-сервис.up.railway.app/` или свой домен **со слешем в конце**, если так принято в настройках).
-   - **Redirect URLs** — добавь **точно** тот же корень, что в коде после входа: `https://твой-домен/` (как в `AuthModal`: редирект на корень SPA).
-2. В **Google Cloud Console** (OAuth-клиент для этого проекта) в **Authorized redirect URIs** должна быть ссылка вида  
-   `https://<project-ref>.supabase.co/auth/v1/callback` (её даёт Supabase в настройках провайдера).
+Пароль работает, а Google — нет: почти всегда **не включён провайдер Google** или неверны **Redirect URI** / **URL в Supabase**.
+
+#### 1. Google Cloud Console
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → проект → **APIs & Services** → **Credentials**.
+2. **Create credentials** → **OAuth client ID** (тип **Web application**).
+3. В **Authorized JavaScript origins** добавь домен фронта, например `https://твой-сайт.ru` и при разработке `http://localhost:5173`.
+4. В **Authorized redirect URIs** добавь **ровно один** адрес (подставь свой `project-ref` из Supabase → Settings → API → URL):  
+   `https://<project-ref>.supabase.co/auth/v1/callback`  
+   Это **не** URL твоего сайта — это callback Supabase Auth.
+
+Сохрани **Client ID** и **Client secret**.
+
+#### 2. Supabase — провайдер Google
+
+1. **Authentication** → **Providers** → **Google** → **Enable**.
+2. Вставь **Client ID** и **Client Secret** из шага выше. Сохрани.
+
+#### 3. Supabase — URL приложения
+
+1. **Authentication** → **URL Configuration**:
+   - **Site URL** — публичный адрес фронта (например `https://твой-сервис.up.railway.app/`).
+   - **Redirect URLs** — добавь **точное** совпадение с тем, куда приложение ведёт после входа: `https://твой-домен/` (в коде используется корень: `redirectTo: origin + '/'`). Для локалки: `http://localhost:5173/`.
 
 Не выполняй `supabase config push`, пока в `supabase/config.toml` в секции `[auth]` стоят **локальные** `127.0.0.1` — иначе можно затереть боевые URL в облаке. Для прода удобнее править **Site URL / Redirect URLs в Dashboard**; `config push` используй только осознанно, с прод-URL в `site_url` и в `additional_redirect_urls`.
 

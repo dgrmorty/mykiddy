@@ -19,6 +19,20 @@ function validatePassword(p: string): string | null {
   return null;
 }
 
+/** Сообщение пользователю по ошибке OAuth (частые случаи Supabase / Google). */
+function describeGoogleOAuthError(err: { message?: string } | null): string {
+  const msg = (err?.message || '').toLowerCase();
+  if (!msg) return 'Не удалось войти через Google. Попробуйте ещё раз.';
+  if (/provider|not enabled|invalid client|client_id/.test(msg)) {
+    return 'Вход через Google не настроен: в Supabase → Authentication → Providers включи Google и укажи Client ID и Client Secret из Google Cloud.';
+  }
+  if (/redirect|url|uri/.test(msg)) {
+    return 'Неверный адрес редиректа: в Supabase → URL Configuration добавь URL сайта; в Google Cloud — Redirect URI вида https://<project>.supabase.co/auth/v1/callback.';
+  }
+  if (msg.length < 220) return err?.message || 'Ошибка Google OAuth.';
+  return 'Не удалось войти через Google. Открой консоль браузера (F12) для подробностей.';
+}
+
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -50,14 +64,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Всегда корень SPA: один URL в Supabase Redirect URLs, совпадение с Site URL без лишних путей
+          // Всегда корень SPA — тот же URL должен быть в Supabase → Authentication → Redirect URLs
           redirectTo: `${window.location.origin}/`,
           queryParams: { prompt: 'select_account' },
         },
       });
-      if (err) throw err;
-    } catch {
-      setError('Не удалось войти через Google. Попробуйте ещё раз.');
+      if (err) {
+        console.error('[AuthModal] signInWithOAuth error', err);
+        setError(describeGoogleOAuthError(err));
+        return;
+      }
+      // При успехе браузер уходит на Google, дальше этот код часто не выполняется
+    } catch (e: unknown) {
+      console.error('[AuthModal] Google OAuth exception', e);
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : '';
+      setError(describeGoogleOAuthError(msg ? { message: msg } : null));
     } finally {
       setLoading(false);
       authInFlightRef.current = false;
