@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase, signOut as supabaseSignOut } from '../services/supabase';
+import { invalidateCoursesCache } from '../services/contentService';
 import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
 import { bundledAvatarCanonical, defaultAvatarUrlForUserId, isBundledSchoolAvatar } from '../data/defaultAvatars';
@@ -438,6 +439,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthLoading(true);
     try {
         await supabaseSignOut();
+        invalidateCoursesCache();
         setUser(GUEST_USER);
         // Очищаем состояние после выхода
         setTimeout(() => {

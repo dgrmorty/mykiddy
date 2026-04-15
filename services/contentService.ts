@@ -4,6 +4,7 @@ import { withTimeout } from '../utils/withTimeout';
 
 const CACHE_TTL_MS = 90 * 1000;
 const FETCH_TIMEOUT_MS = 8000; // 8 с для медленного интернета
+const PROGRESS_FETCH_TIMEOUT_MS = 6000; // без отдельного таймаута UI мог «висеть» на «Загружаем курсы…»
 
 let coursesCache: { key: string; data: Course[]; ts: number } | null = null;
 
@@ -67,13 +68,19 @@ export const contentService = {
 
       let completedLessonIds: Set<string> = new Set();
       if (userId) {
-        const { data: progressData } = await supabase
-            .from('user_progress')
-            .select('lesson_id')
-            .eq('user_id', userId);
-        
-        if (progressData) {
-            progressData.forEach(p => completedLessonIds.add(p.lesson_id));
+        try {
+          const progressRequest = supabase.from('user_progress').select('lesson_id').eq('user_id', userId);
+          const progressResult: any = await withTimeout(
+            progressRequest as unknown as Promise<unknown>,
+            PROGRESS_FETCH_TIMEOUT_MS,
+            'user_progress fetch'
+          );
+          const progressData = progressResult?.data as { lesson_id: string }[] | null | undefined;
+          if (progressData) {
+            progressData.forEach((p) => completedLessonIds.add(p.lesson_id));
+          }
+        } catch (e) {
+          console.warn('[ContentService] user_progress skipped (timeout/error), showing courses without progress', e);
         }
       }
 
