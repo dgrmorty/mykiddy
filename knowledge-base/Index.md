@@ -26,6 +26,7 @@
 | [[Architecture/Сервер-Express-и-AI]] | server.js, эндпоинты `/api/*`, лимиты |
 | [[DATABASE]] | Инвентарь миграций: таблицы + RPC |
 | [[Operations/Деплой-и-переменные-среды]] | VITE_*, Railway, Supabase CLI |
+| [[Operations/Google-OAuth-и-auth-диагностика]] | Google OAuth, редиректы, troubleshooting |
 
 ---
 

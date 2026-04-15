@@ -10,6 +10,7 @@
 2. Массовый `SELECT` по **`profiles`** с `IN (много id)` может конфликтовать с политикой «видимости» — для каталогов используются **RPC `SECURITY DEFINER`**: `list_community_students`, `list_showcase_authors`.
 3. Публичная **лента одобренных постов** витрины: политика для **`anon`** на `project_posts` (только `status = 'approved'`) + RPC **`list_approved_showcase_posts`** как запасной путь при сбоях PostgREST.
 4. **Лайки** `project_post_likes`: политики не «select true для всех» — см. миграцию `20260418120000_security_hardening.sql`.
+5. Для гостевого каталога и дашборда добавлен публичный `SELECT` (`anon`) на `courses`, `modules`, `lessons`, `schedule_events` через миграцию `20260422120000_public_catalog_and_schedule_anon_read.sql`.
 
 ---
 
