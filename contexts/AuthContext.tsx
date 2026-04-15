@@ -15,6 +15,19 @@ const _adminFromEnv = (import.meta.env.VITE_ADMIN_EMAILS || '')
   .filter(Boolean);
 const ADMIN_EMAILS = _adminFromEnv;
 
+/** Возврат с OAuth: токены/code в URL разбираются асинхронно — нельзя сразу считать сессию пустой. */
+function isLikelyOAuthReturn(): boolean {
+  if (typeof window === 'undefined') return false;
+  const { search, hash } = window.location;
+  const blob = `${search}&${hash}`;
+  return (
+    blob.includes('code=') ||
+    blob.includes('access_token') ||
+    blob.includes('refresh_token') ||
+    blob.includes('provider_token')
+  );
+}
+
 /** Сохраняем аватар из ответа БД; штатные ИИ — пути `/avatars/student-*.png`. */
 function mergePreserveAvatar(prev: User, next: User): User {
   if (prev.id !== next.id || prev.role === Role.GUEST) return next;
@@ -219,27 +232,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     
-    // Глобальный таймер безопасности: если через 10 секунд мы все еще грузимся, принудительно пускаем пользователя как гостя
+    // После OAuth редиректа разбор URL может занять сотни мс — даём до 25 с на инициализацию
+    const globalSafetyMs = isLikelyOAuthReturn() ? 25000 : 12000;
     const globalSafetyTimer = setTimeout(() => {
       if (mounted && loadingRef.current) {
         console.warn("[Auth] Global initialization timeout reached. Releasing UI...");
         setAuthLoading(false);
       }
-    }, 10000);
+    }, globalSafetyMs);
 
     const initAuth = async () => {
       try {
-        console.log("[Auth] Initializing session...");
-        
-        // Таймаут для получения сессии
-        const sessionTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('SESSION_TIMEOUT')), 5000)
-        );
-        
-        const sessionRequest = supabase.auth.getSession();
-        const result: any = await Promise.race([sessionRequest, sessionTimeout]);
-        const { data: { session }, error } = result;
-        
+        console.log("[Auth] Initializing session...", { oauthReturn: isLikelyOAuthReturn() });
+
+        const oauthReturn = isLikelyOAuthReturn();
+        const pollUntil = Date.now() + (oauthReturn ? 20000 : 0);
+        const pollIntervalMs = 150;
+
+        let session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] = null;
+        let error: Awaited<ReturnType<typeof supabase.auth.getSession>>['error'] = null;
+
+        while (true) {
+          const result = await supabase.auth.getSession();
+          error = result.error;
+          session = result.data.session;
+          if (error) break;
+          if (session?.user) break;
+          if (!oauthReturn || Date.now() >= pollUntil) break;
+          await new Promise((r) => setTimeout(r, pollIntervalMs));
+        }
+
         if (error) {
           console.error("[Auth] Session error:", error);
           if (mounted) {
@@ -248,13 +270,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           return;
         }
-        
+
         if (session?.user && mounted) {
           setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(session.user)));
           setAuthLoading(false);
           fetchProfile(session.user.id, session.user, { silent: true }).catch(() => {});
         } else if (mounted) {
-          console.log("[Auth] No session found.");
+          console.log("[Auth] No session found after init.");
           setUser(GUEST_USER);
           setAuthLoading(false);
         }
@@ -299,9 +321,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(GUEST_USER);
         setAuthLoading(false);
       } else if (event === 'INITIAL_SESSION' && !session) {
-        console.log("[Auth] No initial session");
-        setUser(GUEST_USER);
-        setAuthLoading(false);
+        // Не затирать гостя, если в URL ещё обрабатывается OAuth (иначе гонка с initAuth)
+        if (isLikelyOAuthReturn()) {
+          console.log("[Auth] INITIAL_SESSION empty but OAuth params in URL — skip forcing guest");
+        } else {
+          console.log("[Auth] No initial session");
+          setUser(GUEST_USER);
+          setAuthLoading(false);
+        }
       } else if (mounted) {
         setAuthLoading(false);
       }

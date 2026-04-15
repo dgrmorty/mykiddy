@@ -50,7 +50,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          // Полный URL корня приложения — должен быть в Redirect URLs в Supabase
+          redirectTo: `${window.location.origin}${window.location.pathname || '/'}`,
           queryParams: { prompt: 'select_account' },
         },
       });
