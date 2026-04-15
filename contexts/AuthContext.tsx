@@ -61,6 +61,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const lastProfileRefreshRef = React.useRef(0);
   /** Сбрасываем устаревшие ответы fetchProfile (гонка USER_UPDATED / параллельные запросы). */
   const profileFetchSerialRef = React.useRef(0);
+  /**
+   * После OAuth Supabase может уже убрать code из URL, а INITIAL_SESSION ещё придёт с session=null —
+   * без этого флага мы ошибочно выставляем гостя до завершения обмена кода.
+   */
+  const oauthRecoveryActiveRef = React.useRef(false);
+  const oauthRecoveryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   userRef.current = user;
 
   const setAuthLoading = (val: boolean) => {
@@ -234,6 +240,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+
+    const endOAuthRecoveryWindow = () => {
+      oauthRecoveryActiveRef.current = false;
+      if (oauthRecoveryTimerRef.current) {
+        clearTimeout(oauthRecoveryTimerRef.current);
+        oauthRecoveryTimerRef.current = null;
+      }
+    };
+
+    if (isLikelyOAuthReturn()) {
+      oauthRecoveryActiveRef.current = true;
+      oauthRecoveryTimerRef.current = setTimeout(() => {
+        oauthRecoveryActiveRef.current = false;
+        oauthRecoveryTimerRef.current = null;
+      }, 45000);
+    }
     
     // После OAuth редиректа разбор URL может занять сотни мс — даём до 25 с на инициализацию
     const globalSafetyMs = isLikelyOAuthReturn() ? 25000 : 12000;
@@ -268,6 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) {
           console.error("[Auth] Session error:", error);
           if (mounted) {
+            endOAuthRecoveryWindow();
             setUser(GUEST_USER);
             setAuthLoading(false);
           }
@@ -275,17 +298,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (session?.user && mounted) {
+          endOAuthRecoveryWindow();
           setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(session.user)));
           setAuthLoading(false);
           fetchProfile(session.user.id, session.user, { silent: true }).catch(() => {});
         } else if (mounted) {
           console.log("[Auth] No session found after init.");
+          endOAuthRecoveryWindow();
           setUser(GUEST_USER);
           setAuthLoading(false);
         }
       } catch (err: any) {
         console.error("[Auth] Init Error:", err?.message || err);
         if (mounted) {
+          endOAuthRecoveryWindow();
           setUser(GUEST_USER);
           setAuthLoading(false);
         }
@@ -306,6 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const silent = isSilentRefresh && !!alreadySameUser;
       
       if (session?.user) {
+        endOAuthRecoveryWindow();
         if (silent) {
           console.log("[Auth] Silent profile refresh (return to app)");
         } else {
@@ -320,19 +347,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAuthLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
+        endOAuthRecoveryWindow();
         console.log("[Auth] User signed out");
         setUser(GUEST_USER);
         setAuthLoading(false);
       } else if (event === 'INITIAL_SESSION' && !session) {
-        // Не затирать гостя, если в URL ещё обрабатывается OAuth (иначе гонка с initAuth)
-        if (isLikelyOAuthReturn()) {
-          console.log("[Auth] INITIAL_SESSION empty but OAuth params in URL — skip forcing guest");
+        const skipGuestWhileOAuth =
+          oauthRecoveryActiveRef.current || isLikelyOAuthReturn();
+        if (skipGuestWhileOAuth) {
+          console.log(
+            '[Auth] INITIAL_SESSION empty during OAuth recovery — skip forcing guest',
+          );
           setAuthLoading(false);
-        } else {
-          console.log("[Auth] No initial session");
+          return;
+        }
+        void (async () => {
+          await Promise.resolve();
+          const {
+            data: { session: lateSession },
+            error: recErr,
+          } = await supabase.auth.getSession();
+          if (!mounted) return;
+          if (recErr) {
+            console.warn('[Auth] getSession after INITIAL_SESSION null:', recErr.message);
+          }
+          if (lateSession?.user) {
+            console.log('[Auth] Session present after INITIAL_SESSION null — syncing profile');
+            try {
+              await fetchProfile(lateSession.user.id, lateSession.user, {
+                silent: true,
+              });
+            } catch (err) {
+              console.error('[Auth] Error after late session:', err);
+              setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(lateSession.user)));
+              setAuthLoading(false);
+            }
+            return;
+          }
+          console.log('[Auth] No initial session (confirmed)');
           setUser(GUEST_USER);
           setAuthLoading(false);
-        }
+        })();
       } else if (mounted) {
         setAuthLoading(false);
       }
@@ -364,6 +419,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      endOAuthRecoveryWindow();
       clearTimeout(globalSafetyTimer);
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', onVisibilityChange);
