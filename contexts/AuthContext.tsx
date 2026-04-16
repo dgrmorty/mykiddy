@@ -299,6 +299,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (session?.user && mounted) {
+          // После подтверждения email Supabase возвращает токены в URL/hash.
+          // Чистим URL, чтобы не оставлять "технические" параметры и не ловить повторные гонки на init.
+          try {
+            if (typeof window !== 'undefined') {
+              const { pathname, search } = window.location;
+              if (window.location.hash || window.location.search.includes('code=')) {
+                window.history.replaceState({}, '', `${pathname}${search}`);
+              }
+            }
+          } catch {}
           endOAuthRecoveryWindow();
           setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(session.user)));
           setAuthLoading(false);

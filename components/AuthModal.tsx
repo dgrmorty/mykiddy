@@ -113,21 +113,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         }
         const { data, error: err } = await supabase.auth.signUp({
           email, password,
-          options: { data: { name: name.trim(), role: 'Student', is_approved: true } },
+          options: {
+            data: { name: name.trim(), role: 'Student', is_approved: true },
+            // После клика по письму Supabase вернёт пользователя на корень SPA.
+            // Дальше `detectSessionInUrl: true` подхватит сессию, и `AuthContext` залогинит пользователя.
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
         if (err) throw err;
+        // Если подтверждение email включено — сессии не будет до клика по письму.
         if (data?.user && !data.session) {
-          setSuccess('Проверьте почту — мы отправили письмо для подтверждения. После подтверждения введите пароль ниже.');
-          setTimeout(() => {
-            setMode('login');
-            setSuccess('Почта подтверждена? Введите пароль и нажмите «Войти».');
-          }, 4000);
+          setSuccess(
+            'Письмо отправлено. Откройте почту и нажмите «Подтвердить». После этого вы автоматически вернётесь в приложение и войдёте в аккаунт.',
+          );
           return;
         }
+        // Если Supabase вернул сессию (например, confirm email выключен) — всё равно оставляем UX предсказуемым.
+        // Пользователь уже вошёл, просто закрываем модалку.
       } else {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
       }
+      // Для signup с подтверждением email — сюда не дойдём (return выше).
+      // Для login/авто-сессии — обновляем профиль и закрываем модалку.
       try { await refreshUser(); } catch {}
       setTimeout(onSuccess, 300);
     } catch (err: any) {
