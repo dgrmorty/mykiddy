@@ -147,14 +147,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       try { await refreshUser(); } catch {}
       setTimeout(onSuccess, 300);
     } catch (err: any) {
+      const status = (err as any)?.status ?? (err as any)?.code;
       const msg = String(err?.message || '');
       const msgLower = msg.toLowerCase();
-      if (msg === 'Invalid login credentials' || msg.includes('Invalid')) setError('Неверный email или пароль');
-      else if (msgLower.includes('email') && msgLower.includes('confirm')) setError('Почта не подтверждена. Откройте письмо и нажмите «Подтвердить».');
-      else if (msg.includes('Email') && msg.includes('already')) setError('Пользователь с таким email уже существует');
-      else if (msg.includes('password') || msg.includes('Password')) setError('Пароль: минимум 8 символов, буквы и цифры');
-      else if (msgLower.includes('invalid') && msgLower.includes('email')) setError('Неверный формат email');
-      else setError('Произошла ошибка. Попробуйте ещё раз.');
+
+      if (status === 429 || msgLower.includes('too many') || msgLower.includes('rate limit')) {
+        setError('Слишком много попыток регистрации или писем за короткое время. Подождите несколько минут и попробуйте снова.');
+      } else if (msg === 'Invalid login credentials' || msg.includes('Invalid')) {
+        setError('Неверный email или пароль');
+      } else if (msgLower.includes('email') && msgLower.includes('confirm')) {
+        setError('Почта не подтверждена. Откройте письмо и нажмите «Подтвердить».');
+      } else if (msg.includes('Email') && msg.includes('already')) {
+        setError('Пользователь с таким email уже существует');
+      } else if (msg.includes('password') || msg.includes('Password')) {
+        setError('Пароль: минимум 8 символов, буквы и цифры');
+      } else if (msgLower.includes('invalid') && msgLower.includes('email')) {
+        setError('Неверный формат email');
+      } else {
+        setError('Произошла ошибка. Попробуйте ещё раз.');
+      }
     } finally {
       setLoading(false);
       authInFlightRef.current = false;
