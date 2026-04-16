@@ -11,6 +11,7 @@ import { Settings } from './views/Settings';
 import { Community } from './views/Community';
 import { UserPublicProfile } from './views/UserPublicProfile';
 import { Notifications } from './views/Notifications';
+import { AuthConfirmed } from './views/AuthConfirmed';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BrandingProvider } from './contexts/BrandingContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -63,6 +64,9 @@ const AppContent: React.FC = () => {
       <Routes>
         <Route path="/" element={<Layout user={user} />}>
           <Route index element={<Dashboard user={user} />} />
+
+          {/* Возврат по ссылке подтверждения email */}
+          <Route path="auth/confirmed" element={<AuthConfirmed />} />
           
           <Route path="courses" element={
             <ProtectedRoute>

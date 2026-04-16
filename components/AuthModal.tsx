@@ -52,6 +52,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<{ email: string; password: string } | null>(null);
   /** Синхронная защита от двойного сабмита до срабатывания setState(loading) */
   const authInFlightRef = useRef(false);
 
@@ -117,14 +118,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             data: { name: name.trim(), role: 'Student', is_approved: true },
             // После клика по письму Supabase вернёт пользователя на корень SPA.
             // Дальше `detectSessionInUrl: true` подхватит сессию, и `AuthContext` залогинит пользователя.
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/auth/confirmed`,
           },
         });
         if (err) throw err;
         // Если подтверждение email включено — сессии не будет до клика по письму.
         if (data?.user && !data.session) {
+          setPendingConfirm({ email, password });
           setSuccess(
-            'Письмо отправлено. Откройте почту и нажмите «Подтвердить». После этого вы автоматически вернётесь в приложение и войдёте в аккаунт.',
+            'Письмо отправлено. Откройте почту и нажмите «Подтвердить». ' +
+              'Если подтверждали на другом устройстве — вернитесь сюда и нажмите «Я подтвердил — войти».',
           );
           return;
         }
@@ -151,10 +154,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     }
   };
 
+  const handleConfirmedClick = async () => {
+    if (!pendingConfirm || authInFlightRef.current || loading) return;
+    authInFlightRef.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: err } = await supabase.auth.signInWithPassword({
+        email: pendingConfirm.email,
+        password: pendingConfirm.password,
+      });
+      if (err) throw err;
+      try { await refreshUser(); } catch {}
+      setPendingConfirm(null);
+      setTimeout(onSuccess, 200);
+    } catch (e: any) {
+      const msg = String(e?.message || '').toLowerCase();
+      if (msg.includes('confirm') && msg.includes('email')) {
+        setError('Почта ещё не подтверждена. Откройте письмо и нажмите «Подтвердить».');
+      } else {
+        setError('Не удалось войти. Убедитесь, что почта подтверждена, и попробуйте ещё раз.');
+      }
+    } finally {
+      setLoading(false);
+      authInFlightRef.current = false;
+    }
+  };
+
   const switchMode = (m: 'login' | 'signup' | 'forgot') => {
     setMode(m);
     setError(null);
     setSuccess(null);
+    setPendingConfirm(null);
   };
 
   return (
@@ -258,6 +289,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
               <div className="animate-reveal-up py-3 px-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-400 font-medium text-center">
                 {success}
               </div>
+            )}
+
+            {mode === 'signup' && pendingConfirm && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleConfirmedClick}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] text-white font-bold text-sm hover:bg-white/[0.06] transition-all disabled:opacity-50"
+              >
+                {loading ? <Loader2 size={20} className="animate-spin" /> : 'Я подтвердил — войти'}
+              </button>
             )}
 
             <button
