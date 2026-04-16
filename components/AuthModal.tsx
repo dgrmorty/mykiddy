@@ -19,6 +19,10 @@ function validatePassword(p: string): string | null {
   return null;
 }
 
+function normalizeEmail(raw: string): string {
+  return (raw || '').trim().toLowerCase();
+}
+
 /** Сообщение пользователю по ошибке OAuth (частые случаи Supabase / Google). */
 function describeGoogleOAuthError(err: { message?: string } | null): string {
   const msg = (err?.message || '').toLowerCase();
@@ -94,8 +98,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     setError(null);
     setSuccess(null);
     try {
+      const emailNormalized = normalizeEmail(email);
       if (mode === 'forgot') {
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(emailNormalized, {
           redirectTo: `${window.location.origin}/`,
         });
         if (err) throw err;
@@ -113,7 +118,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           return;
         }
         const { data, error: err } = await supabase.auth.signUp({
-          email, password,
+          email: emailNormalized, password,
           options: {
             data: { name: name.trim(), role: 'Student', is_approved: true },
             // После клика по письму Supabase вернёт пользователя на корень SPA.
@@ -124,7 +129,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         if (err) throw err;
         // Если подтверждение email включено — сессии не будет до клика по письму.
         if (data?.user && !data.session) {
-          setPendingConfirm({ email, password });
+          setPendingConfirm({ email: emailNormalized, password });
           setSuccess(
             'Письмо отправлено. Откройте почту и нажмите «Подтвердить». ' +
               'Если подтверждали на другом устройстве — вернитесь сюда и нажмите «Я подтвердил — войти».',
@@ -134,7 +139,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         // Если Supabase вернул сессию (например, confirm email выключен) — всё равно оставляем UX предсказуемым.
         // Пользователь уже вошёл, просто закрываем модалку.
       } else {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: err } = await supabase.auth.signInWithPassword({ email: emailNormalized, password });
         if (err) throw err;
       }
       // Для signup с подтверждением email — сюда не дойдём (return выше).
@@ -142,11 +147,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       try { await refreshUser(); } catch {}
       setTimeout(onSuccess, 300);
     } catch (err: any) {
-      const msg = err?.message || '';
+      const msg = String(err?.message || '');
+      const msgLower = msg.toLowerCase();
       if (msg === 'Invalid login credentials' || msg.includes('Invalid')) setError('Неверный email или пароль');
+      else if (msgLower.includes('email') && msgLower.includes('confirm')) setError('Почта не подтверждена. Откройте письмо и нажмите «Подтвердить».');
       else if (msg.includes('Email') && msg.includes('already')) setError('Пользователь с таким email уже существует');
       else if (msg.includes('password') || msg.includes('Password')) setError('Пароль: минимум 8 символов, буквы и цифры');
-      else if (msg.includes('email') || msg.includes('Email')) setError('Неверный формат email');
+      else if (msgLower.includes('invalid') && msgLower.includes('email')) setError('Неверный формат email');
       else setError('Произошла ошибка. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
