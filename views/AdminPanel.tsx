@@ -1287,6 +1287,7 @@ export const AdminPanel: React.FC = () => {
                             {homeworkQueue.map((s) => {
                                 const author = homeworkAuthors[s.user_id];
                                 const busy = reviewingHomeworkId === s.id;
+                                const hwAttachments = Array.isArray(s.attachments) ? s.attachments : [];
                                 return (
                                     <Card key={s.id} className="bg-[#121212]/50 border-[#282828] p-5 space-y-4">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1304,6 +1305,35 @@ export const AdminPanel: React.FC = () => {
                                         {s.answer && (
                                             <div className="rounded-xl border border-white/[0.06] bg-black/30 p-4 text-sm text-zinc-200 whitespace-pre-wrap">
                                                 {s.answer}
+                                            </div>
+                                        )}
+
+                                        {hwAttachments.length > 0 && (
+                                            <div className="space-y-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Вложения</p>
+                                                <div className="flex flex-wrap gap-3">
+                                                    {hwAttachments.map((a: { mimeType?: string; dataBase64?: string; name?: string }, i: number) => {
+                                                        const mime = a.mimeType || '';
+                                                        const b64 = a.dataBase64 || '';
+                                                        if (!mime || !b64) return null;
+                                                        const src = `data:${mime};base64,${b64}`;
+                                                        return mime.startsWith('video/') ? (
+                                                            <video
+                                                                key={i}
+                                                                src={src}
+                                                                controls
+                                                                className="max-h-52 max-w-full rounded-xl border border-white/[0.08] bg-black"
+                                                            />
+                                                        ) : (
+                                                            <img
+                                                                key={i}
+                                                                src={src}
+                                                                alt={a.name || `file-${i}`}
+                                                                className="max-h-52 max-w-full rounded-xl border border-white/[0.08] object-contain bg-black/40"
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
 
