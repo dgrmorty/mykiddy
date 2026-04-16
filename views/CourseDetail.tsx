@@ -107,6 +107,7 @@ export const CourseDetail: React.FC = () => {
   const [lessonCompleting, setLessonCompleting] = useState(false);
   const [isHomeworkCompleted, setIsHomeworkCompleted] = useState(false);
   const [lastAnswerWasGood, setLastAnswerWasGood] = useState(false);
+  const [homeworkStatus, setHomeworkStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
   const [closingCourse, setClosingCourse] = useState<Course | null>(null);
   
   // Анимация перехода в урок
@@ -229,17 +230,28 @@ export const CourseDetail: React.FC = () => {
     }
     
     // Проверяем статус ДЗ при смене урока
-    if (activeLesson?.id && user.id) {
+    if (activeLesson?.id && user.id && user.id !== 'guest') {
         void supabase
             .from('homework_submissions')
-            .select('id')
+            .select('id,status,admin_comment')
             .eq('user_id', user.id)
             .eq('lesson_id', activeLesson.id)
-            .single()
-            .then(({ data }) => setIsHomeworkCompleted(!!data))
-            .then(() => {}, () => setIsHomeworkCompleted(false));
+            .maybeSingle()
+            .then(({ data }) => {
+              const st = (data?.status as any) || (data ? 'approved' : 'none');
+              setHomeworkStatus(st);
+              setIsHomeworkCompleted(!!data && st === 'approved');
+              if (st === 'rejected' && data?.admin_comment) {
+                showToast(`ДЗ отклонено: ${data.admin_comment}`, 'error');
+              }
+            })
+            .then(() => {}, () => {
+              setHomeworkStatus('none');
+              setIsHomeworkCompleted(false);
+            });
     } else {
         setIsHomeworkCompleted(false);
+        setHomeworkStatus('none');
     }
   }, [activeLesson, user.id]);
 
@@ -308,15 +320,22 @@ export const CourseDetail: React.FC = () => {
     });
   };
 
+  // ИИ-проверка временно отключена: ДЗ отправляется в очередь админ-панели.
   const handleCheckHomework = async () => {
     if (!activeLesson?.homeworkTask || !homeworkCanSubmit) return;
-
-    // Проверяем, не решено ли уже это ДЗ
-    if (isHomeworkCompleted) {
-        showToast('Это задание уже решено!', 'info');
-        return;
+    if (user.id === 'guest') {
+      showToast('Войдите, чтобы отправить ДЗ на проверку', 'info');
+      return;
     }
-    
+    if (homeworkStatus === 'pending') {
+      showToast('ДЗ уже отправлено. Статус: «в обработке»', 'info');
+      return;
+    }
+    if (isHomeworkCompleted) {
+      showToast('ДЗ уже принято!', 'info');
+      return;
+    }
+
     setSecurityError(null);
     setAiFeedback(null);
     setLastAnswerWasGood(false);
@@ -327,73 +346,30 @@ export const CourseDetail: React.FC = () => {
     }
     setIsChecking(true);
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const attachments: HomeworkAttachment[] = homeworkMedia.map((m) => ({
-          mimeType: m.mime,
-          dataBase64: m.base64,
-        }));
-        const result = await checkHomework(
-          activeLesson.homeworkTask,
-          cleanAnswer,
-          session?.access_token ?? null,
-          attachments.length > 0 ? attachments : undefined,
-        );
-        const display = formatFeedbackForDisplay(result.text);
-        setAiFeedback(display);
-        if (activeLesson?.id && user.id !== 'guest') {
-          saveStoredHomeworkFeedback(user.id, activeLesson.id, display);
-        }
-        const hasAtt = attachments.length > 0;
-        const isGoodAnswer = shouldAcceptHomework(
-          result.verdict,
-          result.text,
-          cleanAnswer.trim(),
-          hasAtt,
-        );
-        setLastAnswerWasGood(isGoodAnswer);
-
-        if (isGoodAnswer) {
-            await finalizeHomeworkReward(true);
-        } else {
-            showToast('Проверь комментарий наставника — при необходимости доработай работу и отправь снова', 'info');
-        }
+      const attachments = homeworkMedia.map((m) => ({
+        mimeType: m.mime,
+        dataBase64: m.base64,
+        name: m.name,
+      }));
+      const { error } = await supabase
+        .from('homework_submissions')
+        .insert({
+          user_id: user.id,
+          lesson_id: activeLesson.id,
+          status: 'pending',
+          answer: cleanAnswer,
+          attachments: attachments.length > 0 ? attachments : null,
+          xp_awarded: 0,
+        });
+      if (error) throw error;
+      setHomeworkStatus('pending');
+      showToast('ДЗ отправлено на проверку. Статус: «в обработке»', 'success');
     } catch (e: any) {
-        setAiFeedback(e?.message || "Не удалось проверить задание. Попробуйте еще раз.");
+      console.warn('[Homework] submit failed', e?.message || e);
+      showToast('Не удалось отправить ДЗ. Попробуйте позже.', 'error');
     } finally {
-        setIsChecking(false);
+      setIsChecking(false);
     }
-  };
-
-  const finalizeHomeworkReward = async (good?: boolean) => {
-      if (!activeLesson || isHomeworkCompleted || !(good ?? lastAnswerWasGood)) return;
-      try {
-          // Отмечаем урок как пройденный (50 XP)
-          await contentService.markLessonComplete(user.id, activeLesson.id);
-          // Дополнительные очки за выполненное ДЗ (50 XP)
-          try {
-              await supabase.rpc('increment_xp', { x_val: 50 });
-              
-              // Сохраняем факт решения ДЗ
-              await supabase
-                  .from('homework_submissions')
-                  .insert({
-                      user_id: user.id,
-                      lesson_id: activeLesson.id,
-                      xp_awarded: 50
-                  });
-              
-              setIsHomeworkCompleted(true);
-              showToast('Отлично! Задание принято. +50 XP', 'success');
-              
-              // Обновляем данные пользователя, чтобы сразу увидеть новый уровень и XP
-              await refreshUser();
-          } catch (e) {
-              console.warn('Failed to increment XP for homework:', e);
-          }
-          await loadData(false, true);
-      } catch (e) {
-          console.warn('Failed to finalize homework reward:', e);
-      }
   };
 
   const getVideoComponent = (url?: string) => {
@@ -525,24 +501,24 @@ export const CourseDetail: React.FC = () => {
                                     </>
                                 )}
                             </Card>
-                            {aiFeedback && activeLesson?.homeworkTask && !isHomeworkCompleted && (
-                              <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/90 p-6">
-                                <div className="mb-3 flex items-center gap-2">
-                                  <Sparkles size={18} className="text-kiddy-cherry shrink-0" />
-                                  <h3 className="font-display text-base font-bold text-white">Комментарий наставника</h3>
-                                </div>
-                                <div className="max-h-56 overflow-y-auto custom-scrollbar text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
-                                  {aiFeedback}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setIsHomeworkOpen(true)}
-                                  className="mt-4 w-full rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/10 py-3 text-xs font-bold uppercase tracking-wider text-kiddy-cherry transition-colors hover:bg-kiddy-cherry/20"
-                                >
-                                  Открыть форму сдачи
-                                </button>
-                              </Card>
-                            )}
+                        {activeLesson?.homeworkTask && !isHomeworkCompleted && (
+                          <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/90 p-6">
+                            <div className="mb-3 flex items-center gap-2">
+                              <Sparkles size={18} className="text-kiddy-cherry shrink-0" />
+                              <h3 className="font-display text-base font-bold text-white">Домашнее задание</h3>
+                            </div>
+                            <p className="text-sm leading-relaxed text-zinc-300">
+                              Проверка наставником временно отключена. Отправьте работу на проверку администратору.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setIsHomeworkOpen(true)}
+                              className="mt-4 w-full rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/10 py-3 text-xs font-bold uppercase tracking-wider text-kiddy-cherry transition-colors hover:bg-kiddy-cherry/20"
+                            >
+                              Открыть форму сдачи
+                            </button>
+                          </Card>
+                        )}
                         </div>
                     )}
                 </div>
@@ -628,10 +604,10 @@ export const CourseDetail: React.FC = () => {
                             </button>
                         <button 
                             onClick={handleCheckHomework} 
-                            disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted || !homeworkCanSubmit} 
+                            disabled={isChecking || !activeLesson?.homeworkTask || isHomeworkCompleted || homeworkStatus === 'pending' || !homeworkCanSubmit} 
                             className="flex-1 py-3 md:py-4 bg-kiddy-cherry text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                         >
-                            {isChecking ? <Loader2 className="animate-spin" size={20} /> : isHomeworkCompleted ? <><CheckCircle size={18} /> Уже решено</> : <><Send size={18} /> Проверить</>}
+                            {isChecking ? <Loader2 className="animate-spin" size={20} /> : isHomeworkCompleted ? <><CheckCircle size={18} /> Принято</> : homeworkStatus === 'pending' ? <><Loader2 className="animate-spin" size={18} /> В обработке</> : <><Send size={18} /> Отправить</>}
                         </button>
                         </div>
                     </div>

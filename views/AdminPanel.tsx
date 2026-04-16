@@ -14,7 +14,20 @@ import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPubli
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 import { resolveBundledOrDefault } from '../data/defaultAvatars';
 
-type AdminView = 'content' | 'users' | 'schedule' | 'showcase';
+type AdminView = 'content' | 'users' | 'schedule' | 'showcase' | 'homework';
+
+type HomeworkSubmissionRow = {
+    id: string;
+    user_id: string;
+    lesson_id: string;
+    submitted_at: string;
+    status: 'pending' | 'approved' | 'rejected';
+    answer: string | null;
+    attachments: any;
+    admin_comment: string | null;
+    reviewed_by: string | null;
+    reviewed_at: string | null;
+};
 
 interface EditingState {
     type: 'course' | 'module' | 'lesson' | null;
@@ -57,6 +70,12 @@ export const AdminPanel: React.FC = () => {
     const [rejectDraft, setRejectDraft] = useState<Record<string, string>>({});
     const [moderatingPostId, setModeratingPostId] = useState<string | null>(null);
 
+    const [homeworkQueue, setHomeworkQueue] = useState<HomeworkSubmissionRow[]>([]);
+    const [homeworkLoading, setHomeworkLoading] = useState(false);
+    const [homeworkAuthors, setHomeworkAuthors] = useState<Record<string, { name: string; avatar?: string | null }>>({});
+    const [homeworkCommentDraft, setHomeworkCommentDraft] = useState<Record<string, string>>({});
+    const [reviewingHomeworkId, setReviewingHomeworkId] = useState<string | null>(null);
+
     const courseFileRef = useRef<HTMLInputElement>(null);
     const lessonVideoRef = useRef<HTMLInputElement>(null);
     const editCourseFileRef = useRef<HTMLInputElement>(null);
@@ -68,7 +87,69 @@ export const AdminPanel: React.FC = () => {
         else if (currentView === 'users') fetchUsers();
         else if (currentView === 'schedule') fetchSchedule();
         else if (currentView === 'showcase') void fetchShowcaseModeration();
+        else if (currentView === 'homework') void fetchHomeworkQueue();
     }, [currentView]);
+
+    const fetchHomeworkQueue = async () => {
+        setHomeworkLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('homework_submissions')
+                .select('id,user_id,lesson_id,submitted_at,status,answer,attachments,admin_comment,reviewed_by,reviewed_at')
+                .order('submitted_at', { ascending: false })
+                .limit(200);
+            if (error) throw error;
+            const rows = (data || []) as HomeworkSubmissionRow[];
+            setHomeworkQueue(rows.filter((r) => r.status === 'pending'));
+
+            const ids = [...new Set(rows.map((r) => r.user_id))];
+            const map: Record<string, { name: string; avatar?: string | null }> = {};
+            if (ids.length > 0) {
+                const { data: profs } = await supabase.from('profiles').select('id,name,avatar').in('id', ids);
+                (profs || []).forEach((p: { id: string; name: string | null; avatar?: string | null }) => {
+                    map[p.id] = { name: p.name?.trim() || 'Ученик', avatar: p.avatar ?? null };
+                });
+            }
+            setHomeworkAuthors(map);
+        } catch (e) {
+            console.error('[AdminPanel] homework queue', e);
+            showToast('Не удалось загрузить очередь домашних заданий', 'error');
+            setHomeworkQueue([]);
+            setHomeworkAuthors({});
+        } finally {
+            setHomeworkLoading(false);
+        }
+    };
+
+    const reviewHomework = async (submissionId: string, approve: boolean) => {
+        const comment = (homeworkCommentDraft[submissionId] || '').trim();
+        if (!approve && comment.length < 3) {
+            showToast('Для отклонения укажи причину (от 3 символов)', 'error');
+            return;
+        }
+        setReviewingHomeworkId(submissionId);
+        try {
+            const { data, error } = await supabase.rpc('admin_review_homework', {
+                submission_id: submissionId,
+                approve,
+                comment: comment || null,
+            });
+            if (error) throw error;
+            showToast(approve ? 'ДЗ принято, XP начислены' : 'ДЗ отклонено', 'success');
+            setHomeworkQueue((prev) => prev.filter((x) => x.id !== submissionId));
+            setHomeworkCommentDraft((prev) => {
+                const n = { ...prev };
+                delete n[submissionId];
+                return n;
+            });
+            return data;
+        } catch (e) {
+            console.error('[AdminPanel] review homework', e);
+            showToast('Не удалось сохранить решение', 'error');
+        } finally {
+            setReviewingHomeworkId(null);
+        }
+    };
 
     const fetchShowcaseModeration = async () => {
         setShowcaseLoading(true);
@@ -663,6 +744,7 @@ export const AdminPanel: React.FC = () => {
                     <button onClick={() => setCurrentView('content')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'content' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>КОНТЕНТ</button>
                     <button onClick={() => setCurrentView('users')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'users' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>ПОЛЬЗОВАТЕЛИ</button>
                     <button onClick={() => setCurrentView('schedule')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'schedule' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>РАСПИСАНИЕ</button>
+                    <button onClick={() => setCurrentView('homework')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all ${currentView === 'homework' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}>ДОМАШКИ</button>
                     <button onClick={() => setCurrentView('showcase')} className={`px-4 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1.5 ${currentView === 'showcase' ? 'bg-zinc-800 text-white shadow-lg' : 'text-kiddy-textMuted hover:text-kiddy-textSecondary'}`}><Sparkles size={12} /> ВИТРИНА</button>
                 </div>
             </header>
@@ -1168,6 +1250,88 @@ export const AdminPanel: React.FC = () => {
                                                 className="px-5 py-2.5 text-red-400/95 hover:bg-red-500/15 text-xs font-bold rounded-xl border border-red-500/25 disabled:opacity-50"
                                             >
                                                 Удалить
+                                            </button>
+                                        </div>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {currentView === 'homework' && (
+                <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
+                    <Card className="bg-[#121212]/40 border-[#282828] p-6">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-white font-bold text-sm uppercase tracking-widest">Очередь домашних заданий</h2>
+                                <p className="text-kiddy-textMuted text-xs mt-1">Только статус «pending». Принятие начисляет XP и закрывает урок.</p>
+                            </div>
+                            <button
+                                onClick={() => void fetchHomeworkQueue()}
+                                className="px-4 py-2 rounded-lg bg-[#181818] border border-[#282828] text-xs font-bold text-white hover:border-kiddy-cherry transition-colors disabled:opacity-60"
+                                disabled={homeworkLoading}
+                            >
+                                {homeworkLoading ? 'Загрузка…' : 'Обновить'}
+                            </button>
+                        </div>
+                    </Card>
+
+                    {homeworkLoading ? (
+                        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-zinc-600" size={36} /></div>
+                    ) : homeworkQueue.length === 0 ? (
+                        <p className="text-kiddy-textMuted text-sm px-2">Нет ДЗ в очереди.</p>
+                    ) : (
+                        <div className="space-y-4 pb-4">
+                            {homeworkQueue.map((s) => {
+                                const author = homeworkAuthors[s.user_id];
+                                const busy = reviewingHomeworkId === s.id;
+                                return (
+                                    <Card key={s.id} className="bg-[#121212]/50 border-[#282828] p-5 space-y-4">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Автор</p>
+                                                <p className="text-white font-bold">{author?.name || s.user_id}</p>
+                                                <p className="text-kiddy-textMuted text-xs mt-1">{new Date(s.submitted_at).toLocaleString('ru-RU')}</p>
+                                                <p className="text-kiddy-textMuted text-[11px] mt-1">lesson_id: {s.lesson_id}</p>
+                                            </div>
+                                            <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-kiddy-cherry/10 border border-kiddy-cherry/20 text-kiddy-cherry">
+                                                pending
+                                            </span>
+                                        </div>
+
+                                        {s.answer && (
+                                            <div className="rounded-xl border border-white/[0.06] bg-black/30 p-4 text-sm text-zinc-200 whitespace-pre-wrap">
+                                                {s.answer}
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="text-kiddy-textMuted text-[10px] font-bold uppercase block mb-1">Комментарий ученику (обязательно при отклонении)</label>
+                                            <textarea
+                                                value={homeworkCommentDraft[s.id] || ''}
+                                                onChange={(e) => setHomeworkCommentDraft((d) => ({ ...d, [s.id]: e.target.value }))}
+                                                rows={2}
+                                                placeholder="Например: приложи скрин результата или уточни шаги решения"
+                                                className="w-full bg-black border border-[#282828] rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-kiddy-cherry resize-none"
+                                            />
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                onClick={() => void reviewHomework(s.id, false)}
+                                                disabled={busy}
+                                                className="flex-1 min-w-[160px] py-3 rounded-xl bg-[#181818] border border-[#282828] text-sm font-bold text-white hover:border-red-500/50 transition-colors disabled:opacity-60"
+                                            >
+                                                {busy ? '…' : 'Отклонить'}
+                                            </button>
+                                            <button
+                                                onClick={() => void reviewHomework(s.id, true)}
+                                                disabled={busy}
+                                                className="flex-1 min-w-[160px] py-3 rounded-xl bg-kiddy-cherry text-sm font-bold text-white hover:brightness-110 transition-all disabled:opacity-60"
+                                            >
+                                                {busy ? '…' : 'Принять (+XP)'}
                                             </button>
                                         </div>
                                     </Card>
