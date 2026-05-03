@@ -131,6 +131,8 @@ async function incrementHomeworkUsage(accessToken, userId) {
 // Разрешаем CORS для веба и для приложения в телефоне/планшете (Capacitor)
 const allowedOrigins = [
     process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'https://mykiddy-production.up.railway.app',
+    'https://detivtope.online',
+    'https://www.detivtope.online',
     'http://localhost:5173',
     'http://localhost:5174',
     'capacitor://localhost',
