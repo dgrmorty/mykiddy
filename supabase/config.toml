@@ -149,10 +149,16 @@ max_indexes = 5
 
 [auth]
 enabled = true
-# Site URL для прод OAuth-флоу.
-site_url = "https://mykiddy-production.up.railway.app"
+# Site URL для прод OAuth-флоу (основной домен).
+site_url = "https://detivtope.online"
 # Redirect URLs для прод и локальной разработки.
 additional_redirect_urls = [
+  "https://detivtope.online",
+  "https://detivtope.online/",
+  "https://detivtope.online/**",
+  "https://www.detivtope.online",
+  "https://www.detivtope.online/",
+  "https://www.detivtope.online/**",
   "https://mykiddy-production.up.railway.app",
   "https://mykiddy-production.up.railway.app/",
   "https://mykiddy-production.up.railway.app/**",

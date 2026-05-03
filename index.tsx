@@ -1,7 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles/globals.css';
+import { runCanonicalHostRedirect } from './utils/canonicalRedirect';
 import App from './App';
+
+runCanonicalHostRedirect();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

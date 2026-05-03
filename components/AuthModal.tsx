@@ -3,6 +3,7 @@ import { supabase } from '../services/supabase';
 import { Modal } from './ui/Modal';
 import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { getAuthRedirectOrigin } from '../config';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -70,7 +71,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         provider: 'google',
         options: {
           // Всегда корень SPA — тот же URL должен быть в Supabase → Authentication → Redirect URLs
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${getAuthRedirectOrigin()}/`,
           queryParams: { prompt: 'select_account' },
         },
       });
@@ -101,7 +102,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       const emailNormalized = normalizeEmail(email);
       if (mode === 'forgot') {
         const { error: err } = await supabase.auth.resetPasswordForEmail(emailNormalized, {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${getAuthRedirectOrigin()}/`,
         });
         if (err) throw err;
         setSuccess('Проверьте почту — мы отправили ссылку для сброса пароля.');
@@ -123,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             data: { name: name.trim(), role: 'Student', is_approved: true },
             // После клика по письму Supabase вернёт пользователя на корень SPA.
             // Дальше `detectSessionInUrl: true` подхватит сессию, и `AuthContext` залогинит пользователя.
-            emailRedirectTo: `${window.location.origin}/auth/confirmed`,
+            emailRedirectTo: `${getAuthRedirectOrigin()}/auth/confirmed`,
           },
         });
         if (err) throw err;
