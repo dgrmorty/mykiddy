@@ -16,6 +16,15 @@ import { resolveBundledOrDefault } from '../data/defaultAvatars';
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase' | 'homework';
 
+type HomeworkLessonEmbed = {
+    title: string | null;
+    homework_task: string | null;
+    modules?: {
+        title: string | null;
+        courses?: { title: string | null } | { title: string | null }[] | null;
+    } | { title: string | null; courses?: { title: string | null } | { title: string | null }[] | null }[] | null;
+};
+
 type HomeworkSubmissionRow = {
     id: string;
     user_id: string;
@@ -27,7 +36,33 @@ type HomeworkSubmissionRow = {
     admin_comment: string | null;
     reviewed_by: string | null;
     reviewed_at: string | null;
+    lessons?: HomeworkLessonEmbed | HomeworkLessonEmbed[] | null;
 };
+
+function firstOf<T>(x: T | T[] | null | undefined): T | null {
+    if (x == null) return null;
+    return Array.isArray(x) ? (x[0] ?? null) : x;
+}
+
+/** Контекст урока из join PostgREST (lessons → modules → courses). */
+function homeworkLessonContext(s: HomeworkSubmissionRow): {
+    path: string;
+    homeworkTask: string | null;
+} | null {
+    const lesson = firstOf(s.lessons);
+    if (!lesson) return null;
+    const mod = firstOf(lesson.modules);
+    const course = firstOf(mod?.courses);
+    const courseTitle = (course?.title || '').trim() || 'Курс';
+    const moduleTitle = (mod?.title || '').trim() || 'Модуль';
+    const lessonTitle = (lesson.title || '').trim() || 'Урок';
+    const path = `${courseTitle} → ${moduleTitle} → ${lessonTitle}`;
+    const homeworkTask = typeof lesson.homework_task === 'string' ? lesson.homework_task.trim() : null;
+    return {
+        path,
+        homeworkTask: homeworkTask && homeworkTask.length > 0 ? homeworkTask : null,
+    };
+}
 
 interface EditingState {
     type: 'course' | 'module' | 'lesson' | null;
@@ -95,7 +130,10 @@ export const AdminPanel: React.FC = () => {
         try {
             const { data, error } = await supabase
                 .from('homework_submissions')
-                .select('id,user_id,lesson_id,submitted_at,status,answer,attachments,admin_comment,reviewed_by,reviewed_at')
+                .select(
+                    `id,user_id,lesson_id,submitted_at,status,answer,attachments,admin_comment,reviewed_by,reviewed_at,
+                    lessons ( title, homework_task, modules ( title, courses ( title ) ) )`,
+                )
                 .eq('status', 'pending')
                 .order('submitted_at', { ascending: false })
                 .limit(200);
@@ -1289,6 +1327,7 @@ export const AdminPanel: React.FC = () => {
                                 const author = homeworkAuthors[s.user_id];
                                 const busy = reviewingHomeworkId === s.id;
                                 const hwAttachments = Array.isArray(s.attachments) ? s.attachments : [];
+                                const lessonCtx = homeworkLessonContext(s);
                                 return (
                                     <Card key={s.id} className="bg-[#121212]/50 border-[#282828] p-5 space-y-4">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1296,11 +1335,40 @@ export const AdminPanel: React.FC = () => {
                                                 <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Автор</p>
                                                 <p className="text-white font-bold">{author?.name || s.user_id}</p>
                                                 <p className="text-kiddy-textMuted text-xs mt-1">{new Date(s.submitted_at).toLocaleString('ru-RU')}</p>
-                                                <p className="text-kiddy-textMuted text-[11px] mt-1">lesson_id: {s.lesson_id}</p>
                                             </div>
                                             <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-kiddy-cherry/10 border border-kiddy-cherry/20 text-kiddy-cherry">
                                                 pending
                                             </span>
+                                        </div>
+
+                                        <div className="rounded-xl border border-white/[0.08] bg-black/35 p-4 space-y-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted mb-1">
+                                                    К какому уроку
+                                                </p>
+                                                {lessonCtx ? (
+                                                    <p className="text-white text-sm font-semibold leading-snug">{lessonCtx.path}</p>
+                                                ) : (
+                                                    <p className="text-amber-200/90 text-xs">
+                                                        Не удалось подтянуть урок из каталога. ID урока:{' '}
+                                                        <span className="font-mono text-white/90">{s.lesson_id}</span>
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted mb-1">
+                                                    Исходное задание (как в уроке)
+                                                </p>
+                                                {lessonCtx?.homeworkTask ? (
+                                                    <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">
+                                                        {lessonCtx.homeworkTask}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-kiddy-textMuted text-xs italic">
+                                                        В уроке не задано текстом (или каталог не подгрузился).
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {s.answer && (
