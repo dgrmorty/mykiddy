@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Role, User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Sparkles, Loader2, Zap, BookOpen, Flame } from 'lucide-react';
@@ -17,22 +17,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { isGuest, openAuthModal } = useAuth();
   const { showToast } = useToast();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
-  const [now, setNow] = useState(() => new Date());
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const headerDate = useMemo(() => {
-    const s = now.toLocaleDateString('ru-RU', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }, [now]);
 
   const welcomeSubtitle = useMemo(() => {
     if (loadError) return 'Не удалось подгрузить курсы — нажми «Повторить» справа в плашке.';
@@ -86,11 +71,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
             <UserAvatar user={{ id: user.id, name: user.name, avatar: user.avatar }} size="xl" />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-kiddy-cherry">Главная</p>
-                <time className="text-xs font-medium text-zinc-500 tabular-nums" dateTime={now.toISOString()}>
-                  {headerDate}
-                </time>
               </div>
               <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-white md:text-3xl">
                 {user.name}
