@@ -40,7 +40,7 @@ import {
   type MediaItem,
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
-import { Heart, Loader2, Sparkles, Trash2, ChevronRight } from 'lucide-react';
+import { Heart, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { levelFromXp } from '../progression';
 import { formatRelativeTimeRu } from '../utils/formatRelativeTime';
 
@@ -151,7 +151,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
     }
   };
 
-  const feedWrap = embed ? 'max-w-xl mx-auto w-full' : 'max-w-xl mx-auto w-full';
+  const feedWrap = embed ? 'w-full max-w-none' : 'max-w-xl mx-auto w-full';
 
   return (
     <div className={embed ? 'space-y-4' : 'space-y-8 pb-16'}>
@@ -197,7 +197,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                   style={{ animationDelay: `${Math.min(i, 14) * 0.035}s` }}
                 >
                   <article className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0c0c0c]/90 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.85)]">
-                    <div className="flex items-center gap-3 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
+                    <div className="flex items-start gap-3 px-4 pt-4 pb-2 sm:px-5 sm:pt-5">
                       <button
                         type="button"
                         onClick={() => navigate(`/users/${p.author_id}`)}
@@ -210,23 +210,30 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                             name,
                             avatar: au?.avatar || '',
                           }}
-                          size="md"
+                          size={embed ? 'lg' : 'md'}
                         />
                       </button>
                       <div className="min-w-0 flex-1 text-left">
-                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/users/${p.author_id}`)}
-                            className="truncate font-bold text-white hover:text-kiddy-cherry"
-                          >
-                            {name}
-                          </button>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                            ур. {lvl}
-                          </span>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/users/${p.author_id}`)}
+                              className="block truncate text-left font-bold text-[15px] text-white hover:text-kiddy-cherry"
+                            >
+                              {name}
+                            </button>
+                            <p className="mt-0.5 text-xs text-zinc-400">
+                              <span className="font-semibold text-zinc-500">Ур. {lvl}</span>
+                              {when ? (
+                                <>
+                                  <span className="mx-1.5 text-zinc-600">·</span>
+                                  <span className="text-zinc-500">{when}</span>
+                                </>
+                              ) : null}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-zinc-500">{when}</p>
                       </div>
                     </div>
 
@@ -277,13 +284,17 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                       <button
                         type="button"
                         onClick={() => p.id && void handleLike(p.id, p.author_id)}
-                        disabled={!isStudent || !p.id || p.author_id === user.id}
-                        className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-colors ${
+                        disabled={!p.id || p.author_id === user.id}
+                        className={`inline-flex items-center gap-2.5 rounded-xl px-1 py-1.5 text-sm font-bold transition-colors ${
                           liked ? 'text-kiddy-cherry' : 'text-kiddy-textMuted hover:text-white'
                         } disabled:cursor-not-allowed disabled:opacity-40`}
+                        aria-label={liked ? 'Снять лайк' : 'Лайк'}
                       >
-                        <Heart size={18} className={liked ? 'fill-current' : ''} />
-                        <span>{cnt}</span>
+                        <Heart size={22} strokeWidth={2} className={liked ? 'fill-current' : ''} />
+                        <span className="tabular-nums text-base">{cnt}</span>
+                        <span className="hidden font-semibold text-zinc-500 sm:inline">
+                          {cnt === 1 ? 'лайк' : cnt > 1 && cnt < 5 ? 'лайка' : 'лайков'}
+                        </span>
                       </button>
                       <div className="flex items-center gap-2">
                         {isAdmin && (
@@ -322,19 +333,6 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                 профиль
               </button>
             </p>
-          )}
-
-          {embed && posts.length > 0 && (
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/community?v=showcase')}
-                className="inline-flex items-center gap-1 text-sm font-bold text-kiddy-cherry hover:underline"
-              >
-                Открыть ленту в сообществе
-                <ChevronRight size={16} />
-              </button>
-            </div>
           )}
         </div>
       )}

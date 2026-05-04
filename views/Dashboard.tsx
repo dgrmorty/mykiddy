@@ -348,36 +348,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </Card>
       </section>
 
-      <section className="stagger-2 space-y-6">
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Сообщество</p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="font-display text-2xl font-bold tracking-tight text-white md:text-3xl">Лента проектов</h2>
-              <p className="mt-1 max-w-2xl text-sm text-kiddy-textMuted">
-                Кто что выложил после проверки. Полная лента — в разделе «Сообщество», вкладка «Витрина».
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/community?v=showcase')}
-              className="shrink-0 self-start rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white sm:self-auto"
-            >
-              Открыть в сообществе
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
-          <div className="min-w-0 flex-1">
-            <ProjectShowcasePanel embed postLimit={18} />
-          </div>
-          <div className="w-full shrink-0 xl:w-[300px]">
-            <ShowcaseHomeWidget />
-          </div>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-3">
+      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-2">
         <div className="lg:col-span-2 2xl:col-span-3">
           {loadError ? (
             <Card className="min-h-[400px] flex flex-col items-center justify-center text-center p-8">
@@ -449,7 +420,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </section>
 
-      <section className="stagger-4">
+      <section className="stagger-3">
         <div className="flex items-center justify-between mb-8">
           <h3 className="font-display font-bold text-2xl text-white tracking-tight">Ближайшие занятия</h3>
           <button onClick={() => navigate('/schedule')} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
@@ -501,6 +472,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               );
             })
           )}
+        </div>
+      </section>
+
+      <section className="stagger-4 space-y-6 pb-4">
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Сообщество</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-2xl font-bold tracking-tight text-white md:text-3xl">Лента проектов</h2>
+              <p className="mt-1 max-w-2xl text-sm text-kiddy-textMuted">
+                Как в соцсети: кто выложил, аватар и лайки. Полная лента — в «Сообществе», вкладка «Витрина».
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/community?v=showcase')}
+              className="shrink-0 self-start rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white sm:self-auto"
+            >
+              Открыть в сообществе
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-col-reverse gap-8 xl:flex-row xl:items-start">
+          <div className="min-w-0 flex-1 xl:min-w-0">
+            <ProjectShowcasePanel embed postLimit={18} />
+          </div>
+          <div className="w-full shrink-0 xl:w-[300px]">
+            <ShowcaseHomeWidget />
+          </div>
         </div>
       </section>
     </div>
