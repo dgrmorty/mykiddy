@@ -171,7 +171,7 @@ export const Community: React.FC = () => {
   return (
     <div className="space-y-8 pb-20">
       <header className="stagger-1 space-y-4">
-        <p className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.35em]">Сообщество</p>
+        <p className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.35em]">Ученики</p>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
             <h1 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight italic">
@@ -180,7 +180,7 @@ export const Community: React.FC = () => {
             <p className="text-kiddy-textMuted text-sm max-w-xl">
               {page === 'people'
                 ? 'Профили одноклассников, друзья и заявки — в одном месте.'
-                : 'Лента как в соцсети: автор, время, текст и медиа. Свой проект — из профиля или с главной (виджет справа на десктопе).'}
+                : 'Лента как в соцсети: автор, время, текст и медиа. Свой проект — из профиля или с главной.'}
             </p>
           </div>
           <div className="flex shrink-0 rounded-2xl border border-white/[0.08] bg-black/30 p-1">
@@ -192,7 +192,7 @@ export const Community: React.FC = () => {
               }`}
             >
               <LayoutGrid size={16} />
-              Люди
+              Список
             </button>
             <button
               type="button"

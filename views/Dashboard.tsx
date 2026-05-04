@@ -135,7 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-white/20 hover:text-white"
                 >
                   <Sparkles size={15} strokeWidth={2} />
-                  Сообщество
+                  Ученики
                 </button>
               </div>
             </div>
@@ -146,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       <section className="stagger-2 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Сообщество</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Ученики</p>
             <h2 className="font-display text-xl font-bold tracking-tight text-white md:text-2xl">Лента проектов</h2>
             <p className="mt-0.5 max-w-xl text-xs text-kiddy-textMuted">Кто выложил, аватар и лайки.</p>
           </div>
@@ -155,7 +155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             onClick={() => navigate('/community?v=showcase')}
             className="shrink-0 self-start rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white sm:self-auto"
           >
-            Открыть в сообществе
+            Открыть раздел «Ученики»
           </button>
         </div>
         <div className="max-w-xl mx-auto w-full">
