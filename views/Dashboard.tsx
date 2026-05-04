@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Role, ScheduleEvent } from '../types';
 import { Card } from '../components/ui/Card';
-import { Calendar, Users, Flame, Sparkles, Loader2 } from 'lucide-react';
+import { Calendar, Users, Flame, Sparkles, Loader2, Zap, BookOpen } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -184,7 +184,7 @@ function buildUpcomingEvents(dbEvents: ScheduleEvent[]): DashEvent[] {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
-  const { requireAuth, isGuest } = useAuth();
+  const { requireAuth, isGuest, openAuthModal } = useAuth();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const skillData = useSkillData(courses);
   const [dbScheduleEvents, setDbScheduleEvents] = useState<ScheduleEvent[]>([]);
@@ -206,6 +206,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const upcomingEvents = useMemo(() => buildUpcomingEvents(dbScheduleEvents), [dbScheduleEvents]);
 
+  const headerDate = useMemo(() => {
+    const s = now.toLocaleDateString('ru-RU', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }, [now]);
+
+  const welcomeSubtitle = useMemo(() => {
+    if (loadError) return 'Курсы не загрузились — попробуй обновить блок ниже.';
+    if (isGuest) return 'Загляни в курсы или войди, чтобы сохранять прогресс, ленту и друзей.';
+    if (activeCourse && nextLesson) {
+      return `В очереди: «${nextLesson.title}» · ${activeCourse.title}`;
+    }
+    if (activeCourse) return `Продолжай: ${activeCourse.title}`;
+    return 'Загляни в библиотеку курсов и выбери, с чего начать сегодня.';
+  }, [isGuest, activeCourse, nextLesson, loadError]);
+
+  const handleGoCourses = () => {
+    if (isGuest) openAuthModal();
+    else navigate('/courses');
+  };
+  const handleGoSchedule = () => {
+    if (isGuest) openAuthModal();
+    else navigate('/schedule');
+  };
+  const handleGoCommunity = () => {
+    if (isGuest) openAuthModal();
+    else navigate('/community');
+  };
+
   const handleStartLesson = () => {
     requireAuth(() => navigate('/courses'));
   };
@@ -225,50 +257,98 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   return (
     <div className="space-y-10 md:space-y-14 pb-10">
-      <div className="stagger-1 relative">
-        <div className="absolute -top-10 left-0 w-72 h-72 bg-kiddy-cherry/8 rounded-full blur-[120px] pointer-events-none animate-glow-pulse" />
-        <div className="relative">
-          <p className="text-kiddy-textMuted text-sm font-semibold tracking-widest uppercase mb-3">Добро пожаловать</p>
-          <h1 className="text-4xl md:text-6xl font-display font-extrabold text-white tracking-tighter leading-[1.05]">
-            {user.name.split(' ')[0]}
-          </h1>
-        </div>
-      </div>
-
-      {!isGuest && (
-        <section className="stagger-2 max-w-lg">
-          <Card className="border border-white/[0.06] bg-kiddy-surfaceElevated/60 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-500/30 bg-orange-500/10 text-orange-300">
-                <Flame size={22} strokeWidth={2} />
+      <section className="stagger-1 relative">
+        <div className="pointer-events-none absolute -left-4 top-0 h-48 w-48 rounded-full bg-kiddy-cherry/10 blur-[100px] md:left-0" />
+        <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-56 rounded-full bg-violet-500/10 blur-[90px]" />
+        <Card className="relative overflow-hidden border border-white/[0.1] bg-gradient-to-br from-white/[0.07] via-kiddy-surfaceElevated/50 to-black/20 p-6 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.85)] md:p-10">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:justify-between">
+            <div className="min-w-0 flex-1 space-y-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+                <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-kiddy-cherry">Главная</p>
+                <time className="text-xs font-medium text-zinc-500 tabular-nums sm:text-right" dateTime={now.toISOString()}>
+                  {headerDate}
+                </time>
               </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-display text-lg font-bold text-white tracking-tight">Серия дней</h3>
-                <p className="mt-1 font-display text-3xl font-bold text-white tabular-nums">
-                  {user.streakCurrent ?? 0}{' '}
-                  <span className="text-base font-semibold text-kiddy-textMuted">
-                    {(user.streakCurrent ?? 0) % 10 === 1 && (user.streakCurrent ?? 0) % 100 !== 11
-                      ? 'день'
-                      : [2, 3, 4].includes((user.streakCurrent ?? 0) % 10) && ![12, 13, 14].includes((user.streakCurrent ?? 0) % 100)
-                        ? 'дня'
-                        : 'дней'}
-                  </span>
-                </p>
-                <p className="mt-2 text-xs text-kiddy-textMuted leading-relaxed">
-                  Заходи в приложение каждый день, чтобы не сбрасывать огонёк. Цели:{' '}
-                  <span className="text-kiddy-textSecondary">3</span>,{' '}
-                  <span className="text-kiddy-textSecondary">7</span>,{' '}
-                  <span className="text-kiddy-textSecondary">14</span> и{' '}
-                  <span className="text-kiddy-textSecondary">30</span> дней подряд. Рекорд:{' '}
+              <div>
+                <p className="text-kiddy-textMuted text-sm font-semibold tracking-widest uppercase mb-2">Добро пожаловать</p>
+                <h1 className="text-4xl font-display font-extrabold text-white tracking-tighter leading-[1.05] md:text-6xl">
+                  {user.name.split(' ')[0]}
+                </h1>
+                <p className="mt-3 max-w-2xl text-base leading-relaxed text-kiddy-textSecondary md:text-lg">{welcomeSubtitle}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/30 px-3 py-1.5 text-xs font-bold text-white">
+                  Ур. {user.level}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/30 px-3 py-1.5 text-xs font-bold text-zinc-200">
+                  <Zap size={14} className="text-kiddy-cherry" aria-hidden />
+                  {(user.xp ?? 0).toLocaleString('ru-RU')} XP
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/30 px-3 py-1.5 text-xs font-bold text-zinc-200">
+                  <BookOpen size={14} className="text-kiddy-cherry/90" aria-hidden />
+                  {courses.length} {courses.length === 1 ? 'курс' : courses.length > 1 && courses.length < 5 ? 'курса' : 'курсов'}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleGoCourses}
+                  className="inline-flex items-center gap-2 rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/[0.14] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-kiddy-cherry/25"
+                >
+                  <BookOpen size={16} strokeWidth={2} />
+                  Курсы
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGoSchedule}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.05] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-white/20 hover:text-white"
+                >
+                  <Calendar size={16} strokeWidth={2} />
+                  Расписание
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGoCommunity}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.05] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-white/20 hover:text-white"
+                >
+                  <Sparkles size={16} strokeWidth={2} />
+                  Сообщество
+                </button>
+              </div>
+            </div>
+
+            {!isGuest && (
+              <div className="flex shrink-0 flex-col justify-between rounded-2xl border border-orange-500/20 bg-gradient-to-b from-orange-500/[0.12] to-black/25 p-5 lg:w-[min(100%,280px)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-400/35 bg-orange-500/15 text-orange-200">
+                    <Flame size={22} strokeWidth={2} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-orange-200/90">Серия</p>
+                    <p className="font-display text-2xl font-bold tabular-nums text-white md:text-3xl">
+                      {user.streakCurrent ?? 0}
+                      <span className="ml-1.5 text-sm font-semibold text-kiddy-textMuted">
+                        {(user.streakCurrent ?? 0) % 10 === 1 && (user.streakCurrent ?? 0) % 100 !== 11
+                          ? 'день'
+                          : [2, 3, 4].includes((user.streakCurrent ?? 0) % 10) && ![12, 13, 14].includes((user.streakCurrent ?? 0) % 100)
+                            ? 'дня'
+                            : 'дней'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-4 text-[11px] leading-relaxed text-kiddy-textMuted">
+                  Заходи каждый день — не сбрасывай огонёк. Цели{' '}
+                  <span className="font-bold text-kiddy-textSecondary">3 · 7 · 14 · 30</span> дней. Рекорд:{' '}
                   <span className="font-bold text-white">{user.streakLongest ?? 0}</span>.
                 </p>
               </div>
-            </div>
-          </Card>
-        </section>
-      )}
+            )}
+          </div>
+        </Card>
+      </section>
 
-      <section className="stagger-3 space-y-6">
+      <section className="stagger-2 space-y-6">
         <div className="space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Сообщество</p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -297,7 +377,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-4">
+      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-3">
         <div className="lg:col-span-2 2xl:col-span-3">
           {loadError ? (
             <Card className="min-h-[400px] flex flex-col items-center justify-center text-center p-8">
@@ -369,7 +449,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </section>
 
-      <section className="stagger-5">
+      <section className="stagger-4">
         <div className="flex items-center justify-between mb-8">
           <h3 className="font-display font-bold text-2xl text-white tracking-tight">Ближайшие занятия</h3>
           <button onClick={() => navigate('/schedule')} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
