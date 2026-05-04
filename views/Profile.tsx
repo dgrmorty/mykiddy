@@ -57,6 +57,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [saving, setSaving] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
+  const [editName, setEditName] = useState(() => (user.id !== 'guest' ? user : initialUser).name);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
@@ -79,8 +80,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     }, 100);
     return () => window.clearTimeout(t);
   }, [location.hash]);
-  
-  const [editName, setEditName] = useState(currentUser.name);
 
   useEffect(() => {
     setEditName(currentUser.name);

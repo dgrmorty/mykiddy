@@ -6,6 +6,29 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { showcasePostBody, type PhraseSelections } from '../data/projectShowcaseCatalog';
+
+function normalizePhraseSelections(raw: unknown): PhraseSelections {
+  if (raw != null && typeof raw === 'object' && !Array.isArray(raw)) return raw as PhraseSelections;
+  return {};
+}
+
+function safeShowcaseBody(raw: unknown): string {
+  try {
+    return showcasePostBody(normalizePhraseSelections(raw));
+  } catch (e) {
+    console.warn('[Showcase] bad phrase_selections', e);
+    return 'Текст поста недоступен (ошибка данных).';
+  }
+}
+
+function normalizeShowcaseMedia(raw: unknown): MediaItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((m): m is MediaItem => {
+    if (!m || typeof m !== 'object') return false;
+    const o = m as MediaItem;
+    return typeof o.path === 'string' && o.path.length > 0 && (o.kind === 'image' || o.kind === 'video');
+  });
+}
 import {
   fetchApprovedShowcasePosts,
   fetchLikeCounts,
@@ -51,7 +74,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await fetchApprovedShowcasePosts(postLimit);
+      const list = (await fetchApprovedShowcasePosts(postLimit)).filter((row) => row.id && row.author_id);
       setPosts(list);
       const ids = [...new Set(list.map((p) => p.author_id))];
       if (ids.length) {
@@ -157,18 +180,19 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
         <div className={feedWrap}>
           <ul className="flex flex-col gap-5 sm:gap-6">
             {posts.map((p, i) => {
+              const postKey = p.id || `post-fallback-${i}`;
               const au = authors[p.author_id];
               const name = au?.name || 'Ученик';
-              const body = showcasePostBody((p.phrase_selections || {}) as PhraseSelections);
-              const media = Array.isArray(p.media) ? p.media : [];
+              const body = safeShowcaseBody(p.phrase_selections);
+              const media = normalizeShowcaseMedia(p.media);
               const liked = !!likeMap[p.id];
               const cnt = countMap[p.id] || 0;
               const lvl = levelFromXp(au?.xp ?? 0);
-              const when = formatRelativeTimeRu(p.created_at);
+              const when = formatRelativeTimeRu(p.created_at || '');
 
               return (
                 <li
-                  key={p.id}
+                  key={postKey}
                   className="animate-fade-in-up"
                   style={{ animationDelay: `${Math.min(i, 14) * 0.035}s` }}
                 >
@@ -252,8 +276,8 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-3 sm:px-5">
                       <button
                         type="button"
-                        onClick={() => void handleLike(p.id, p.author_id)}
-                        disabled={!isStudent || p.author_id === user.id}
+                        onClick={() => p.id && void handleLike(p.id, p.author_id)}
+                        disabled={!isStudent || !p.id || p.author_id === user.id}
                         className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-colors ${
                           liked ? 'text-kiddy-cherry' : 'text-kiddy-textMuted hover:text-white'
                         } disabled:cursor-not-allowed disabled:opacity-40`}
@@ -265,8 +289,10 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                         {isAdmin && (
                           <button
                             type="button"
-                            disabled={deletingId === p.id}
-                            onClick={() => void handleDeleteAsAdmin(p.id)}
+                            disabled={deletingId === p.id || !p.id}
+                            onClick={() => {
+                              if (p.id) void handleDeleteAsAdmin(p.id);
+                            }}
                             className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                           >
                             {deletingId === p.id ? (
