@@ -4,7 +4,7 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
     X, ArrowLeft, Send, Loader2, 
-    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock, Search, ImagePlus, Trash2
+    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock, Search, ImagePlus, Trash2, AlertCircle
 } from 'lucide-react';
 import { Course, CourseYearTier, COURSE_YEAR_LABELS, Lesson } from '../types';
 import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
@@ -67,6 +67,10 @@ export const CourseDetail: React.FC = () => {
   const [lessonCompleting, setLessonCompleting] = useState(false);
   const [isHomeworkCompleted, setIsHomeworkCompleted] = useState(false);
   const [homeworkStatus, setHomeworkStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  /** Строка homework_submissions для повторной отправки после rejected (RLS не даёт простой update). */
+  const [homeworkSubmissionId, setHomeworkSubmissionId] = useState<string | null>(null);
+  /** Комментарий админа при отклонении — показываем в карточке ДЗ, не только тостом. */
+  const [homeworkRejectionComment, setHomeworkRejectionComment] = useState<string | null>(null);
   const [closingCourse, setClosingCourse] = useState<Course | null>(null);
   
   // Анимация перехода в урок
@@ -170,6 +174,8 @@ export const CourseDetail: React.FC = () => {
     setHomeworkMedia([]);
     setHomeworkAnswer('');
     setSecurityError(null);
+    setHomeworkSubmissionId(null);
+    setHomeworkRejectionComment(null);
   }, [activeLesson?.id]);
 
   useEffect(() => {
@@ -189,21 +195,31 @@ export const CourseDetail: React.FC = () => {
             .eq('user_id', user.id)
             .eq('lesson_id', activeLesson.id)
             .maybeSingle()
-            .then(({ data }) => {
-              const st = (data?.status as any) || (data ? 'approved' : 'none');
+            .then(({ data, error }) => {
+              if (error) {
+                console.warn('[Homework] load status', error.message);
+                setHomeworkStatus('none');
+                setIsHomeworkCompleted(false);
+                setHomeworkSubmissionId(null);
+                setHomeworkRejectionComment(null);
+                return;
+              }
+              const st = (data?.status as 'none' | 'pending' | 'approved' | 'rejected') || (data ? 'approved' : 'none');
               setHomeworkStatus(st);
               setIsHomeworkCompleted(!!data && st === 'approved');
-              if (st === 'rejected' && data?.admin_comment) {
-                showToast(`ДЗ отклонено: ${data.admin_comment}`, 'error');
+              setHomeworkSubmissionId(data?.id ?? null);
+              if (st === 'rejected') {
+                const c = typeof data?.admin_comment === 'string' ? data.admin_comment.trim() : '';
+                setHomeworkRejectionComment(c.length > 0 ? c : null);
+              } else {
+                setHomeworkRejectionComment(null);
               }
-            })
-            .then(() => {}, () => {
-              setHomeworkStatus('none');
-              setIsHomeworkCompleted(false);
             });
     } else {
         setIsHomeworkCompleted(false);
         setHomeworkStatus('none');
+        setHomeworkSubmissionId(null);
+        setHomeworkRejectionComment(null);
     }
   }, [activeLesson, user.id]);
 
@@ -288,6 +304,10 @@ export const CourseDetail: React.FC = () => {
       showToast('ДЗ уже принято!', 'info');
       return;
     }
+    if (homeworkStatus === 'rejected' && !homeworkSubmissionId) {
+      showToast('Не удалось определить прошлую попытку. Обновите страницу.', 'error');
+      return;
+    }
 
     setSecurityError(null);
     const cleanAnswer = sanitizeInput(homeworkAnswer);
@@ -303,19 +323,36 @@ export const CourseDetail: React.FC = () => {
         name: m.name,
       }));
       const answerTrimmed = cleanAnswer.trim();
-      const { error } = await supabase
-        .from('homework_submissions')
-        .insert({
-          user_id: user.id,
-          lesson_id: activeLesson.id,
-          status: 'pending',
-          answer: answerTrimmed.length > 0 ? cleanAnswer : null,
-          attachments: attachments.length > 0 ? attachments : null,
-          xp_awarded: 0,
+      const attachmentsPayload = attachments.length > 0 ? attachments : null;
+
+      if (homeworkStatus === 'rejected' && homeworkSubmissionId) {
+        const { error } = await supabase.rpc('student_resubmit_homework', {
+          p_submission_id: homeworkSubmissionId,
+          p_answer: answerTrimmed.length > 0 ? cleanAnswer : '',
+          p_attachments: attachmentsPayload,
         });
-      if (error) throw error;
-      setHomeworkStatus('pending');
-      showToast('ДЗ отправлено на проверку. Статус: «в обработке»', 'success');
+        if (error) throw error;
+        setHomeworkStatus('pending');
+        setHomeworkRejectionComment(null);
+        showToast('Новая версия отправлена на проверку.', 'success');
+      } else {
+        const { data: inserted, error } = await supabase
+          .from('homework_submissions')
+          .insert({
+            user_id: user.id,
+            lesson_id: activeLesson.id,
+            status: 'pending',
+            answer: answerTrimmed.length > 0 ? cleanAnswer : null,
+            attachments: attachmentsPayload,
+            xp_awarded: 0,
+          })
+          .select('id')
+          .single();
+        if (error) throw error;
+        if (inserted?.id) setHomeworkSubmissionId(inserted.id);
+        setHomeworkStatus('pending');
+        showToast('ДЗ отправлено на проверку. Статус: «в обработке»', 'success');
+      }
     } catch (e: any) {
       console.warn('[Homework] submit failed', e?.message || e);
       showToast('Не удалось отправить ДЗ. Попробуйте позже.', 'error');
@@ -444,6 +481,33 @@ export const CourseDetail: React.FC = () => {
                                             </div>
                                         ) : (
                                             <div className="flex flex-col gap-4 border-t border-white/[0.06] pt-6">
+                                                {homeworkStatus === 'rejected' && (
+                                                    <div
+                                                        role="status"
+                                                        className="rounded-2xl border border-amber-500/35 bg-amber-500/[0.08] p-4 text-left space-y-2"
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={20} aria-hidden />
+                                                            <div className="min-w-0">
+                                                                <p className="text-amber-200/95 text-[11px] font-bold uppercase tracking-widest">
+                                                                    Задание не принято
+                                                                </p>
+                                                                {homeworkRejectionComment ? (
+                                                                    <p className="text-white text-sm mt-2 whitespace-pre-wrap leading-relaxed">
+                                                                        {homeworkRejectionComment}
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-kiddy-textSecondary text-sm mt-2 leading-relaxed">
+                                                                        Исправьте работу и отправьте снова — можно любое число попыток.
+                                                                    </p>
+                                                                )}
+                                                                <p className="text-kiddy-textMuted text-[11px] mt-2 leading-relaxed">
+                                                                    Обновите текст и файлы ниже и отправьте новую версию на проверку.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <p className="text-[11px] font-medium text-kiddy-textMuted leading-relaxed">
                                                   Отправьте ответ на проверку: можно только текст, только фото/видео или и то и другое.
                                                 </p>
@@ -536,6 +600,10 @@ export const CourseDetail: React.FC = () => {
                                                     ) : homeworkStatus === 'pending' ? (
                                                         <>
                                                             <Loader2 className="animate-spin" size={18} /> В обработке
+                                                        </>
+                                                    ) : homeworkStatus === 'rejected' ? (
+                                                        <>
+                                                            <Send size={18} /> Отправить снова
                                                         </>
                                                     ) : (
                                                         <>
