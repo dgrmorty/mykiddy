@@ -90,7 +90,7 @@ async function resubmitAfterRejection(
     return {
       ok: false,
       message:
-        'Повторная отправка не настроена на сервере: в Supabase нужно применить миграции (политика «Users can update own rejected homework for resubmit» или функция student_resubmit_homework).',
+        'Повторная отправка не настроена в базе. Открой Supabase → SQL Editor, вставь и выполни скрипт из файла репозитория supabase/APPLY_HOMEWORK_RESUBMIT.sql (или примени миграции 20260504120000 и 20260504140000).',
     };
   }
   return { ok: false, message: rpcErr.message };
