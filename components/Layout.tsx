@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useBranding } from '../contexts/BrandingContext';
 import { NotificationProvider, useNotificationSummary } from '../contexts/NotificationContext';
 import { OnboardingTour } from './onboarding/OnboardingTour';
+import { useProfileLastSeenHeartbeat } from '../hooks/useProfileLastSeenHeartbeat';
 
 interface LayoutProps {
   user: User;
@@ -21,6 +22,7 @@ function LayoutShell({ user }: LayoutProps) {
   const { unreadCount } = useNotificationSummary();
   const isGuest = user.role === Role.GUEST;
   const isAdmin = user.role === Role.ADMIN;
+  useProfileLastSeenHeartbeat(user.id, !isGuest && user.id !== 'guest');
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
 
   useEffect(() => {

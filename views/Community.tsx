@@ -9,6 +9,7 @@ import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock } from 'lucide-react';
+import { presenceFromLastSeen } from '../utils/presence';
 
 interface StudentRow {
   id: string;
@@ -17,6 +18,7 @@ interface StudentRow {
   xp: number | null;
   level: number | null;
   role: string | null;
+  last_seen_at?: string | null;
 }
 
 function isStudentRole(role: string | null | undefined): boolean {
@@ -48,8 +50,9 @@ export const Community: React.FC = () => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const loadStudentsErrorToastShown = useRef(false);
 
-  const loadStudents = useCallback(async () => {
-    setLoadingStudents(true);
+  const loadStudents = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (!silent) setLoadingStudents(true);
     try {
       const { data, error } = await supabase.rpc('list_community_students');
       if (error) throw error;
@@ -58,18 +61,30 @@ export const Community: React.FC = () => {
       loadStudentsErrorToastShown.current = false;
     } catch (e) {
       console.warn('[Community] list_community_students:', e);
-      setStudents([]);
-      if (!loadStudentsErrorToastShown.current) {
+      if (!silent) setStudents([]);
+      if (!silent && !loadStudentsErrorToastShown.current) {
         loadStudentsErrorToastShown.current = true;
         showToast('Не удалось загрузить список', 'error');
       }
     } finally {
-      setLoadingStudents(false);
+      if (!silent) setLoadingStudents(false);
     }
   }, [showToast]);
 
   useEffect(() => {
     void loadStudents();
+  }, [loadStudents]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => void loadStudents({ silent: true }), 45_000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void loadStudents({ silent: true });
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [loadStudents]);
 
   const incoming = useMemo(
@@ -102,6 +117,7 @@ export const Community: React.FC = () => {
       avatar: s?.avatar || '',
       xp: s?.xp ?? 0,
       level: levelFromXp(s?.xp ?? 0),
+      lastSeenAt: s?.last_seen_at ?? null,
     };
   };
 
@@ -142,6 +158,7 @@ export const Community: React.FC = () => {
   const renderFriendRow = (row: FriendshipRow, i: number) => {
     const other = otherPartyId(row, myId!);
     const p = resolvePeer(other);
+    const presence = presenceFromLastSeen(p.lastSeenAt);
     return (
       <div
         key={row.id}
@@ -156,6 +173,7 @@ export const Community: React.FC = () => {
               avatar: p.avatar || '',
             }}
             size="lg"
+            presence={presence}
           />
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold text-white">{p.name}</p>
@@ -221,6 +239,7 @@ export const Community: React.FC = () => {
                 const isFriend = friendRows.some(
                   (r) => r.status === 'accepted' && ((r.requester_id === myId && r.addressee_id === s.id) || (r.addressee_id === myId && r.requester_id === s.id)),
                 );
+                const presence = presenceFromLastSeen(s.last_seen_at);
                 const actionClass =
                   'inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-300 whitespace-nowrap';
 
@@ -243,6 +262,7 @@ export const Community: React.FC = () => {
                           avatar: s.avatar || '',
                         }}
                         size="lg"
+                        presence={presence}
                       />
                       <div className="min-w-0 flex-1">
                         <p className="break-words font-bold leading-snug text-white text-balance [overflow-wrap:anywhere]">
@@ -320,6 +340,7 @@ export const Community: React.FC = () => {
                     {incoming.map((row, i) => {
                       const other = row.requester_id;
                       const p = resolvePeer(other);
+                      const presence = presenceFromLastSeen(p.lastSeenAt);
                       return (
                         <div
                           key={row.id}
@@ -334,6 +355,7 @@ export const Community: React.FC = () => {
                                 avatar: p.avatar || '',
                               }}
                               size="md"
+                              presence={presence}
                             />
                             <div className="min-w-0">
                               <p className="truncate font-bold text-white">{p.name}</p>
@@ -387,6 +409,7 @@ export const Community: React.FC = () => {
                     {outgoing.map((row) => {
                       const other = row.addressee_id;
                       const p = resolvePeer(other);
+                      const presence = presenceFromLastSeen(p.lastSeenAt);
                       return (
                         <div
                           key={row.id}
@@ -400,6 +423,7 @@ export const Community: React.FC = () => {
                                 avatar: p.avatar || '',
                               }}
                               size="md"
+                              presence={presence}
                             />
                             <div className="min-w-0">
                               <p className="truncate font-bold text-white">{p.name}</p>

@@ -12,6 +12,8 @@ interface UserAvatarProps {
   className?: string;
   /** Классы для круга с фото */
   photoClassName?: string;
+  /** Индикатор под авой: зелёный — недавно в сети, серый — офлайн */
+  presence?: 'online' | 'offline';
 }
 
 /** Аватар ученика: boy/girl из `avatar` (школьный набор). */
@@ -20,6 +22,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   size = 'md',
   className = '',
   photoClassName,
+  presence,
 }) => {
   const wrap =
     photoClassName ||
@@ -27,14 +30,28 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const displaySrc = resolveBundledOrDefault(user.id, user.avatar);
 
-  return (
-    <span className={`${wrap} ${className}`.trim()}>
-      <AvatarImage
-        src={displaySrc}
-        name={user.name}
-        alt=""
-        className="block h-full w-full origin-center scale-[1.14] object-cover object-center"
+  const dot =
+    presence != null ? (
+      <span
+        className={`pointer-events-none absolute -bottom-0.5 -left-0.5 z-[1] h-2.5 w-2.5 rounded-full border-2 border-zinc-950 shadow-sm ${
+          presence === 'online' ? 'bg-emerald-500' : 'bg-zinc-500'
+        }`}
+        title={presence === 'online' ? 'В сети' : 'Не в сети'}
+        aria-hidden
       />
+    ) : null;
+
+  return (
+    <span className={`relative inline-flex shrink-0 ${className}`.trim()}>
+      <span className={wrap}>
+        <AvatarImage
+          src={displaySrc}
+          name={user.name}
+          alt=""
+          className="block h-full w-full origin-center scale-[1.14] object-cover object-center"
+        />
+      </span>
+      {dot}
     </span>
   );
 };
