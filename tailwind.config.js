@@ -115,18 +115,6 @@ export default {
           '0%, 100%': { opacity: '0.55' },
           '50%': { opacity: '1' },
         },
-        'dash-hero-blob-a': {
-          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
-          '50%': { transform: 'translate3d(6%, 12%, 0) scale(1.14)' },
-        },
-        'dash-hero-blob-b': {
-          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
-          '50%': { transform: 'translate3d(-8%, -10%, 0) scale(1.1)' },
-        },
-        'dash-hero-blob-c': {
-          '0%, 100%': { opacity: '0.2', transform: 'translate3d(0, 0, 0)' },
-          '50%': { opacity: '0.45', transform: 'translate3d(-4%, 6%, 0)' },
-        },
       },
       animation: {
         'fade-in': 'fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -142,9 +130,6 @@ export default {
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
         'week-slide-in': 'week-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
         'loupe-pulse': 'loupe-pulse 2.2s ease-in-out infinite',
-        'dash-hero-blob-a': 'dash-hero-blob-a 18s ease-in-out infinite',
-        'dash-hero-blob-b': 'dash-hero-blob-b 24s ease-in-out infinite',
-        'dash-hero-blob-c': 'dash-hero-blob-c 11s ease-in-out infinite',
       },
     },
   },

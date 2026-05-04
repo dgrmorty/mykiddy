@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useId } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Sparkles, Loader2, Zap, BookOpen, Flame } from 'lucide-react';
@@ -13,7 +13,6 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
-  const heroLineGradId = useId().replace(/:/g, '');
   const { isGuest, openAuthModal } = useAuth();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const [now, setNow] = useState(() => new Date());
@@ -68,53 +67,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   return (
     <div className="space-y-6 pb-10 md:space-y-8">
       <section className="stagger-1 relative">
-        <Card className="relative overflow-hidden rounded-2xl border border-white/[0.1] !bg-transparent p-4 shadow-[0_24px_70px_-36px_rgba(0,0,0,0.9)] ring-1 ring-inset ring-white/[0.04] md:rounded-3xl md:p-5 hover:!translate-y-0 hover:!transform-none hover:!bg-transparent">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl md:rounded-3xl" aria-hidden>
-            <div className="absolute -inset-[12%] md:-inset-[14%]">
-              <div className="absolute -left-[18%] -top-[45%] h-[min(140%,32rem)] w-[min(95%,28rem)] rounded-full bg-gradient-to-br from-kiddy-cherry/52 via-kiddy-cherry/22 to-transparent blur-[96px] motion-safe:animate-dash-hero-blob-a motion-reduce:opacity-35" />
-              <div className="absolute -bottom-[42%] -right-[14%] h-[min(120%,26rem)] w-[min(82%,24rem)] rounded-full bg-gradient-to-tl from-violet-600/44 via-indigo-500/16 to-transparent blur-[92px] motion-safe:animate-dash-hero-blob-b motion-reduce:opacity-30" />
-              <div className="absolute left-[22%] top-1/2 h-[min(92%,22rem)] w-[min(72%,20rem)] -translate-y-1/2 rounded-full bg-cyan-400/14 blur-[72px] motion-safe:animate-dash-hero-blob-c motion-reduce:opacity-20" />
-            </div>
-            <svg
-              className="dash-hero-svg-anim absolute inset-0 h-full w-full text-white/22"
-              viewBox="0 0 800 220"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              preserveAspectRatio="none"
-            >
-              <defs>
-                <linearGradient id={heroLineGradId} x1="0" y1="0" x2="1" y2="1">
-                  <stop stopColor="currentColor" stopOpacity="0" />
-                  <stop offset="0.35" stopColor="currentColor" stopOpacity="0.5" />
-                  <stop offset="0.68" stopColor="#e6002b" stopOpacity="0.72" />
-                  <stop offset="1" stopColor="currentColor" stopOpacity="0.18" />
-                </linearGradient>
-              </defs>
-              <path
-                className="dash-hero-line-path"
-                d="M -40 200 C 140 20 320 -10 520 80 S 780 40 840 180"
-                stroke={`url(#${heroLineGradId})`}
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-              <path
-                className="dash-hero-line-path dash-hero-line-path--muted opacity-[0.38]"
-                d="M 820 0 C 620 120 380 200 120 160 S -60 100 -20 240"
-                stroke={`url(#${heroLineGradId})`}
-                strokeWidth="0.85"
-                strokeLinecap="round"
-              />
-              <path
-                className="dash-hero-line-path dash-hero-line-path--wide opacity-[0.28]"
-                d="M 0 110 C 200 180 500 0 800 95"
-                stroke={`url(#${heroLineGradId})`}
-                strokeWidth="0.7"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-
-          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+        <div className="pointer-events-none absolute -left-4 top-0 h-40 w-40 rounded-full bg-kiddy-cherry/10 blur-[80px] md:left-0" />
+        <Card className="relative overflow-hidden border border-white/[0.1] bg-gradient-to-br from-white/[0.07] via-kiddy-surfaceElevated/50 to-black/20 p-4 shadow-[0_20px_60px_-36px_rgba(0,0,0,0.85)] md:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
             <UserAvatar user={{ id: user.id, name: user.name, avatar: user.avatar }} size="xl" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -123,10 +78,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   {headerDate}
                 </time>
               </div>
-              <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-white drop-shadow-sm md:text-3xl">
+              <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-white md:text-3xl">
                 {user.name}
               </h1>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-300/95">{welcomeSubtitle}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-kiddy-textSecondary">{welcomeSubtitle}</p>
               {loadError && (
                 <button
                   type="button"
@@ -137,22 +92,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </button>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-black/35 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/30 px-3 py-1 text-xs font-bold text-white">
                   Ур. {user.level}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-black/35 px-3 py-1 text-xs font-bold text-zinc-200 backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/30 px-3 py-1 text-xs font-bold text-zinc-200">
                   <Zap size={14} className="text-kiddy-cherry" aria-hidden />
                   {(user.xp ?? 0).toLocaleString('ru-RU')} XP
                 </span>
                 {!isGuest && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-black/35 px-3 py-1 text-xs font-bold text-zinc-200 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/30 px-3 py-1 text-xs font-bold text-zinc-200">
                     <BookOpen size={14} className="text-kiddy-cherry/90" aria-hidden />
                     {courses.length}{' '}
                     {courses.length === 1 ? 'курс' : courses.length > 1 && courses.length < 5 ? 'курса' : 'курсов'}
                   </span>
                 )}
                 {!isGuest && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/15 px-3 py-1 text-xs font-bold text-orange-50 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-100">
                     <Flame size={14} className="text-orange-300" aria-hidden />
                     {user.streakCurrent ?? 0} дн.
                   </span>
@@ -162,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <button
                   type="button"
                   onClick={handleGoCourses}
-                  className="inline-flex items-center gap-2 rounded-xl border border-kiddy-cherry/40 bg-kiddy-cherry/20 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white shadow-[0_0_24px_-8px_rgba(230,0,43,0.35)] transition-colors hover:bg-kiddy-cherry/30"
+                  className="inline-flex items-center gap-2 rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/[0.14] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-kiddy-cherry/25"
                 >
                   <BookOpen size={15} strokeWidth={2} />
                   Курсы
@@ -170,14 +125,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <button
                   type="button"
                   onClick={handleGoSchedule}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.14] bg-white/[0.07] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-zinc-200 backdrop-blur-sm transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-white/20 hover:text-white"
                 >
                   Расписание
                 </button>
                 <button
                   type="button"
                   onClick={handleGoCommunity}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.14] bg-white/[0.07] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-zinc-200 backdrop-blur-sm transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-white/20 hover:text-white"
                 >
                   <Sparkles size={15} strokeWidth={2} />
                   Ученики
