@@ -14,7 +14,6 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const heroLineGradId = useId().replace(/:/g, '');
-  const heroMeshGradId = `${heroLineGradId}-mesh`;
   const { isGuest, openAuthModal } = useAuth();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const [now, setNow] = useState(() => new Date());
@@ -69,16 +68,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   return (
     <div className="space-y-6 pb-10 md:space-y-8">
       <section className="stagger-1 relative">
-        <Card className="relative overflow-hidden rounded-2xl border border-white/[0.1] bg-gradient-to-br from-[#0e0e12] via-[#070708] to-[#0a080d] p-4 shadow-[0_24px_70px_-36px_rgba(0,0,0,0.9)] ring-1 ring-inset ring-white/[0.04] md:rounded-3xl md:p-5 hover:!translate-y-0 hover:!transform-none hover:!bg-gradient-to-br hover:from-[#0e0e12] hover:via-[#070708] hover:to-[#0a080d]">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/[0.1] !bg-transparent p-4 shadow-[0_24px_70px_-36px_rgba(0,0,0,0.9)] ring-1 ring-inset ring-white/[0.04] md:rounded-3xl md:p-5 hover:!translate-y-0 hover:!transform-none hover:!bg-transparent">
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl md:rounded-3xl" aria-hidden>
             <div className="absolute -inset-[12%] md:-inset-[14%]">
-              <div className="absolute inset-0 bg-gradient-to-b from-zinc-700/22 via-[#0a090e]/90 to-[#0b090f]" />
-              <div className="absolute inset-0 bg-[radial-gradient(85%_60%_at_0%_0%,rgba(230,0,43,0.14),transparent_58%),radial-gradient(85%_60%_at_100%_0%,rgba(139,92,246,0.11),transparent_58%),radial-gradient(75%_55%_at_0%_100%,rgba(34,211,238,0.07),transparent_52%),radial-gradient(75%_55%_at_100%_100%,rgba(230,0,43,0.09),transparent_52%)]" />
               <div className="absolute -left-[18%] -top-[45%] h-[min(140%,32rem)] w-[min(95%,28rem)] rounded-full bg-gradient-to-br from-kiddy-cherry/52 via-kiddy-cherry/22 to-transparent blur-[96px] motion-safe:animate-dash-hero-blob-a motion-reduce:opacity-35" />
               <div className="absolute -bottom-[42%] -right-[14%] h-[min(120%,26rem)] w-[min(82%,24rem)] rounded-full bg-gradient-to-tl from-violet-600/44 via-indigo-500/16 to-transparent blur-[92px] motion-safe:animate-dash-hero-blob-b motion-reduce:opacity-30" />
               <div className="absolute left-[22%] top-1/2 h-[min(92%,22rem)] w-[min(72%,20rem)] -translate-y-1/2 rounded-full bg-cyan-400/14 blur-[72px] motion-safe:animate-dash-hero-blob-c motion-reduce:opacity-20" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_72%_at_50%_-18%,rgba(255,255,255,0.07),transparent_52%)]" />
-              <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-zinc-950/80 via-zinc-900/18 to-transparent" />
             </div>
             <svg
               className="dash-hero-svg-anim absolute inset-0 h-full w-full text-white/22"
@@ -88,12 +83,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               preserveAspectRatio="none"
             >
               <defs>
-                <linearGradient id={heroMeshGradId} x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#3f3f46" stopOpacity="0.35" />
-                  <stop offset="0.38" stopColor="#18181b" stopOpacity="0.42" />
-                  <stop offset="0.62" stopColor="#1c1018" stopOpacity="0.38" />
-                  <stop offset="100%" stopColor="#09090b" stopOpacity="0.4" />
-                </linearGradient>
                 <linearGradient id={heroLineGradId} x1="0" y1="0" x2="1" y2="1">
                   <stop stopColor="currentColor" stopOpacity="0" />
                   <stop offset="0.35" stopColor="currentColor" stopOpacity="0.5" />
@@ -101,7 +90,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   <stop offset="1" stopColor="currentColor" stopOpacity="0.18" />
                 </linearGradient>
               </defs>
-              <rect width="800" height="220" fill={`url(#${heroMeshGradId})`} opacity={0.55} />
               <path
                 className="dash-hero-line-path"
                 d="M -40 200 C 140 20 320 -10 520 80 S 780 40 840 180"
