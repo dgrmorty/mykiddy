@@ -238,9 +238,25 @@ body {
   100% { background-position: 0% 50%; }
 }
 
-@keyframes cherry-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(230,0,43,0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(230,0,43,0); }
+@keyframes dash-hero-line {
+  to { stroke-dashoffset: -140; }
+}
+
+.dash-hero-svg-anim .dash-hero-line-path {
+  stroke-dasharray: 3 22;
+  stroke-dashoffset: 0;
+  animation: dash-hero-line 28s linear infinite;
+}
+
+.dash-hero-svg-anim .dash-hero-line-path.dash-hero-line-path--muted {
+  animation-duration: 36s;
+  animation-delay: -14s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-hero-svg-anim .dash-hero-line-path {
+    animation: none !important;
+  }
 }
 
 /* ─── Utility animation classes ─── */
