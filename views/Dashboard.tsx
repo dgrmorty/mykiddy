@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useId } from 'react';
 import { User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Sparkles, Loader2, Zap, BookOpen, Flame } from 'lucide-react';
@@ -13,6 +13,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+  const heroLineGradId = useId().replace(/:/g, '');
   const { isGuest, openAuthModal } = useAuth();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const [now, setNow] = useState(() => new Date());
@@ -76,32 +77,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-20%,rgba(255,255,255,0.06),transparent_50%)]" />
             <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/45 to-transparent" />
             <svg
-              className="dash-hero-svg-anim absolute -right-2 top-0 h-full w-[min(58%,20rem)] text-white/25"
-              viewBox="0 0 220 160"
+              className="dash-hero-svg-anim absolute inset-0 h-full w-full text-white/22"
+              viewBox="0 0 800 220"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              preserveAspectRatio="xMaxYMid meet"
+              preserveAspectRatio="none"
             >
               <defs>
-                <linearGradient id="dashHeroStroke" x1="0" y1="0" x2="1" y2="1">
+                <linearGradient id={heroLineGradId} x1="0" y1="0" x2="1" y2="1">
                   <stop stopColor="currentColor" stopOpacity="0" />
-                  <stop offset="0.4" stopColor="currentColor" stopOpacity="0.55" />
-                  <stop offset="0.72" stopColor="#e6002b" stopOpacity="0.75" />
-                  <stop offset="1" stopColor="currentColor" stopOpacity="0.2" />
+                  <stop offset="0.35" stopColor="currentColor" stopOpacity="0.5" />
+                  <stop offset="0.68" stopColor="#e6002b" stopOpacity="0.72" />
+                  <stop offset="1" stopColor="currentColor" stopOpacity="0.18" />
                 </linearGradient>
               </defs>
               <path
                 className="dash-hero-line-path"
-                d="M 208 12 C 138 48 118 98 28 148"
-                stroke="url(#dashHeroStroke)"
-                strokeWidth="1.35"
+                d="M -40 200 C 140 20 320 -10 520 80 S 780 40 840 180"
+                stroke={`url(#${heroLineGradId})`}
+                strokeWidth="1.2"
                 strokeLinecap="round"
               />
               <path
-                className="dash-hero-line-path dash-hero-line-path--muted opacity-[0.35]"
-                d="M 218 42 C 162 72 132 118 8 138"
-                stroke="url(#dashHeroStroke)"
+                className="dash-hero-line-path dash-hero-line-path--muted opacity-[0.38]"
+                d="M 820 0 C 620 120 380 200 120 160 S -60 100 -20 240"
+                stroke={`url(#${heroLineGradId})`}
                 strokeWidth="0.85"
+                strokeLinecap="round"
+              />
+              <path
+                className="dash-hero-line-path dash-hero-line-path--wide opacity-[0.28]"
+                d="M 0 110 C 200 180 500 0 800 95"
+                stroke={`url(#${heroLineGradId})`}
+                strokeWidth="0.7"
                 strokeLinecap="round"
               />
             </svg>

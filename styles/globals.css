@@ -243,7 +243,7 @@ body {
 }
 
 .dash-hero-svg-anim .dash-hero-line-path {
-  stroke-dasharray: 3 22;
+  stroke-dasharray: 4 30;
   stroke-dashoffset: 0;
   animation: dash-hero-line 28s linear infinite;
 }
@@ -251,6 +251,12 @@ body {
 .dash-hero-svg-anim .dash-hero-line-path.dash-hero-line-path--muted {
   animation-duration: 36s;
   animation-delay: -14s;
+}
+
+.dash-hero-svg-anim .dash-hero-line-path.dash-hero-line-path--wide {
+  stroke-dasharray: 5 34;
+  animation-duration: 42s;
+  animation-delay: -8s;
 }
 
 @media (prefers-reduced-motion: reduce) {
