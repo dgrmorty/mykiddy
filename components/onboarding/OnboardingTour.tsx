@@ -215,7 +215,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-kiddy-cherry">
             <Sparkles size={18} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em]">Знакомство</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em]">Что нового</span>
           </div>
           <button
             type="button"

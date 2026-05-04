@@ -9,7 +9,7 @@ import {
   LogOut,
   HelpCircle,
 } from 'lucide-react';
-import { onboardingStorageKey } from '../data/onboardingTour';
+import { clearAllOnboardingKeys } from '../data/onboardingTour';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -106,13 +106,9 @@ export const Settings: React.FC = () => {
           <Row
             icon={HelpCircle}
             title="Гид по разделам"
-            subtitle="Подсветка меню и короткие подсказки, как при первом входе"
+            subtitle="Сброс подсказок по меню — то же, что тур после обновлений приложения"
             onClick={() => {
-              try {
-                localStorage.removeItem(onboardingStorageKey(user.id));
-              } catch {
-                /* ignore */
-              }
+              clearAllOnboardingKeys(user.id);
               window.location.reload();
             }}
           />
