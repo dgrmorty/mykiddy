@@ -325,13 +325,31 @@ export const CourseDetail: React.FC = () => {
       const answerTrimmed = cleanAnswer.trim();
       const attachmentsPayload = attachments.length > 0 ? attachments : null;
 
+      const resubmitPayload = {
+        status: 'pending' as const,
+        answer: answerTrimmed.length > 0 ? cleanAnswer : null,
+        attachments: attachmentsPayload,
+        admin_comment: null,
+        reviewed_by: null,
+        reviewed_at: null,
+        xp_awarded: 0,
+        submitted_at: new Date().toISOString(),
+      };
+
       if (homeworkStatus === 'rejected' && homeworkSubmissionId) {
-        const { error } = await supabase.rpc('student_resubmit_homework', {
-          p_submission_id: homeworkSubmissionId,
-          p_answer: answerTrimmed.length > 0 ? cleanAnswer : '',
-          p_attachments: attachmentsPayload,
-        });
+        const { data: updated, error } = await supabase
+          .from('homework_submissions')
+          .update(resubmitPayload)
+          .eq('id', homeworkSubmissionId)
+          .eq('user_id', user.id)
+          .eq('status', 'rejected')
+          .select('id')
+          .maybeSingle();
         if (error) throw error;
+        if (!updated?.id) {
+          showToast('Статус ДЗ изменился. Обновите страницу.', 'info');
+          return;
+        }
         setHomeworkStatus('pending');
         setHomeworkRejectionComment(null);
         showToast('Новая версия отправлена на проверку.', 'success');
@@ -348,14 +366,64 @@ export const CourseDetail: React.FC = () => {
           })
           .select('id')
           .single();
-        if (error) throw error;
-        if (inserted?.id) setHomeworkSubmissionId(inserted.id);
-        setHomeworkStatus('pending');
-        showToast('ДЗ отправлено на проверку. Статус: «в обработке»', 'success');
+        if (error?.code === '23505' && activeLesson?.id) {
+          const { data: existing, error: fetchErr } = await supabase
+            .from('homework_submissions')
+            .select('id,status')
+            .eq('user_id', user.id)
+            .eq('lesson_id', activeLesson.id)
+            .maybeSingle();
+          if (fetchErr) throw fetchErr;
+          if (existing?.status === 'rejected' && existing.id) {
+            const { data: upd, error: upErr } = await supabase
+              .from('homework_submissions')
+              .update(resubmitPayload)
+              .eq('id', existing.id)
+              .eq('user_id', user.id)
+              .eq('status', 'rejected')
+              .select('id')
+              .maybeSingle();
+            if (upErr) throw upErr;
+            if (!upd?.id) {
+              showToast('Статус ДЗ изменился. Обновите страницу.', 'info');
+              return;
+            }
+            setHomeworkSubmissionId(upd.id);
+            setHomeworkStatus('pending');
+            setHomeworkRejectionComment(null);
+            showToast('Новая версия отправлена на проверку.', 'success');
+          } else if (existing?.status === 'pending') {
+            setHomeworkSubmissionId(existing.id);
+            setHomeworkStatus('pending');
+            showToast('ДЗ уже в обработке.', 'info');
+          } else if (existing?.status === 'approved') {
+            setHomeworkSubmissionId(existing.id);
+            setIsHomeworkCompleted(true);
+            setHomeworkStatus('approved');
+            showToast('Это ДЗ уже принято.', 'info');
+          } else {
+            throw error;
+          }
+        } else {
+          if (error) throw error;
+          if (inserted?.id) setHomeworkSubmissionId(inserted.id);
+          setHomeworkStatus('pending');
+          showToast('ДЗ отправлено на проверку. Статус: «в обработке»', 'success');
+        }
       }
     } catch (e: any) {
       console.warn('[Homework] submit failed', e?.message || e);
-      showToast('Не удалось отправить ДЗ. Попробуйте позже.', 'error');
+      const code = e?.code as string | undefined;
+      const msg = String(e?.message || '').toLowerCase();
+      let userMsg = 'Не удалось отправить ДЗ. Попробуйте позже.';
+      if (code === '42501' || msg.includes('permission denied') || msg.includes('new row violates row-level security')) {
+        userMsg = 'Нет доступа к сохранению. Выйдите и войдите снова; если не поможет — напишите администратору (нужна миграция RLS в Supabase).';
+      } else if (msg.includes('payload') || msg.includes('too large') || msg.includes('request entity too large')) {
+        userMsg = 'Слишком тяжёлые вложения — уменьшите фото или видео и попробуйте снова.';
+      } else if (e?.message && typeof e.message === 'string' && e.message.length < 200) {
+        userMsg = e.message;
+      }
+      showToast(userMsg, 'error');
     } finally {
       setIsChecking(false);
     }
