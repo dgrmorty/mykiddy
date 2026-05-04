@@ -152,7 +152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/community?v=showcase')}
+            onClick={() => navigate('/community')}
             className="shrink-0 self-start rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white sm:self-auto"
           >
             Открыть раздел «Ученики»

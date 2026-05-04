@@ -109,11 +109,11 @@ export const ShowcaseSubmitModal: React.FC<ShowcaseSubmitModalProps> = ({ isOpen
                 type="button"
                 onClick={() => {
                   onClose();
-                  navigate('/community?v=showcase');
+                  navigate('/');
                 }}
                 className="mt-2 text-left text-xs font-bold text-kiddy-cherry/90 underline decoration-kiddy-cherry/30 underline-offset-2 transition-colors hover:text-kiddy-cherry hover:decoration-kiddy-cherry"
               >
-                Посмотреть ленту витрины →
+                Посмотреть ленту на главной →
               </button>
             </div>
           </div>

@@ -150,7 +150,7 @@ export const Notifications: React.FC = () => {
       return;
     }
     if (row.kind === 'project_approved' || row.kind === 'project_rejected') {
-      navigate('/community?v=showcase');
+      navigate('/');
     }
   };
 

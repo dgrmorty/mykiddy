@@ -8,8 +8,7 @@ import { levelFromXp } from '../progression';
 import { useToast } from '../contexts/ToastContext';
 import { Role } from '../types';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
-import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock, LayoutGrid, Sparkles } from 'lucide-react';
-import { ProjectShowcasePanel } from './ProjectShowcasePanel';
+import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock } from 'lucide-react';
 
 interface StudentRow {
   id: string;
@@ -25,16 +24,18 @@ function isStudentRole(role: string | null | undefined): boolean {
 }
 
 type TabKey = 'all' | 'requests' | 'friends';
-type CommunityPage = 'people' | 'showcase';
 
 export const Community: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const page: CommunityPage = searchParams.get('v') === 'showcase' ? 'showcase' : 'people';
-  const setPage = (p: CommunityPage) => {
-    if (p === 'showcase') setSearchParams({ v: 'showcase' });
-    else setSearchParams({});
-  };
+
+  /** Витрина только на главной; старые ссылки ?v=showcase сбрасываем. */
+  useEffect(() => {
+    if (searchParams.get('v') === 'showcase') {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const { user } = useAuth();
   const { showToast } = useToast();
   const myId = user.id !== 'guest' ? user.id : undefined;
@@ -170,50 +171,22 @@ export const Community: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
-      <header className="stagger-1 space-y-4">
+      <header className="stagger-1 space-y-2">
         <p className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.35em]">Ученики</p>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight italic">
-              {page === 'people' ? 'Ученики школы' : 'Витрина проектов'}
-            </h1>
-            <p className="text-kiddy-textMuted text-sm max-w-xl">
-              {page === 'people'
-                ? 'Профили одноклассников, друзья и заявки — в одном месте.'
-                : 'Лента как в соцсети: автор, время, текст и медиа. Свой проект — из профиля или с главной.'}
-            </p>
-          </div>
-          <div className="flex shrink-0 rounded-2xl border border-white/[0.08] bg-black/30 p-1">
-            <button
-              type="button"
-              onClick={() => setPage('people')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
-                page === 'people' ? 'bg-kiddy-cherry text-white shadow-lg' : 'text-kiddy-textMuted hover:text-white'
-              }`}
-            >
-              <LayoutGrid size={16} />
-              Список
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage('showcase')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
-                page === 'showcase' ? 'bg-kiddy-cherry text-white shadow-lg' : 'text-kiddy-textMuted hover:text-white'
-              }`}
-            >
-              <Sparkles size={16} />
-              Витрина
-            </button>
-          </div>
-        </div>
+        <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Ученики школы</h1>
+        <p className="max-w-xl text-sm text-kiddy-textMuted">
+          Профили одноклассников, друзья и заявки. Лента проектов — на{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="font-bold text-kiddy-cherry underline decoration-kiddy-cherry/40 underline-offset-2 hover:text-white"
+          >
+            главной
+          </button>
+          .
+        </p>
       </header>
 
-      {page === 'showcase' ? (
-        <div className="stagger-2">
-          <ProjectShowcasePanel />
-        </div>
-      ) : (
-        <>
       <div className="stagger-2 flex flex-wrap gap-2">
         {tabBtn('all', 'Все')}
         {tabBtn('requests', 'Заявки', incomingCount)}
@@ -238,7 +211,7 @@ export const Community: React.FC = () => {
               <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
             </div>
           ) : filteredStudents.length === 0 ? (
-            <Card className="p-10 text-center text-kiddy-textMuted text-sm">Никого не нашли</Card>
+            <Card className="p-10 text-center text-sm text-kiddy-textMuted">Никого не нашли</Card>
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredStudents.map((s, i) => {
@@ -272,10 +245,10 @@ export const Community: React.FC = () => {
                         size="lg"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="break-words font-bold text-white leading-snug text-balance [overflow-wrap:anywhere]">
+                        <p className="break-words font-bold leading-snug text-white text-balance [overflow-wrap:anywhere]">
                           {s.name || 'Ученик'}
                         </p>
-                        <p className="text-kiddy-textMuted text-xs mt-0.5">
+                        <p className="mt-0.5 text-xs text-kiddy-textMuted">
                           Ур. {lvl} · {(s.xp ?? 0).toLocaleString()} XP
                         </p>
                       </div>
@@ -341,7 +314,7 @@ export const Community: React.FC = () => {
                   <Inbox size={16} className="text-kiddy-cherry" /> К вам
                 </h2>
                 {incoming.length === 0 ? (
-                  <p className="text-kiddy-textMuted text-sm py-4">Нет входящих заявок</p>
+                  <p className="py-4 text-sm text-kiddy-textMuted">Нет входящих заявок</p>
                 ) : (
                   <div className="space-y-3">
                     {incoming.map((row, i) => {
@@ -353,7 +326,7 @@ export const Community: React.FC = () => {
                           className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-kiddy-surfaceElevated/50 p-4 sm:flex-row sm:items-center sm:justify-between"
                           style={{ animation: `fade-in-up 0.45s ease both`, animationDelay: `${i * 0.05}s` }}
                         >
-                          <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
+                          <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex min-w-0 items-center gap-3 text-left">
                             <UserAvatar
                               user={{
                                 id: other,
@@ -363,11 +336,11 @@ export const Community: React.FC = () => {
                               size="md"
                             />
                             <div className="min-w-0">
-                              <p className="font-bold text-white truncate">{p.name}</p>
-                              <p className="text-kiddy-textMuted text-xs">Хочет дружить</p>
+                              <p className="truncate font-bold text-white">{p.name}</p>
+                              <p className="text-xs text-kiddy-textMuted">Хочет дружить</p>
                             </div>
                           </button>
-                          <div className="flex gap-2 shrink-0">
+                          <div className="flex shrink-0 gap-2">
                             <button
                               type="button"
                               disabled={busyId === row.id}
@@ -380,7 +353,7 @@ export const Community: React.FC = () => {
                               }}
                               className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
                             >
-                              {busyId === row.id ? <Loader2 size={16} className="animate-spin mx-2" /> : 'Принять'}
+                              {busyId === row.id ? <Loader2 size={16} className="mx-2 animate-spin" /> : 'Принять'}
                             </button>
                             <button
                               type="button"
@@ -408,10 +381,10 @@ export const Community: React.FC = () => {
                   <Users size={16} className="text-kiddy-cherry" /> От вас
                 </h2>
                 {outgoing.length === 0 ? (
-                  <p className="text-kiddy-textMuted text-sm py-4">Нет исходящих заявок</p>
+                  <p className="py-4 text-sm text-kiddy-textMuted">Нет исходящих заявок</p>
                 ) : (
                   <div className="space-y-3">
-                    {outgoing.map((row, i) => {
+                    {outgoing.map((row) => {
                       const other = row.addressee_id;
                       const p = resolvePeer(other);
                       return (
@@ -419,7 +392,7 @@ export const Community: React.FC = () => {
                           key={row.id}
                           className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex items-center gap-3 text-left min-w-0">
+                          <button type="button" onClick={() => navigate(`/users/${other}`)} className="flex min-w-0 items-center gap-3 text-left">
                             <UserAvatar
                               user={{
                                 id: other,
@@ -429,8 +402,8 @@ export const Community: React.FC = () => {
                               size="md"
                             />
                             <div className="min-w-0">
-                              <p className="font-bold text-white truncate">{p.name}</p>
-                              <p className="text-kiddy-textMuted text-xs">Ожидает ответа</p>
+                              <p className="truncate font-bold text-white">{p.name}</p>
+                              <p className="text-xs text-kiddy-textMuted">Ожидает ответа</p>
                             </div>
                           </button>
                           <button
@@ -443,7 +416,7 @@ export const Community: React.FC = () => {
                               if (error) showToast('Ошибка', 'error');
                               else showToast('Заявка отменена', 'success');
                             }}
-                            className="text-xs font-bold uppercase tracking-widest text-kiddy-textMuted hover:text-kiddy-cherry shrink-0 disabled:opacity-50"
+                            className="shrink-0 text-xs font-bold uppercase tracking-widest text-kiddy-textMuted hover:text-kiddy-cherry disabled:opacity-50"
                           >
                             Отменить
                           </button>
@@ -467,14 +440,12 @@ export const Community: React.FC = () => {
           ) : friends.length === 0 ? (
             <Card className="p-10 text-center">
               <Users className="mx-auto mb-4 text-kiddy-textMuted" size={40} />
-              <p className="text-kiddy-textMuted text-sm">Пока нет друзей — загляните во «Все» и отправьте заявку.</p>
+              <p className="text-sm text-kiddy-textMuted">Пока нет друзей — загляните во «Все» и отправьте заявку.</p>
             </Card>
           ) : (
             <div className="space-y-2">{friends.map((row, i) => renderFriendRow(row, i))}</div>
           )}
         </section>
-      )}
-        </>
       )}
     </div>
   );
