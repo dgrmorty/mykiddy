@@ -96,11 +96,12 @@ export const AdminPanel: React.FC = () => {
             const { data, error } = await supabase
                 .from('homework_submissions')
                 .select('id,user_id,lesson_id,submitted_at,status,answer,attachments,admin_comment,reviewed_by,reviewed_at')
+                .eq('status', 'pending')
                 .order('submitted_at', { ascending: false })
                 .limit(200);
             if (error) throw error;
             const rows = (data || []) as HomeworkSubmissionRow[];
-            setHomeworkQueue(rows.filter((r) => r.status === 'pending'));
+            setHomeworkQueue(rows);
 
             const ids = [...new Set(rows.map((r) => r.user_id))];
             const map: Record<string, { name: string; avatar?: string | null }> = {};

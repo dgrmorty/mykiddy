@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { sanitizeInput, isPotentialInjection } from '../utils/security';
 import { useContentContext } from '../contexts/ContentContext';
 import { supabase } from '../services/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { useToast } from '../contexts/ToastContext';
 
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
@@ -31,6 +32,69 @@ type HomeworkLocalMedia = {
   preview: string;
   name: string;
 };
+
+type ResubmitAfterRejectionResult =
+  | { ok: true; via: 'update' | 'rpc' }
+  | { ok: true; via: 'already_pending'; id: string }
+  | { ok: true; via: 'already_approved'; id: string }
+  | { ok: false; message: string };
+
+/** Повтор после rejected: UPDATE по RLS; 0 строк — сверка с БД; затем RPC, если миграция с политикой не накатывалась. */
+async function resubmitAfterRejection(
+  client: SupabaseClient,
+  args: {
+    userId: string;
+    lessonId: string;
+    submissionId: string;
+    resubmitPayload: Record<string, unknown>;
+    answerForRpc: string;
+    attachmentsForRpc: unknown;
+  },
+): Promise<ResubmitAfterRejectionResult> {
+  const { userId, lessonId, submissionId, resubmitPayload, answerForRpc, attachmentsForRpc } = args;
+  const { data: updated, error } = await client
+    .from('homework_submissions')
+    .update(resubmitPayload)
+    .eq('id', submissionId)
+    .eq('user_id', userId)
+    .eq('status', 'rejected')
+    .select('id')
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (updated?.id) return { ok: true, via: 'update' };
+
+  const { data: row, error: fetchErr } = await client
+    .from('homework_submissions')
+    .select('id,status')
+    .eq('user_id', userId)
+    .eq('lesson_id', lessonId)
+    .maybeSingle();
+  if (fetchErr) return { ok: false, message: fetchErr.message };
+  if (row?.status === 'pending' && row.id) return { ok: true, via: 'already_pending', id: row.id };
+  if (row?.status === 'approved' && row.id) return { ok: true, via: 'already_approved', id: row.id };
+
+  const { error: rpcErr } = await client.rpc('student_resubmit_homework', {
+    p_submission_id: submissionId,
+    p_answer: answerForRpc,
+    p_attachments: attachmentsForRpc,
+  });
+  if (!rpcErr) return { ok: true, via: 'rpc' };
+
+  const rpcMsg = (rpcErr.message || '').toLowerCase();
+  if (
+    rpcMsg.includes('does not exist') ||
+    rpcMsg.includes('could not find') ||
+    rpcErr.code === '42883' ||
+    rpcErr.code === 'PGRST202'
+  ) {
+    return {
+      ok: false,
+      message:
+        'Повторная отправка не настроена на сервере: в Supabase нужно применить миграции (политика «Users can update own rejected homework for resubmit» или функция student_resubmit_homework).',
+    };
+  }
+  return { ok: false, message: rpcErr.message };
+}
 
 function readOneFileAsAttachment(file: File): Promise<{ mime: string; base64: string; preview: string } | null> {
   return new Promise((resolve) => {
@@ -324,6 +388,30 @@ export const CourseDetail: React.FC = () => {
       }));
       const answerTrimmed = cleanAnswer.trim();
       const attachmentsPayload = attachments.length > 0 ? attachments : null;
+      const answerForRpc = answerTrimmed.length > 0 ? cleanAnswer : '';
+
+      const applyResubmitResult = (res: ResubmitAfterRejectionResult, stableSubmissionId: string) => {
+        if (!res.ok) throw new Error(res.message);
+        if (res.via === 'already_pending') {
+          setHomeworkSubmissionId(res.id);
+          setHomeworkStatus('pending');
+          setHomeworkRejectionComment(null);
+          showToast('ДЗ уже на проверке у администратора.', 'info');
+          return;
+        }
+        if (res.via === 'already_approved') {
+          setHomeworkSubmissionId(res.id);
+          setIsHomeworkCompleted(true);
+          setHomeworkStatus('approved');
+          setHomeworkRejectionComment(null);
+          showToast('Это ДЗ уже принято.', 'info');
+          return;
+        }
+        setHomeworkSubmissionId(stableSubmissionId);
+        setHomeworkStatus('pending');
+        setHomeworkRejectionComment(null);
+        showToast('Новая версия отправлена на проверку.', 'success');
+      };
 
       const resubmitPayload = {
         status: 'pending' as const,
@@ -337,22 +425,15 @@ export const CourseDetail: React.FC = () => {
       };
 
       if (homeworkStatus === 'rejected' && homeworkSubmissionId) {
-        const { data: updated, error } = await supabase
-          .from('homework_submissions')
-          .update(resubmitPayload)
-          .eq('id', homeworkSubmissionId)
-          .eq('user_id', user.id)
-          .eq('status', 'rejected')
-          .select('id')
-          .maybeSingle();
-        if (error) throw error;
-        if (!updated?.id) {
-          showToast('Статус ДЗ изменился. Обновите страницу.', 'info');
-          return;
-        }
-        setHomeworkStatus('pending');
-        setHomeworkRejectionComment(null);
-        showToast('Новая версия отправлена на проверку.', 'success');
+        const res = await resubmitAfterRejection(supabase, {
+          userId: user.id,
+          lessonId: activeLesson.id,
+          submissionId: homeworkSubmissionId,
+          resubmitPayload,
+          answerForRpc,
+          attachmentsForRpc: attachmentsPayload,
+        });
+        applyResubmitResult(res, homeworkSubmissionId);
       } else {
         const { data: inserted, error } = await supabase
           .from('homework_submissions')
@@ -375,23 +456,15 @@ export const CourseDetail: React.FC = () => {
             .maybeSingle();
           if (fetchErr) throw fetchErr;
           if (existing?.status === 'rejected' && existing.id) {
-            const { data: upd, error: upErr } = await supabase
-              .from('homework_submissions')
-              .update(resubmitPayload)
-              .eq('id', existing.id)
-              .eq('user_id', user.id)
-              .eq('status', 'rejected')
-              .select('id')
-              .maybeSingle();
-            if (upErr) throw upErr;
-            if (!upd?.id) {
-              showToast('Статус ДЗ изменился. Обновите страницу.', 'info');
-              return;
-            }
-            setHomeworkSubmissionId(upd.id);
-            setHomeworkStatus('pending');
-            setHomeworkRejectionComment(null);
-            showToast('Новая версия отправлена на проверку.', 'success');
+            const res = await resubmitAfterRejection(supabase, {
+              userId: user.id,
+              lessonId: activeLesson.id,
+              submissionId: existing.id,
+              resubmitPayload,
+              answerForRpc,
+              attachmentsForRpc: attachmentsPayload,
+            });
+            applyResubmitResult(res, existing.id);
           } else if (existing?.status === 'pending') {
             setHomeworkSubmissionId(existing.id);
             setHomeworkStatus('pending');
