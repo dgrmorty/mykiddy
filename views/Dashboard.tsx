@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Role, ScheduleEvent } from '../types';
+import { Card } from '../components/ui/Card';
 import { Calendar, Users, Flame, Sparkles, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
