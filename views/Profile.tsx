@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
@@ -62,6 +62,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
   
   const currentUser = user.id !== 'guest' ? user : initialUser;
@@ -70,6 +71,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const { stats: badgeStats, equippedIds, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
 
   useEffect(() => { refreshBadges(); }, [currentUser.xp, currentUser.level]);
+
+  useEffect(() => {
+    if (location.hash !== '#showcase-submit') return;
+    const t = window.setTimeout(() => {
+      document.getElementById('showcase-submit')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => window.clearTimeout(t);
+  }, [location.hash]);
   
   const [editName, setEditName] = useState(currentUser.name);
 
@@ -428,7 +437,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-          <Card className="stagger-2 lg:col-span-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl">
+          <Card
+            id="showcase-submit"
+            className="stagger-2 lg:col-span-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl scroll-mt-24"
+          >
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 flex-1 items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]">

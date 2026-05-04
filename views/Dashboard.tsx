@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User } from '../types';
-import { Card } from '../components/ui/Card';
+import { User, Role, ScheduleEvent } from '../types';
 import { Calendar, Users, Flame, Sparkles, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,12 +10,107 @@ import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { AnimatedGrid } from '../components/ui/AnimatedGrid';
 import { supabase } from '../services/supabase';
-import { ScheduleEvent } from '../types';
 import {
   PERMANENT_GROUPS,
   isInAcademicYear,
   dayOfWeek,
 } from '../data/permanentSchedule';
+import { ProjectShowcasePanel } from './ProjectShowcasePanel';
+
+/** Боковой блок на главной: быстрый вход к публикации / сообществу (согласовано как «лёгкий» якорь, не дублирует форму). */
+function ShowcaseHomeWidget() {
+  const { user, openAuthModal, isGuest } = useAuth();
+  const navigate = useNavigate();
+
+  if (isGuest || user.id === 'guest') {
+    return (
+      <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/70 p-5 xl:sticky xl:top-24">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-kiddy-cherry/25 bg-kiddy-cherry/10 text-kiddy-cherry">
+          <Sparkles size={20} strokeWidth={2} />
+        </div>
+        <h3 className="mt-4 font-display text-lg font-bold text-white tracking-tight">Свой проект</h3>
+        <p className="mt-2 text-sm leading-relaxed text-kiddy-textMuted">
+          Войди как ученик — сможешь лайкать посты и отправить работу на витрину из профиля.
+        </p>
+        <button
+          type="button"
+          onClick={() => openAuthModal()}
+          className="mt-5 w-full rounded-xl bg-kiddy-cherry py-3 text-sm font-bold text-white transition-all hover:brightness-110"
+        >
+          Войти
+        </button>
+      </Card>
+    );
+  }
+
+  if (user.role === Role.STUDENT) {
+    return (
+      <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/70 p-5 xl:sticky xl:top-24">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-kiddy-cherry/25 bg-kiddy-cherry/10 text-kiddy-cherry">
+          <Sparkles size={20} strokeWidth={2} />
+        </div>
+        <h3 className="mt-4 font-display text-lg font-bold text-white tracking-tight">Выложить проект</h3>
+        <p className="mt-2 text-sm leading-relaxed text-kiddy-textMuted">
+          Текст и медиа — в профиле. После проверки наставник опубликует пост в этой ленте.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/profile#showcase-submit')}
+          className="mt-5 w-full rounded-xl border border-kiddy-cherry/40 bg-kiddy-cherry/[0.14] py-3 text-sm font-bold text-white transition-all hover:border-kiddy-cherry hover:bg-kiddy-cherry/25"
+        >
+          Открыть форму в профиле
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/community')}
+          className="mt-3 w-full text-center text-xs font-bold uppercase tracking-wider text-kiddy-textMuted hover:text-white"
+        >
+          Сообщество — люди и заявки
+        </button>
+      </Card>
+    );
+  }
+
+  if (user.role === Role.ADMIN) {
+    return (
+      <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/70 p-5 xl:sticky xl:top-24">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-500/25 bg-violet-500/10 text-violet-200">
+          <Sparkles size={20} strokeWidth={2} />
+        </div>
+        <h3 className="mt-4 font-display text-lg font-bold text-white tracking-tight">Модерация</h3>
+        <p className="mt-2 text-sm leading-relaxed text-kiddy-textMuted">
+          Новые заявки на витрину принимаются во вкладке «Витрина» в админке.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          className="mt-5 w-full rounded-xl border border-white/[0.12] bg-white/[0.06] py-3 text-sm font-bold text-white hover:bg-white/[0.1]"
+        >
+          Открыть админку
+        </button>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border border-white/[0.08] bg-kiddy-surfaceElevated/70 p-5 xl:sticky xl:top-24">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-kiddy-textSecondary">
+        <Users size={20} strokeWidth={2} />
+      </div>
+      <h3 className="mt-4 font-display text-lg font-bold text-white tracking-tight">Сообщество</h3>
+      <p className="mt-2 text-sm leading-relaxed text-kiddy-textMuted">
+        Полная лента, список учеников и друзья — в разделе «Сообщество».
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate('/community')}
+        className="mt-5 w-full rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/[0.12] py-3 text-sm font-bold text-white hover:bg-kiddy-cherry/20"
+      >
+        Перейти в сообщество
+      </button>
+    </Card>
+  );
+}
 
 interface DashboardProps {
   user: User;
@@ -141,26 +235,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       </div>
 
       {!isGuest && (
-        <section className="stagger-2 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-          <Card
-            hoverEffect
-            role="button"
-            onClick={() => navigate('/community?v=showcase')}
-            className="group cursor-pointer border border-white/[0.06] bg-kiddy-surfaceElevated/60 p-6 transition-all hover:border-kiddy-cherry/25"
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-kiddy-cherry/25 bg-kiddy-cherry/10 text-kiddy-cherry transition-transform group-hover:scale-105">
-                <Sparkles size={22} strokeWidth={2} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="font-display text-lg font-bold text-white tracking-tight">Витрина проектов</h3>
-                <p className="mt-1 text-sm text-kiddy-textMuted leading-relaxed">
-                  Лента проверенных работ одноклассников. Выложить свой проект можно в профиле — здесь только просмотр.
-                </p>
-                <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-kiddy-cherry">Открыть ленту →</span>
-              </div>
-            </div>
-          </Card>
+        <section className="stagger-2 max-w-lg">
           <Card className="border border-white/[0.06] bg-kiddy-surfaceElevated/60 p-6">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-500/30 bg-orange-500/10 text-orange-300">
@@ -192,7 +267,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </section>
       )}
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-3">
+      <section className="stagger-3 space-y-6">
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Сообщество</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-2xl font-bold tracking-tight text-white md:text-3xl">Лента проектов</h2>
+              <p className="mt-1 max-w-2xl text-sm text-kiddy-textMuted">
+                Кто что выложил после проверки. Полная лента — в разделе «Сообщество», вкладка «Витрина».
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/community?v=showcase')}
+              className="shrink-0 self-start rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white sm:self-auto"
+            >
+              Открыть в сообществе
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
+          <div className="min-w-0 flex-1">
+            <ProjectShowcasePanel embed postLimit={18} />
+          </div>
+          <div className="w-full shrink-0 xl:w-[300px]">
+            <ShowcaseHomeWidget />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8 stagger-4">
         <div className="lg:col-span-2 2xl:col-span-3">
           {loadError ? (
             <Card className="min-h-[400px] flex flex-col items-center justify-center text-center p-8">
@@ -264,7 +368,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </section>
 
-      <section className="stagger-4">
+      <section className="stagger-5">
         <div className="flex items-center justify-between mb-8">
           <h3 className="font-display font-bold text-2xl text-white tracking-tight">Ближайшие занятия</h3>
           <button onClick={() => navigate('/schedule')} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
