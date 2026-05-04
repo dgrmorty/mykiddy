@@ -82,6 +82,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   }, [location.hash]);
 
   useEffect(() => {
+    if (location.hash !== '#showcase-submit') return;
+    if (currentUser.role !== Role.STUDENT || currentUser.id === 'guest') return;
+    setShowcaseModalOpen(true);
+  }, [location.hash, currentUser.role, currentUser.id]);
+
+  useEffect(() => {
     setEditName(currentUser.name);
   }, [currentUser]);
 

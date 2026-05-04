@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User } from '../types';
+import { Role, User } from '../types';
 import { Card } from '../components/ui/Card';
 import { Sparkles, Loader2, Zap, BookOpen, Flame } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { useContent } from '../hooks/useContent';
 import { UserAvatar } from '../components/UserAvatar';
@@ -14,6 +15,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { isGuest, openAuthModal } = useAuth();
+  const { showToast } = useToast();
   const { courses, loading, loadError, retryLoad } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const [now, setNow] = useState(() => new Date());
   const navigate = useNavigate();
@@ -49,6 +51,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const handleGoCommunity = () => {
     if (isGuest) openAuthModal();
     else navigate('/community');
+  };
+
+  const handleSuggestProject = () => {
+    if (isGuest) {
+      openAuthModal();
+      return;
+    }
+    if (user.role === Role.STUDENT) {
+      navigate('/profile#showcase-submit');
+      return;
+    }
+    showToast('Предложить проект на витрину могут только ученики.', 'info');
   };
 
   if (loading && courses.length === 0) {
@@ -152,10 +166,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/community')}
-            className="shrink-0 self-start rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-kiddy-textSecondary transition-colors hover:border-kiddy-cherry/30 hover:text-white sm:self-auto"
+            onClick={handleSuggestProject}
+            className="shrink-0 self-start rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/[0.12] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition-colors hover:border-kiddy-cherry/50 hover:bg-kiddy-cherry/20 sm:self-auto"
           >
-            Открыть раздел «Ученики»
+            Предложить свой проект
           </button>
         </div>
         <div className="max-w-xl mx-auto w-full">
