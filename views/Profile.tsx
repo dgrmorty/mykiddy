@@ -248,17 +248,20 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   };
 
   return (
-    <div className="space-y-10 pb-20">
-      <section className="stagger-1 relative h-72 md:h-80 w-full rounded-[3rem] overflow-hidden shadow-2xl group transition-all">
-        <div className="absolute inset-0 bg-gradient-to-r from-kiddy-base via-kiddy-base/60 to-transparent z-10" />
-        <img 
-          src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop" 
-          className="absolute inset-0 w-full h-full object-cover grayscale opacity-30 group-hover:scale-105 transition-transform duration-1000" 
-          alt="Banner" 
-        />
-        
-        <div className="relative z-20 h-full flex flex-col justify-center px-8 md:px-16">
-            <div className="flex flex-col md:flex-row items-center gap-8">
+    <div className="space-y-10 pb-24 max-md:pb-28 md:pb-20">
+      <section className="stagger-1 group relative isolate w-full overflow-visible rounded-[3rem] shadow-2xl transition-all md:h-80">
+        {/* Фон в отдельном слое с overflow — бейджи и плашка LVL не режутся */}
+        <div className="absolute inset-0 overflow-hidden rounded-[3rem]">
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-kiddy-base via-kiddy-base/60 to-transparent" />
+          <img
+            src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop"
+            className="absolute inset-0 h-full w-full object-cover grayscale opacity-30 transition-transform duration-1000 group-hover:scale-105"
+            alt=""
+          />
+        </div>
+
+        <div className="relative z-20 flex min-h-[22rem] flex-col justify-center px-5 py-8 sm:min-h-[24rem] sm:px-8 sm:py-10 md:h-full md:min-h-0 md:px-16 md:py-0">
+            <div className="flex flex-col items-center gap-7 md:flex-row md:gap-8">
                 <div className="relative group/avatar">
                     <div className="absolute inset-0 bg-kiddy-cherry blur-3xl opacity-20 animate-pulse" />
                     {/* Badge ring */}
@@ -356,7 +359,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     </div>
                 </div>
 
-                <div className="absolute top-6 right-6 md:relative md:top-auto md:right-auto md:ml-auto">
+                <div className="absolute right-4 top-4 max-[380px]:right-3 max-[380px]:top-3 md:relative md:right-auto md:top-auto md:ml-auto md:mt-0">
                     {isEditing ? (
                         <div className="flex gap-2">
                             <button onClick={() => setIsEditing(false)} disabled={saving} className="p-3 bg-kiddy-surfaceHighlight rounded-xl text-kiddy-textSecondary hover:text-white transition-all">
