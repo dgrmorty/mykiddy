@@ -220,10 +220,10 @@ export const Schedule: React.FC = () => {
               key={dayIdx}
               className={`rounded-2xl border transition-all duration-300 ${
                 isToday
-                  ? 'bg-kiddy-cherry/[0.06] border-kiddy-cherry/25 shadow-[0_0_48px_-12px_rgba(230,0,43,0.12)]'
+                  ? 'bg-[#111] border-white/20 shadow-premium'
                   : isPast
-                    ? 'bg-kiddy-surfaceElevated/40 border-white/[0.04] opacity-50'
-                    : 'bg-kiddy-surfaceElevated/80 border-white/[0.06] hover:border-white/[0.1]'
+                    ? 'bg-black border-white/[0.04] opacity-50'
+                    : 'bg-[#0a0a0a] border-white/[0.06] hover:border-white/[0.1]'
               }`}
               style={{
                 animation: `reveal-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both`,
@@ -236,18 +236,18 @@ export const Schedule: React.FC = () => {
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg transition-colors ${
                       isToday
-                        ? 'bg-kiddy-cherry text-white shadow-lg shadow-kiddy-cherry/30'
+                        ? 'bg-white text-black shadow-premium'
                         : 'bg-white/[0.04] text-kiddy-textSecondary'
                     }`}
                   >
                     {date.getDate()}
                   </div>
                   <div>
-                    <span className={`font-bold text-sm ${isToday ? 'text-kiddy-cherry' : 'text-white'}`}>
+                    <span className={`font-bold text-sm ${isToday ? 'text-white' : 'text-white'}`}>
                       {DAY_NAMES[dow - 1]}
                     </span>
                     {isToday && (
-                      <span className="block text-[10px] text-kiddy-cherry font-bold uppercase tracking-widest">
+                      <span className="block text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
                         Сегодня
                       </span>
                     )}
@@ -273,10 +273,10 @@ export const Schedule: React.FC = () => {
                           key={ev.id}
                           className={`flex items-start gap-4 rounded-xl px-4 py-3 transition-all duration-200 ${
                             live
-                              ? 'bg-emerald-500/[0.08] border border-emerald-500/25'
+                              ? 'bg-white/10 border border-white/20'
                               : ev.isPermanent
                                 ? 'bg-white/[0.025] border border-white/[0.05] hover:border-white/[0.1]'
-                                : 'bg-kiddy-cherry/[0.06] border border-kiddy-cherry/20 hover:border-kiddy-cherry/30'
+                                : 'bg-white/[0.05] border border-white/10 hover:border-white/20'
                           }`}
                           style={{
                             animation: `fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both`,
@@ -287,23 +287,23 @@ export const Schedule: React.FC = () => {
                             <span
                               className={`font-mono font-bold text-sm ${
                                 live
-                                  ? 'text-emerald-400'
+                                  ? 'text-white'
                                   : ev.isPermanent
                                     ? 'text-kiddy-textSecondary'
-                                    : 'text-kiddy-cherry'
+                                    : 'text-zinc-300'
                               }`}
                             >
                               {ev.time_start}
                             </span>
                             {ev.time_end && (
-                              <span className={`font-mono text-[11px] block ${live ? 'text-emerald-400/50' : 'text-kiddy-textMuted'}`}>
+                              <span className={`font-mono text-[11px] block ${live ? 'text-zinc-400' : 'text-kiddy-textMuted'}`}>
                                 {ev.time_end}
                               </span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0 overflow-hidden">
                             <div className="flex min-w-0 items-start gap-2">
-                              <span className={`min-w-0 flex-1 break-words text-sm font-semibold leading-snug line-clamp-2 ${live ? 'text-emerald-300' : 'text-white'}`}>
+                              <span className={`min-w-0 flex-1 break-words text-sm font-semibold leading-snug line-clamp-2 ${live ? 'text-white' : 'text-white'}`}>
                                 {ev.title}
                               </span>
                               {ev.isPermanent && !live && (

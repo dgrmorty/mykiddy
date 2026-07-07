@@ -269,7 +269,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         <div className="relative z-20 flex min-h-[22rem] flex-col justify-center px-5 py-8 sm:min-h-[24rem] sm:px-8 sm:py-10 md:h-full md:min-h-0 md:px-16 md:py-0">
             <div className="flex flex-col items-center gap-7 md:flex-row md:gap-8">
                 <div className="relative group/avatar">
-                    <div className="absolute inset-0 bg-kiddy-cherry blur-3xl opacity-20 animate-pulse" />
+                    <div className="absolute inset-0 bg-white blur-3xl opacity-10 animate-pulse" />
                     {/* Badge ring */}
                     <div className="relative w-44 h-44 md:w-48 md:h-48">
                       {equippedIds
@@ -307,7 +307,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                           />
                           {saving && (
                             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
-                              <Loader2 className="animate-spin text-kiddy-cherry" size={32} />
+                              <Loader2 className="animate-spin text-white" size={32} />
                             </div>
                           )}
                         </div>
@@ -333,7 +333,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       <button
                         type="button"
                         onClick={() => navigate('/settings', { state: { focusMedals: true } })}
-                        className="mt-2 flex items-center gap-1.5 mx-auto text-kiddy-cherry text-xs font-bold hover:underline transition-all"
+                        className="mt-2 flex items-center gap-1.5 mx-auto text-white text-xs font-bold hover:underline transition-all"
                       >
                         <Settings2 size={12} /> Настройки и медали
                       </button>
@@ -342,15 +342,15 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
                 <div className="flex-1 text-center md:text-left space-y-2 w-full md:w-auto">
                     <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
-                        <Crown className="text-kiddy-cherry" size={16} />
-                        <span className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.4em]">Верифицированный профиль</span>
+                        <Crown className="text-white" size={16} />
+                        <span className="text-white text-[10px] font-bold uppercase tracking-[0.4em]">Верифицированный профиль</span>
                     </div>
                     
                     {isEditing ? (
                         <input 
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="bg-black/40 border-b-2 border-kiddy-cherry text-4xl md:text-6xl font-display font-bold text-white outline-none w-full italic px-4 py-2 rounded-t-xl"
+                            className="bg-black/40 border-b-2 border-white text-4xl md:text-6xl font-display font-bold text-white outline-none w-full italic px-4 py-2 rounded-t-xl"
                             placeholder="Имя пользователя"
                             autoFocus
                         />
@@ -375,7 +375,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                               type="button"
                               onClick={handleSave}
                               disabled={saving}
-                              className="rounded-xl bg-kiddy-cherry p-3 text-white shadow-lg shadow-kiddy-cherry/20 transition-all hover:bg-kiddy-cherryHover"
+                              className="rounded-xl bg-white p-3 text-black shadow-premium transition-all hover:bg-zinc-200"
                               aria-label="Сохранить имя"
                             >
                               {saving ? <Loader2 size={20} className="animate-spin" /> : <Check size={22} strokeWidth={2.5} />}
@@ -402,7 +402,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
               className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
                 effectiveBundledAvatar === AVATAR_BOY_PATH
-                  ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
+                  ? 'border-white ring-2 ring-white/30'
                   : 'border-white/[0.1] hover:border-white/25'
               }`}
               aria-label="Персонаж мальчик"
@@ -421,7 +421,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
               className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
                 effectiveBundledAvatar === AVATAR_GIRL_PATH
-                  ? 'border-kiddy-cherry ring-2 ring-kiddy-cherry/30'
+                  ? 'border-white ring-2 ring-white/30'
                   : 'border-white/[0.1] hover:border-white/25'
               }`}
               aria-label="Персонаж девочка"
@@ -434,7 +434,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 decoding="async"
               />
             </button>
-            {avatarSaving && <Loader2 className="animate-spin text-kiddy-cherry" size={22} />}
+            {avatarSaving && <Loader2 className="animate-spin text-white" size={22} />}
           </div>
         </div>
       )}
@@ -452,7 +452,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 flex-1 items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]">
-                  <Sparkles className="text-kiddy-cherry" size={22} strokeWidth={2} />
+                  <Sparkles className="text-white" size={22} strokeWidth={2} />
                 </div>
                 <div className="min-w-0">
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-kiddy-textMuted">Витрина</p>
@@ -467,10 +467,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               <button
                 type="button"
                 onClick={() => setShowcaseModalOpen(true)}
-                className="group inline-flex shrink-0 items-center justify-center gap-2 self-stretch rounded-xl border border-kiddy-cherry/35 bg-kiddy-cherry/[0.12] px-5 py-3.5 text-sm font-bold text-white transition-all hover:border-kiddy-cherry/50 hover:bg-kiddy-cherry/20 active:scale-[0.99] sm:self-auto"
+                className="group inline-flex shrink-0 items-center justify-center gap-2 self-stretch rounded-xl border border-white/20 bg-white/10 px-5 py-3.5 text-sm font-bold text-white transition-all hover:bg-white hover:text-black active:scale-[0.99] sm:self-auto"
               >
                 Выложить проект
-                <ChevronRight size={18} className="text-kiddy-cherry transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
+                <ChevronRight size={18} className="text-white transition-transform group-hover:translate-x-0.5 group-hover:text-black" strokeWidth={2.5} />
               </button>
             </div>
           </Card>
@@ -479,7 +479,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
             <div className="flex items-center justify-between mb-8 px-2">
                 <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
-                    <Target size={16} className="text-kiddy-cherry" />
+                    <Target size={16} className="text-white" />
                     Матрица компетенций
                 </h3>
             </div>
@@ -488,7 +488,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
                         <PolarGrid stroke="#18181b" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 10, fontWeight: 700 }} />
-                        <Radar name="Уровень" dataKey="A" stroke="#be123c" fill="#be123c" fillOpacity={0.4} />
+                        <Radar name="Уровень" dataKey="A" stroke="#ffffff" fill="#ffffff" fillOpacity={0.4} />
                     </RadarChart>
                 </ResponsiveContainer>
             </div>
@@ -509,7 +509,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 </div>
                 <div className="h-1.5 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden">
                     <div 
-                        className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover rounded-full progress-glow transition-all duration-1000" 
+                        className="h-full bg-white rounded-full transition-all duration-1000" 
                         style={{ width: `${Math.min(100, xpLevelProgressPercent(currentUser.xp))}%` }} 
                     />
                 </div>
@@ -519,14 +519,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         <Card className="stagger-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-                    <Award className="text-kiddy-cherry" size={24} />
+                    <Award className="text-white" size={24} />
                 </div>
                 <h3 className="text-kiddy-textMuted font-bold text-[10px] uppercase tracking-[0.3em] mb-1">Рейтинг в академии</h3>
                 <div className="text-4xl font-display font-bold text-white italic">#{myRank ?? '—'}</div>
             </div>
             <button 
               onClick={() => setIsLeaderboardOpen(true)}
-              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-kiddy-cherry hover:text-white transition-colors group"
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white hover:text-zinc-300 transition-colors group"
             >
                 Таблица лидеров <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
@@ -538,10 +538,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
-              <Award size={16} className="text-kiddy-cherry" />
+              <Award size={16} className="text-white" />
               Достижения
             </h3>
-            <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-kiddy-cherry text-xs font-bold hover:underline transition-all">
+            <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-white text-xs font-bold hover:underline transition-all">
               Настроить медали →
             </button>
           </div>
@@ -564,7 +564,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                     <p className="text-kiddy-textMuted text-xs mt-0.5">{b.requirement}</p>
                     {!unlocked && (
                       <div className="mt-2 h-1 w-full bg-white/[0.06] rounded-full overflow-hidden">
-                        <div className="h-full bg-kiddy-cherry/60 rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
+                        <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
                       </div>
                     )}
                   </div>
@@ -585,7 +585,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       <section className="pt-10 border-t border-zinc-900">
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-kiddy-surfaceHighlight/50 border border-white/[0.08] rounded-2xl text-kiddy-textMuted hover:text-kiddy-cherry hover:border-kiddy-cherry/30 transition-all font-bold group"
+            className="flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/[0.08] rounded-2xl text-kiddy-textMuted hover:text-white hover:border-white/30 transition-all font-bold group"
           >
               <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
               Выход из системы
@@ -596,8 +596,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       <Modal isOpen={isLeaderboardOpen} onClose={() => setIsLeaderboardOpen(false)} maxWidth="max-w-3xl">
           <div className="p-10 flex flex-col h-full">
               <div className="flex items-center gap-4 mb-8">
-                  <div className="w-16 h-16 bg-kiddy-cherry/10 rounded-2xl flex items-center justify-center border border-kiddy-cherry/20">
-                      <Trophy className="text-kiddy-cherry" size={32} />
+                  <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+                      <Trophy className="text-white" size={32} />
                   </div>
                   <div>
                       <h2 className="text-3xl font-display font-bold text-white mb-1">Таблица лидеров</h2>
@@ -607,7 +607,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               
               {loadingLeaderboard ? (
                   <div className="flex-1 flex items-center justify-center">
-                      <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
+                      <Loader2 className="animate-spin text-white" size={40} />
                   </div>
               ) : (
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
@@ -634,8 +634,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                   }
                                   className={`p-4 rounded-xl border transition-all text-left w-full ${
                                       isCurrentUser
-                                          ? 'bg-kiddy-cherry/10 border-kiddy-cherry/50 shadow-lg shadow-kiddy-cherry/10'
-                                          : 'bg-kiddy-surfaceDark/80 border-white/[0.08] hover:border-zinc-700 cursor-pointer'
+                                          ? 'bg-white/10 border-white/50 shadow-premium'
+                                          : 'bg-[#0a0a0a] border-white/[0.08] hover:border-zinc-700 cursor-pointer'
                                   }`}
                               >
                                   <div className="flex items-center gap-4">
@@ -643,7 +643,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                           {rank <= 3 ? (
                                               <Medal className={medalColor} size={24} fill="currentColor" />
                                           ) : (
-                                              <span className={`text-sm font-display font-bold ${isCurrentUser ? 'text-kiddy-cherry' : 'text-kiddy-textMuted'}`}>
+                                              <span className={`text-sm font-display font-bold ${isCurrentUser ? 'text-white' : 'text-kiddy-textMuted'}`}>
                                                   #{rank}
                                               </span>
                                           )}
@@ -662,11 +662,11 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                       
                                       <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2">
-                                              <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-kiddy-cherry' : 'text-white'}`}>
+                                              <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-white' : 'text-zinc-300'}`}>
                                                   {user.name}
                                               </h4>
                                               {isCurrentUser && (
-                                                  <span className="px-2 py-0.5 bg-kiddy-cherry/20 text-kiddy-cherry text-[9px] font-bold rounded uppercase">
+                                                  <span className="px-2 py-0.5 bg-white/20 text-white text-[9px] font-bold rounded uppercase">
                                                       Вы
                                                   </span>
                                               )}
@@ -679,7 +679,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                       </div>
                                       
                                       <div className="text-right">
-                                          <div className={`text-2xl font-display font-bold ${isCurrentUser ? 'text-kiddy-cherry' : 'text-kiddy-textSecondary'}`}>
+                                          <div className={`text-2xl font-display font-bold ${isCurrentUser ? 'text-white' : 'text-kiddy-textSecondary'}`}>
                                               {user.xp.toLocaleString()}
                                           </div>
                                           <div className="text-[9px] text-kiddy-textMuted uppercase tracking-widest">Очков</div>
@@ -696,10 +696,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                             <span className="text-[10px] text-kiddy-textMuted font-bold uppercase tracking-widest">Ваша позиция</span>
                             <div className="flex-1 h-px bg-white/[0.06]" />
                           </div>
-                          <div className="p-4 rounded-xl border bg-kiddy-cherry/10 border-kiddy-cherry/50 shadow-lg shadow-kiddy-cherry/10">
+                          <div className="p-4 rounded-xl border bg-white/10 border-white/50 shadow-premium">
                             <div className="flex items-center gap-4">
                               <div className="flex items-center justify-center w-12">
-                                <span className="text-sm font-display font-bold text-kiddy-cherry">#{myRank}</span>
+                                <span className="text-sm font-display font-bold text-white">#{myRank}</span>
                               </div>
                               {currentUser.role === Role.STUDENT ? (
                                 <UserAvatar user={currentUser} size="md" />
@@ -708,13 +708,13 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                   src={currentUser.avatar}
                                   name={currentUser.name}
                                   alt=""
-                                  className="h-12 w-12 rounded-full border-2 border-kiddy-cherry/30 object-cover"
+                                  className="h-12 w-12 rounded-full border-2 border-white/30 object-cover"
                                 />
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <h4 className="font-bold text-sm truncate text-kiddy-cherry">{currentUser.name}</h4>
-                                  <span className="px-2 py-0.5 bg-kiddy-cherry/20 text-kiddy-cherry text-[9px] font-bold rounded uppercase">Вы</span>
+                                  <h4 className="font-bold text-sm truncate text-white">{currentUser.name}</h4>
+                                  <span className="px-2 py-0.5 bg-white/20 text-white text-[9px] font-bold rounded uppercase">Вы</span>
                                 </div>
                                 <div className="flex items-center gap-4 mt-1">
                                   <span className="text-kiddy-textMuted text-xs">Уровень {currentUser.level}</span>
@@ -723,7 +723,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="text-2xl font-display font-bold text-kiddy-cherry">{currentUser.xp.toLocaleString()}</div>
+                                <div className="text-2xl font-display font-bold text-white">{currentUser.xp.toLocaleString()}</div>
                                 <div className="text-[9px] text-kiddy-textMuted uppercase tracking-widest">Очков</div>
                               </div>
                             </div>
@@ -745,8 +745,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       {/* Logout Confirmation Modal */}
       <Modal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} maxWidth="max-w-md">
           <div className="p-10 flex flex-col items-center text-center">
-              <div className="w-20 h-20 bg-kiddy-cherryDim rounded-full flex items-center justify-center mb-6 border border-rose-500/20">
-                  <AlertTriangle className="text-kiddy-cherry" size={40} />
+              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/20">
+                  <AlertTriangle className="text-white" size={40} />
               </div>
               <h2 className="text-2xl font-display font-bold text-white mb-4">Завершить сеанс?</h2>
               <p className="text-kiddy-textMuted text-sm mb-10 leading-relaxed">
@@ -761,7 +761,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                   </button>
                   <button 
                     onClick={handleLogout}
-                    className="py-4 bg-kiddy-cherry text-white font-bold rounded-xl hover:bg-kiddy-cherryHover transition-all shadow-lg shadow-kiddy-cherry/20"
+                    className="py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-premium"
                   >
                       Выйти
                   </button>

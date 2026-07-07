@@ -578,7 +578,7 @@ export const CourseDetail: React.FC = () => {
         <div className="flex flex-col h-full animate-slide-up relative" ref={playerRef}>
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-6">
-                    <button onClick={() => setActiveLesson(null)} className="p-3 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all"><ArrowLeft size={20} /></button>
+                    <button onClick={() => setActiveLesson(null)} className="p-3 bg-white/5 border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white hover:bg-white/10 transition-all"><ArrowLeft size={20} /></button>
                     <div>
                       <nav className="text-kiddy-textMuted text-xs font-medium mb-1 flex items-center gap-1.5 flex-wrap">
                         <span>{activeCourse.title}</span>
@@ -589,18 +589,18 @@ export const CourseDetail: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    {!activeLesson.isCompleted ? <button onClick={handleCompleteLesson} disabled={lessonCompleting} className="px-6 py-3 bg-white text-black font-bold rounded-2xl hover:bg-kiddy-cherry hover:text-white transition-all flex items-center gap-2">{lessonCompleting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}<span className="hidden md:inline">Завершить урок</span></button> : <div className="px-6 py-3 bg-green-500/10 text-green-500 border border-green-500/20 font-bold rounded-2xl flex items-center gap-2"><CheckCircle size={18} /><span className="hidden md:inline">Пройдено</span></div>}
-                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
+                    {!activeLesson.isCompleted ? <button onClick={handleCompleteLesson} disabled={lessonCompleting} className="px-6 py-3 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all flex items-center gap-2">{lessonCompleting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}<span className="hidden md:inline">Завершить урок</span></button> : <div className="px-6 py-3 bg-white/10 text-white border border-white/20 font-bold rounded-2xl flex items-center gap-2"><CheckCircle size={18} /><span className="hidden md:inline">Пройдено</span></div>}
+                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} className="p-3 bg-white/5 border border-white/[0.08] rounded-2xl text-kiddy-textSecondary hover:text-white hover:bg-white/10 transition-all hidden md:block">{isTheaterMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
                 </div>
             </div>
             <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
                     <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-white/[0.08] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
                     {!isTheaterMode && (
                         <div className="space-y-6">
-                            <Card className="bg-kiddy-cherry/5 border-kiddy-cherry/20 p-6 md:p-8 flex flex-col gap-6 h-fit">
+                            <Card className="bg-[#0a0a0a] border-white/[0.08] p-6 md:p-8 flex flex-col gap-6 h-fit shadow-premium">
                                 <div>
-                                    <div className="w-12 h-12 bg-kiddy-cherry/10 rounded-2xl flex items-center justify-center mb-6 border border-kiddy-cherry/20">
-                                        <Zap className="text-kiddy-cherry" size={24} />
+                                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
+                                        <Zap className="text-white" size={24} />
                                     </div>
                                     <h3 className="text-white font-bold text-lg mb-3">Практика</h3>
                                     {activeLesson.homeworkTask ? (
@@ -617,7 +617,7 @@ export const CourseDetail: React.FC = () => {
                                 {activeLesson.homeworkTask && (
                                     <>
                                         {isHomeworkCompleted ? (
-                                            <div className="w-full py-4 bg-green-500/10 border border-green-500/30 text-green-500 font-bold rounded-2xl flex items-center justify-center gap-2">
+                                            <div className="w-full py-4 bg-white/10 border border-white/20 text-white font-bold rounded-2xl flex items-center justify-center gap-2">
                                                 <CheckCircle size={18} /> Задание выполнено
                                             </div>
                                         ) : (
@@ -668,7 +668,7 @@ export const CourseDetail: React.FC = () => {
                                                         type="button"
                                                         onClick={() => homeworkFileInputRef.current?.click()}
                                                         disabled={isChecking || homeworkStatus === 'pending'}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-kiddy-surfaceHighlight border border-white/[0.08] text-xs font-bold text-kiddy-textSecondary hover:text-white transition-colors disabled:opacity-50"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/[0.08] text-xs font-bold text-kiddy-textSecondary hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
                                                     >
                                                         <ImagePlus size={16} />
                                                         Фото или видео
@@ -734,7 +734,7 @@ export const CourseDetail: React.FC = () => {
                                                         homeworkStatus === 'pending' ||
                                                         !homeworkCanSubmit
                                                     }
-                                                    className="w-full py-3.5 bg-kiddy-cherry text-white font-bold rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-kiddy-cherryHover transition-all"
+                                                    className="w-full py-3.5 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-200 transition-all"
                                                 >
                                                     {isChecking ? (
                                                         <Loader2 className="animate-spin" size={20} />
@@ -769,7 +769,7 @@ export const CourseDetail: React.FC = () => {
       <header className="space-y-6">
         <div>
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">
-            Библиотека <span className="text-kiddy-cherry">Курсов</span>
+            Библиотека <span className="text-white">Курсов</span>
           </h1>
           <p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p>
         </div>
@@ -787,7 +787,7 @@ export const CourseDetail: React.FC = () => {
               onClick={() => setLibraryYear(tier)}
               className={`rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all md:px-8 md:py-3 md:text-sm ${
                 libraryYear === tier
-                  ? 'bg-kiddy-cherry text-white shadow-lg shadow-kiddy-cherry/25'
+                  ? 'bg-white text-black shadow-premium'
                   : 'text-kiddy-textMuted hover:text-white'
               }`}
             >
@@ -807,7 +807,7 @@ export const CourseDetail: React.FC = () => {
             >
               <Search
                 className={`h-[22px] w-[22px] shrink-0 text-kiddy-textMuted transition-colors duration-200 [stroke-linecap:round] [stroke-linejoin:round] ${
-                  librarySearchFocused || librarySearch.trim() !== '' ? 'text-kiddy-cherry' : ''
+                  librarySearchFocused || librarySearch.trim() !== '' ? 'text-white' : ''
                 }`}
                 strokeWidth={2}
                 absoluteStrokeWidth
@@ -821,7 +821,7 @@ export const CourseDetail: React.FC = () => {
             onFocus={() => setLibrarySearchFocused(true)}
             onBlur={() => setLibrarySearchFocused(false)}
             placeholder="Поиск по названию, описанию или направлению…"
-            className="w-full rounded-2xl border border-white/[0.08] bg-black/40 py-3.5 pl-[3.25rem] pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-colors focus:border-kiddy-cherry/40 selection:bg-kiddy-cherry/30"
+            className="w-full rounded-2xl border border-white/[0.08] bg-black/40 py-3.5 pl-[3.25rem] pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-colors focus:border-white/30 selection:bg-white/30"
             aria-label="Поиск курсов"
           />
         </div>
@@ -847,7 +847,7 @@ export const CourseDetail: React.FC = () => {
             <button
               type="button"
               onClick={() => setLibrarySearch('')}
-              className="mt-6 rounded-xl border border-white/[0.1] bg-white/[0.04] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:border-kiddy-cherry/35 hover:bg-kiddy-cherry/10"
+              className="mt-6 rounded-xl border border-white/[0.1] bg-white/[0.04] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:border-white/30 hover:bg-white/10"
             >
               Сбросить поиск
             </button>
@@ -855,7 +855,7 @@ export const CourseDetail: React.FC = () => {
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCourses.map((course, i) => (
-              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.06] hover:border-kiddy-cherry/30 transition-all overflow-hidden rounded-2xl flex flex-col h-full hover-lift" onClick={() => setActiveCourse(course)} style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.1 + i * 0.1}s` }}>
+              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.06] hover:border-white/20 transition-all overflow-hidden rounded-2xl flex flex-col h-full hover-lift" onClick={() => setActiveCourse(course)} style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.1 + i * 0.1}s` }}>
                 <div className="aspect-[16/10] relative overflow-hidden">
                   <img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-800 ease-entrance group-hover:scale-110 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
@@ -864,8 +864,8 @@ export const CourseDetail: React.FC = () => {
                   </span>
                 </div>
                 <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
-                    <div><h3 className="text-white font-bold text-xl group-hover:text-kiddy-cherry transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
-                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1.5 w-full bg-kiddy-surfaceHighlight rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
+                    <div><h3 className="text-white font-bold text-xl group-hover:text-zinc-300 transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
+                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
                 </div>
               </Card>
             ))}
@@ -878,18 +878,18 @@ export const CourseDetail: React.FC = () => {
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-5xl"
           maxPanelHeight="calc(100dvh - 0.5rem)"
-          panelClassName="ring-1 ring-kiddy-cherry/20 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_48px_120px_-28px_rgba(0,0,0,0.92),0_0_120px_-48px_rgba(230,0,43,0.14)]"
+          panelClassName="ring-1 ring-white/10 shadow-premium"
         >
-            <div className="flex flex-col bg-kiddy-surfaceElevated">
+            <div className="flex flex-col bg-[#0a0a0a]">
               <div className="relative h-[13.5rem] shrink-0 overflow-hidden sm:h-60 md:h-72 lg:h-80">
-                <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-b from-kiddy-cherry/15 via-transparent to-transparent" />
+                <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-b from-black/50 via-transparent to-transparent" />
                 <img
                   src={courseForModal.coverImage}
                   className="h-full w-full scale-105 object-cover opacity-[0.55]"
                   alt=""
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
-                <div className="absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-kiddy-cherry/60 to-transparent" />
+                <div className="absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                 <button
                   type="button"
                   onClick={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
@@ -901,10 +901,10 @@ export const CourseDetail: React.FC = () => {
                 <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-6 sm:p-7 sm:pb-7 md:p-9 md:pb-8">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1 backdrop-blur-md">
-                      <MonitorPlay size={12} className="text-kiddy-cherry" aria-hidden />
+                      <MonitorPlay size={12} className="text-white" aria-hidden />
                       <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-300">Курс</span>
                     </div>
-                    <span className="rounded-full border border-kiddy-cherry/30 bg-kiddy-cherry/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-kiddy-cherry">
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                       {COURSE_YEAR_LABELS[courseForModal.yearTier]}
                     </span>
                   </div>
@@ -914,13 +914,13 @@ export const CourseDetail: React.FC = () => {
                   <p className="mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400 line-clamp-2 sm:line-clamp-3 md:text-base md:leading-relaxed lg:line-clamp-none">
                     {courseForModal.description}
                   </p>
-                  <div className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-kiddy-cherry/25 bg-gradient-to-br from-kiddy-cherry/15 to-transparent px-4 py-2.5">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-kiddy-cherry">Прогресс</span>
+                  <div className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Прогресс</span>
                     <span className="font-display text-xl font-bold tabular-nums text-white md:text-2xl">{courseForModal.progress}%</span>
                   </div>
                 </div>
               </div>
-              <div className="space-y-10 border-t border-white/[0.06] bg-gradient-to-b from-black/25 to-kiddy-surfaceElevated px-5 py-7 pb-12 sm:px-7 md:space-y-12 md:px-10 md:py-9 md:pb-14">
+              <div className="space-y-10 border-t border-white/[0.06] bg-[#0a0a0a] px-5 py-7 pb-12 sm:px-7 md:space-y-12 md:px-10 md:py-9 md:pb-14">
                 {courseForModal.modules.map((module) => (
                   <div key={module.id} className="space-y-5 md:space-y-6">
                     <div className="flex items-center gap-3 min-w-0 md:gap-4">
@@ -947,14 +947,14 @@ export const CourseDetail: React.FC = () => {
                           className={`flex min-w-0 items-start gap-3 rounded-2xl border p-5 transition-all duration-300 md:gap-4 md:rounded-[1.75rem] md:p-6 ${
                             lesson.locked
                               ? 'cursor-not-allowed border-white/[0.06] bg-white/[0.02] opacity-40'
-                              : 'group cursor-pointer border-white/[0.07] bg-gradient-to-br from-zinc-950/90 to-black shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] hover:border-kiddy-cherry/40 hover:shadow-[0_20px_50px_-24px_rgba(230,0,43,0.25)]'
+                              : 'group cursor-pointer border-white/[0.07] bg-[#000000] shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] hover:border-white/30 hover:shadow-premium'
                           }`}
                         >
                           <div
                             className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center font-display font-bold text-sm ${
                               lesson.isCompleted
-                                ? 'bg-green-500/10 text-green-500'
-                                : 'bg-kiddy-surfaceHighlight text-kiddy-textMuted group-hover:bg-kiddy-cherry group-hover:text-white transition-colors duration-300'
+                                ? 'bg-white text-black'
+                                : 'bg-white/5 text-kiddy-textMuted group-hover:bg-white group-hover:text-black transition-colors duration-300'
                             }`}
                           >
                             {lesson.isCompleted ? <CheckCircle size={18} /> : idx + 1}
@@ -976,7 +976,7 @@ export const CourseDetail: React.FC = () => {
       
       {isTransitioning && (
         <div
-          className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-kiddy-base/95 backdrop-blur-2xl"
+          className="fixed inset-0 z-[600] flex flex-col items-center justify-center bg-[#000000] backdrop-blur-2xl"
           style={{ animation: 'lessonTransition 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
           aria-busy="true"
         >

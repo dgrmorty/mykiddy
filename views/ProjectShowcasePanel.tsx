@@ -157,7 +157,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
     <div className={embed ? 'space-y-4' : 'space-y-8 pb-16'}>
       {!embed && (
         <header className="space-y-3 text-center sm:text-left">
-          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Витрина</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zinc-400">Витрина</p>
           <h2 className="font-display text-2xl font-bold italic tracking-tight text-white md:text-3xl">
             Лента проектов
           </h2>
@@ -169,11 +169,11 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
+          <Loader2 className="animate-spin text-white" size={40} />
         </div>
       ) : posts.length === 0 ? (
         <Card className="border border-white/[0.06] bg-kiddy-surfaceElevated/40 p-10 text-center text-sm text-kiddy-textMuted">
-          <Sparkles className="mx-auto mb-4 text-kiddy-cherry/50" size={36} />
+          <Sparkles className="mx-auto mb-4 text-white/50" size={36} />
           <p>Пока нет опубликованных работ. Загляни позже или стань первым — через профиль.</p>
         </Card>
       ) : (
@@ -219,7 +219,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                             <button
                               type="button"
                               onClick={() => navigate(`/users/${p.author_id}`)}
-                              className="block truncate text-left font-bold text-[15px] text-white hover:text-kiddy-cherry"
+                              className="block truncate text-left font-bold text-[15px] text-white hover:text-zinc-300"
                             >
                               {name}
                             </button>
@@ -286,7 +286,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
                         onClick={() => p.id && void handleLike(p.id, p.author_id)}
                         disabled={!p.id || p.author_id === user.id}
                         className={`inline-flex items-center gap-2.5 rounded-xl px-1 py-1.5 text-sm font-bold transition-colors ${
-                          liked ? 'text-kiddy-cherry' : 'text-kiddy-textMuted hover:text-white'
+                          liked ? 'text-white' : 'text-kiddy-textMuted hover:text-white'
                         } disabled:cursor-not-allowed disabled:opacity-40`}
                         aria-label={liked ? 'Снять лайк' : 'Лайк'}
                       >
@@ -328,7 +328,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
               <button
                 type="button"
                 onClick={() => navigate('/profile#showcase-submit')}
-                className="font-bold text-kiddy-cherry underline decoration-kiddy-cherry/40 underline-offset-2"
+                className="font-bold text-white underline decoration-white/40 underline-offset-2"
               >
                 профиль
               </button>

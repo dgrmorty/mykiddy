@@ -143,7 +143,7 @@ export const Community: React.FC = () => {
       type="button"
       onClick={() => setTab(key)}
       className={`relative rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-all ${
-        tab === key ? 'bg-kiddy-cherry text-white shadow-lg shadow-kiddy-cherry/20' : 'text-kiddy-textMuted hover:text-white bg-white/[0.04]'
+        tab === key ? 'bg-white text-black shadow-premium' : 'text-kiddy-textMuted hover:text-white bg-white/[0.04]'
       }`}
     >
       {label}
@@ -190,14 +190,14 @@ export const Community: React.FC = () => {
   return (
     <div className="space-y-8 pb-20">
       <header className="stagger-1 space-y-2">
-        <p className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.35em]">Ученики</p>
+        <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.35em]">Ученики</p>
         <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Ученики школы</h1>
         <p className="max-w-xl text-sm text-kiddy-textMuted">
           Профили одноклассников, друзья и заявки. Лента проектов — на{' '}
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="font-bold text-kiddy-cherry underline decoration-kiddy-cherry/40 underline-offset-2 hover:text-white"
+            className="font-bold text-white underline decoration-white/40 underline-offset-2 hover:text-zinc-300"
           >
             главной
           </button>
@@ -226,7 +226,7 @@ export const Community: React.FC = () => {
 
           {loadingStudents ? (
             <div className="flex justify-center py-20">
-              <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
+              <Loader2 className="animate-spin text-white" size={40} />
             </div>
           ) : filteredStudents.length === 0 ? (
             <Card className="p-10 text-center text-sm text-kiddy-textMuted">Никого не нашли</Card>
@@ -282,12 +282,12 @@ export const Community: React.FC = () => {
                             e.stopPropagation();
                             void handleQuickAdd(s.id);
                           }}
-                          className={`group ${actionClass} border-kiddy-cherry/40 bg-kiddy-cherry/[0.14] text-white hover:border-kiddy-cherry hover:bg-kiddy-cherry hover:shadow-[0_0_24px_-4px_rgba(230,0,43,0.45)] disabled:pointer-events-none disabled:opacity-45`}
+                          className={`group ${actionClass} border-white/20 bg-white/10 text-white hover:border-white hover:bg-white hover:text-black disabled:pointer-events-none disabled:opacity-45`}
                         >
                           {busyId === s.id ? (
-                            <Loader2 size={16} className="animate-spin text-kiddy-cherry group-hover:text-white" />
+                            <Loader2 size={16} className="animate-spin text-white group-hover:text-black" />
                           ) : (
-                            <UserPlus size={16} className="text-kiddy-cherry transition-colors group-hover:text-white" />
+                            <UserPlus size={16} className="text-white transition-colors group-hover:text-black" />
                           )}
                           В друзья
                         </button>
@@ -331,7 +331,7 @@ export const Community: React.FC = () => {
             <>
               <div>
                 <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white">
-                  <Inbox size={16} className="text-kiddy-cherry" /> К вам
+                  <Inbox size={16} className="text-white" /> К вам
                 </h2>
                 {incoming.length === 0 ? (
                   <p className="py-4 text-sm text-kiddy-textMuted">Нет входящих заявок</p>
@@ -400,7 +400,7 @@ export const Community: React.FC = () => {
 
               <div>
                 <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white">
-                  <Users size={16} className="text-kiddy-cherry" /> От вас
+                  <Users size={16} className="text-white" /> От вас
                 </h2>
                 {outgoing.length === 0 ? (
                   <p className="py-4 text-sm text-kiddy-textMuted">Нет исходящих заявок</p>
@@ -440,7 +440,7 @@ export const Community: React.FC = () => {
                               if (error) showToast('Ошибка', 'error');
                               else showToast('Заявка отменена', 'success');
                             }}
-                            className="shrink-0 text-xs font-bold uppercase tracking-widest text-kiddy-textMuted hover:text-kiddy-cherry disabled:opacity-50"
+                            className="shrink-0 text-xs font-bold uppercase tracking-widest text-kiddy-textMuted hover:text-white disabled:opacity-50"
                           >
                             Отменить
                           </button>
