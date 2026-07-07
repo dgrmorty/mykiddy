@@ -10,6 +10,71 @@ import { Role } from '../types';
 import { useFriendships, otherPartyId, type FriendshipRow } from '../hooks/useFriendships';
 import { Loader2, Search, Users, Inbox, UserCheck, ChevronRight, UserPlus, X, Clock } from 'lucide-react';
 import { presenceFromLastSeen } from '../utils/presence';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+gsap.registerPlugin(useGSAP);
+
+const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onClick, busyId, index }: any) => {
+  const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!ref.current) return;
+    gsap.to(ref.current, {
+      height: expanded ? 120 : 64,
+      borderRadius: expanded ? 28 : 32,
+      backgroundColor: expanded ? '#111111' : '#000000',
+      duration: 0.6,
+      ease: 'elastic.out(1, 0.75)'
+    });
+    gsap.to(ref.current.querySelector('.st-details'), {
+      opacity: expanded ? 1 : 0,
+      y: expanded ? 0 : -10,
+      duration: expanded ? 0.3 : 0.2,
+      display: expanded ? 'flex' : 'none'
+    });
+  }, [expanded]);
+
+  const lvl = levelFromXp(student.xp ?? 0);
+  const presence = presenceFromLastSeen(student.last_seen_at);
+
+  return (
+    <div
+      ref={ref}
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+      onClick={onClick}
+      className="relative overflow-hidden cursor-pointer border border-white/10 shadow-island bg-black"
+      style={{ height: 64, borderRadius: 32, animation: `fade-in-up 0.5s ease both`, animationDelay: `${index * 0.04}s` }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-[64px] flex items-center px-2 gap-3">
+        <UserAvatar user={{ id: student.id, name: student.name || 'Ученик', avatar: student.avatar || '' }} size="md" presence={presence} />
+        <span className="font-bold text-white text-sm truncate">{student.name || 'Ученик'}</span>
+      </div>
+      <div className="st-details hidden opacity-0 absolute bottom-0 left-0 right-0 h-[56px] px-5 pb-4 flex items-end justify-between">
+        <div className="flex flex-col">
+          <span className="text-zinc-400 text-xs font-bold">Ур. {lvl}</span>
+          <span className="text-zinc-500 text-[10px] uppercase tracking-widest">{(student.xp ?? 0).toLocaleString()} XP</span>
+        </div>
+        {canFriend && !isFriend && !hasOutgoing && (
+          <button
+            disabled={busyId === student.id}
+            onClick={(e) => { e.stopPropagation(); onAdd(student.id); }}
+            className="bg-white text-black px-4 py-2 rounded-full text-xs font-bold hover:bg-zinc-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {busyId === student.id ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />} В друзья
+          </button>
+        )}
+        {canFriend && hasOutgoing && (
+          <span className="text-amber-400/90 text-xs font-bold flex items-center gap-1.5"><Clock size={14} /> Ждём</span>
+        )}
+        {isFriend && (
+          <span className="text-emerald-400/90 text-xs font-bold flex items-center gap-1.5"><UserCheck size={14} /> Друзья</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface StudentRow {
   id: string;
@@ -233,87 +298,20 @@ export const Community: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredStudents.map((s, i) => {
-                const lvl = levelFromXp(s.xp ?? 0);
-                const hasOutgoing =
-                  canFriend && friendRows.some((r) => r.requester_id === myId && r.addressee_id === s.id && r.status === 'pending');
-                const isFriend = friendRows.some(
-                  (r) => r.status === 'accepted' && ((r.requester_id === myId && r.addressee_id === s.id) || (r.addressee_id === myId && r.requester_id === s.id)),
-                );
-                const presence = presenceFromLastSeen(s.last_seen_at);
-                const actionClass =
-                  'inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-300 whitespace-nowrap';
-
+                const hasOutgoing = canFriend && friendRows.some((r) => r.requester_id === myId && r.addressee_id === s.id && r.status === 'pending');
+                const isFriend = friendRows.some((r) => r.status === 'accepted' && ((r.requester_id === myId && r.addressee_id === s.id) || (r.addressee_id === myId && r.requester_id === s.id)));
                 return (
-                  <Card
+                  <StudentIsland
                     key={s.id}
-                    hoverEffect
-                    className="flex flex-col gap-3 p-4 sm:gap-3.5 sm:p-5"
-                    style={{ animation: `fade-in-up 0.5s ease both`, animationDelay: `${0.05 + i * 0.04}s` }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/users/${s.id}`)}
-                      className="flex w-full min-w-0 items-center gap-3 text-left sm:gap-4"
-                    >
-                      <UserAvatar
-                        user={{
-                          id: s.id,
-                          name: s.name || 'Ученик',
-                          avatar: s.avatar || '',
-                        }}
-                        size="lg"
-                        presence={presence}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="break-words font-bold leading-snug text-white text-balance [overflow-wrap:anywhere]">
-                          {s.name || 'Ученик'}
-                        </p>
-                        <p className="mt-0.5 text-xs text-kiddy-textMuted">
-                          Ур. {lvl} · {(s.xp ?? 0).toLocaleString()} XP
-                        </p>
-                      </div>
-                    </button>
-                    {canFriend && !isFriend && !hasOutgoing && (
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          disabled={busyId === s.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleQuickAdd(s.id);
-                          }}
-                          className={`group ${actionClass} border-white/20 bg-white/10 text-white hover:border-white hover:bg-white hover:text-black disabled:pointer-events-none disabled:opacity-45`}
-                        >
-                          {busyId === s.id ? (
-                            <Loader2 size={16} className="animate-spin text-white group-hover:text-black" />
-                          ) : (
-                            <UserPlus size={16} className="text-white transition-colors group-hover:text-black" />
-                          )}
-                          В друзья
-                        </button>
-                      </div>
-                    )}
-                    {canFriend && hasOutgoing && (
-                      <div className="flex justify-end">
-                        <span
-                          className={`${actionClass} cursor-default border-amber-500/20 bg-amber-500/[0.08] text-amber-100/95`}
-                        >
-                          <Clock size={15} className="shrink-0 opacity-90" />
-                          Ждём ответ
-                        </span>
-                      </div>
-                    )}
-                    {isFriend && (
-                      <div className="flex justify-end">
-                        <span
-                          className={`${actionClass} cursor-default border-emerald-500/25 bg-emerald-500/[0.1] text-emerald-100/95`}
-                        >
-                          <UserCheck size={15} className="shrink-0 opacity-90" />
-                          Друзья
-                        </span>
-                      </div>
-                    )}
-                  </Card>
+                    student={s}
+                    isFriend={isFriend}
+                    hasOutgoing={hasOutgoing}
+                    canFriend={canFriend}
+                    onAdd={handleQuickAdd}
+                    onClick={() => navigate(`/users/${s.id}`)}
+                    busyId={busyId}
+                    index={i}
+                  />
                 );
               })}
             </div>

@@ -113,6 +113,58 @@ function readOneFileAsAttachment(file: File): Promise<{ mime: string; base64: st
   });
 }
 
+const CourseIsland = ({ course, onClick, index }: any) => {
+  const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!ref.current) return;
+    gsap.to(ref.current.querySelector('.course-pill'), {
+      height: expanded ? '100%' : 56,
+      borderRadius: expanded ? 24 : 28,
+      backgroundColor: expanded ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.5)',
+      backdropFilter: expanded ? 'blur(16px)' : 'blur(8px)',
+      padding: expanded ? 24 : 8,
+      duration: 0.6,
+      ease: 'elastic.out(1, 0.75)'
+    });
+    gsap.to(ref.current.querySelector('.course-details'), {
+      opacity: expanded ? 1 : 0,
+      y: expanded ? 0 : 10,
+      duration: expanded ? 0.3 : 0.2,
+      display: expanded ? 'flex' : 'none'
+    });
+  }, [expanded]);
+
+  return (
+    <div 
+      ref={ref}
+      className="relative aspect-[16/10] rounded-[2rem] overflow-hidden cursor-pointer group shadow-island border border-white/10"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+      onClick={onClick}
+      style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${index * 0.1}s` }}
+    >
+      <img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" />
+      
+      <div className="absolute inset-x-3 bottom-3 flex items-end">
+        <div className="course-pill w-full bg-black/50 backdrop-blur-md border border-white/10 overflow-hidden flex flex-col justify-end" style={{ height: 56, borderRadius: 28, padding: 8 }}>
+          <div className="flex items-center justify-between px-3 shrink-0">
+            <span className="text-white font-bold truncate text-sm">{course.title}</span>
+            <span className="text-black font-bold text-[10px] bg-white px-2.5 py-1 rounded-full">{course.progress}%</span>
+          </div>
+          <div className="course-details hidden opacity-0 flex-col gap-4 mt-4 min-h-0">
+            <p className="text-zinc-300 text-xs leading-relaxed line-clamp-3">{course.description}</p>
+            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden shrink-0 mt-auto">
+              <div className="h-full bg-white rounded-full" style={{ width: `${course.progress}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const CourseDetail: React.FC = () => {
   const { user } = useAuth();
   const { activeCourse, setActiveCourse, activeLesson, setActiveLesson } = useContentContext();
@@ -855,19 +907,7 @@ export const CourseDetail: React.FC = () => {
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCourses.map((course, i) => (
-              <Card key={course.id} noPadding className="group cursor-pointer bg-black border-white/[0.06] hover:border-white/20 transition-all overflow-hidden rounded-2xl flex flex-col h-full hover-lift" onClick={() => setActiveCourse(course)} style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${0.1 + i * 0.1}s` }}>
-                <div className="aspect-[16/10] relative overflow-hidden">
-                  <img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-all duration-800 ease-entrance group-hover:scale-110 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-                  <span className="absolute left-3 top-3 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-sm">
-                    {COURSE_YEAR_LABELS[course.yearTier]}
-                  </span>
-                </div>
-                <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
-                    <div><h3 className="text-white font-bold text-xl group-hover:text-zinc-300 transition-colors">{course.title}</h3><p className="text-kiddy-textMuted text-xs line-clamp-2 mt-2 leading-relaxed">{course.description}</p></div>
-                    <div className="space-y-4 pt-4"><div className="flex justify-between items-end"><span className="text-[10px] font-bold text-kiddy-textMuted uppercase tracking-widest">Прогресс</span><span className="text-xs font-bold text-white">{course.progress}%</span></div><div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} /></div></div>
-                </div>
-              </Card>
+              <CourseIsland key={course.id} course={course} index={i} onClick={() => setActiveCourse(course)} />
             ))}
           </div>
       )}

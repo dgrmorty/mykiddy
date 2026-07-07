@@ -41,6 +41,82 @@ import {
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
 import { Heart, Loader2, Sparkles, Trash2 } from 'lucide-react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+gsap.registerPlugin(useGSAP);
+
+const PostIsland = ({ p, au, name, body, media, liked, cnt, lvl, when, handleLike, handleDeleteAsAdmin, user, isAdmin, navigate, index }: any) => {
+  const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!ref.current) return;
+    gsap.to(ref.current.querySelector('.action-bar'), {
+      height: expanded ? 48 : 0,
+      opacity: expanded ? 1 : 0,
+      marginTop: expanded ? 12 : 0,
+      duration: 0.5,
+      ease: 'elastic.out(1, 0.8)'
+    });
+  }, [expanded]);
+
+  return (
+    <article 
+      ref={ref}
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+      className="relative overflow-hidden border border-white/10 shadow-island bg-black rounded-[2.5rem] p-4 sm:p-5 transition-colors hover:border-white/20"
+      style={{ animation: `fade-in-up 0.5s ease both`, animationDelay: `${Math.min(index, 14) * 0.035}s` }}
+    >
+      <div className="flex items-start gap-3 mb-4">
+        <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="shrink-0">
+          <UserAvatar user={{ id: p.author_id, name, avatar: au?.avatar || '' }} size="md" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="block truncate text-left font-bold text-[15px] text-white hover:text-zinc-300">{name}</button>
+          <p className="text-xs text-zinc-500 font-semibold">Ур. {lvl} {when && `· ${when}`}</p>
+        </div>
+      </div>
+
+      <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-zinc-200 mb-4 px-1">{body}</p>
+
+      {media.length > 0 && (
+        <div className={media.length === 1 ? '' : 'flex snap-x snap-mandatory gap-2 overflow-x-auto no-scrollbar'}>
+          {media.map((m: any, idx: number) => {
+            const url = mediaPublicUrl(m.path);
+            const single = media.length === 1;
+            return m.kind === 'video' ? (
+              <video key={idx} src={url} controls playsInline className={single ? 'aspect-video w-full rounded-3xl bg-black object-cover' : 'aspect-video w-[85%] shrink-0 snap-center rounded-3xl bg-black object-cover'} />
+            ) : (
+              <img key={idx} src={url} alt="" className={single ? 'max-h-[min(60vh,400px)] w-full rounded-3xl bg-black object-cover' : 'aspect-video w-[85%] shrink-0 snap-center rounded-3xl object-cover'} />
+            );
+          })}
+        </div>
+      )}
+
+      <div className="action-bar h-0 opacity-0 overflow-hidden flex items-center justify-between px-1">
+        <button
+          type="button"
+          onClick={() => p.id && void handleLike(p.id, p.author_id)}
+          disabled={!p.id || p.author_id === user.id}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${liked ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} disabled:opacity-50`}
+        >
+          <Heart size={16} strokeWidth={2.5} className={liked ? 'fill-current' : ''} />
+          {cnt} {cnt === 1 ? 'лайк' : cnt > 1 && cnt < 5 ? 'лайка' : 'лайков'}
+        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => p.id && void handleDeleteAsAdmin(p.id)}
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold bg-red-500/10 text-red-500 hover:bg-red-500/20"
+          >
+            <Trash2 size={14} strokeWidth={2} /> Удалить
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
 import { levelFromXp } from '../progression';
 import { formatRelativeTimeRu } from '../utils/formatRelativeTime';
 
@@ -191,132 +267,13 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
               const when = formatRelativeTimeRu(p.created_at || '');
 
               return (
-                <li
-                  key={postKey}
-                  className="animate-fade-in-up"
-                  style={{ animationDelay: `${Math.min(i, 14) * 0.035}s` }}
-                >
-                  <article className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0c0c0c]/90 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.85)]">
-                    <div className="flex items-start gap-3 px-4 pt-4 pb-2 sm:px-5 sm:pt-5">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/users/${p.author_id}`)}
-                        className="shrink-0 rounded-full ring-2 ring-transparent transition ring-offset-2 ring-offset-[#0c0c0c] hover:ring-kiddy-cherry/40"
-                        aria-label={`Профиль: ${name}`}
-                      >
-                        <UserAvatar
-                          user={{
-                            id: p.author_id,
-                            name,
-                            avatar: au?.avatar || '',
-                          }}
-                          size={embed ? 'lg' : 'md'}
-                        />
-                      </button>
-                      <div className="min-w-0 flex-1 text-left">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/users/${p.author_id}`)}
-                              className="block truncate text-left font-bold text-[15px] text-white hover:text-zinc-300"
-                            >
-                              {name}
-                            </button>
-                            <p className="mt-0.5 text-xs text-zinc-400">
-                              <span className="font-semibold text-zinc-500">Ур. {lvl}</span>
-                              {when ? (
-                                <>
-                                  <span className="mx-1.5 text-zinc-600">·</span>
-                                  <span className="text-zinc-500">{when}</span>
-                                </>
-                              ) : null}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="px-4 pb-3 sm:px-5">
-                      <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-zinc-100">{body}</p>
-                    </div>
-
-                    {media.length > 0 && (
-                      <div
-                        className={
-                          media.length === 1
-                            ? 'border-t border-white/[0.06]'
-                            : 'flex snap-x snap-mandatory gap-2 overflow-x-auto border-t border-white/[0.06] px-4 pb-1 pt-3 sm:px-5 [-webkit-overflow-scrolling:touch]'
-                        }
-                      >
-                        {media.map((m: MediaItem, idx: number) => {
-                          const url = mediaPublicUrl(m.path);
-                          const single = media.length === 1;
-                          return m.kind === 'video' ? (
-                            <video
-                              key={idx}
-                              src={url}
-                              controls
-                              playsInline
-                              className={
-                                single
-                                  ? 'aspect-video w-full bg-black object-cover'
-                                  : 'aspect-video w-[min(92vw,22rem)] shrink-0 snap-center rounded-2xl bg-black object-cover sm:w-80'
-                              }
-                            />
-                          ) : (
-                            <img
-                              key={idx}
-                              src={url}
-                              alt=""
-                              className={
-                                single
-                                  ? 'max-h-[min(70vh,520px)] w-full bg-black object-contain'
-                                  : 'aspect-video w-[min(92vw,22rem)] shrink-0 snap-center rounded-2xl object-cover sm:w-80'
-                              }
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-3 sm:px-5">
-                      <button
-                        type="button"
-                        onClick={() => p.id && void handleLike(p.id, p.author_id)}
-                        disabled={!p.id || p.author_id === user.id}
-                        className={`inline-flex items-center gap-2.5 rounded-xl px-1 py-1.5 text-sm font-bold transition-colors ${
-                          liked ? 'text-white' : 'text-kiddy-textMuted hover:text-white'
-                        } disabled:cursor-not-allowed disabled:opacity-40`}
-                        aria-label={liked ? 'Снять лайк' : 'Лайк'}
-                      >
-                        <Heart size={22} strokeWidth={2} className={liked ? 'fill-current' : ''} />
-                        <span className="tabular-nums text-base">{cnt}</span>
-                        <span className="hidden font-semibold text-zinc-500 sm:inline">
-                          {cnt === 1 ? 'лайк' : cnt > 1 && cnt < 5 ? 'лайка' : 'лайков'}
-                        </span>
-                      </button>
-                      <div className="flex items-center gap-2">
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            disabled={deletingId === p.id || !p.id}
-                            onClick={() => {
-                              if (p.id) void handleDeleteAsAdmin(p.id);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                          >
-                            {deletingId === p.id ? (
-                              <Loader2 className="animate-spin" size={16} />
-                            ) : (
-                              <Trash2 size={16} strokeWidth={2} />
-                            )}
-                            Удалить
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </article>
+                <li key={postKey}>
+                  <PostIsland 
+                    p={p} au={au} name={name} body={body} media={media} 
+                    liked={liked} cnt={cnt} lvl={lvl} when={when} 
+                    handleLike={handleLike} handleDeleteAsAdmin={handleDeleteAsAdmin} 
+                    user={user} isAdmin={isAdmin} navigate={navigate} index={i} 
+                  />
                 </li>
               );
             })}

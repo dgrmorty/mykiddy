@@ -226,10 +226,10 @@ export const Notifications: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => void handleOpen(row)}
-                  className={`flex w-full items-start gap-4 rounded-2xl border p-4 text-left transition-all sm:items-center sm:p-5 ${
+                  className={`flex w-full items-start gap-4 rounded-[2rem] border p-4 text-left transition-all sm:items-center sm:p-5 shadow-island ${
                     unread
-                      ? 'border-kiddy-cherry/35 bg-kiddy-cherry/[0.07] shadow-[0_0_0_1px_rgba(230,0,43,0.06)]'
-                      : 'border-white/[0.06] bg-kiddy-surfaceElevated/50 hover:border-white/[0.1]'
+                      ? 'border-white/20 bg-white/5'
+                      : 'border-white/10 bg-black hover:border-white/20'
                   }`}
                 >
                   <div className="relative shrink-0">

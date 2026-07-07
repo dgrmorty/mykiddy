@@ -13,7 +13,56 @@ import {
   formatWeekRange,
 } from '../data/permanentSchedule';
 
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+gsap.registerPlugin(useGSAP);
+
 const DAY_NAMES = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+const EventIsland = ({ ev, live, index }: { ev: MergedEvent, live: boolean, index: number }) => {
+  const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!ref.current) return;
+    gsap.to(ref.current, {
+      height: expanded ? 'auto' : 60,
+      borderRadius: expanded ? 24 : 30,
+      backgroundColor: live ? (expanded ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)') : (expanded ? '#111111' : '#000000'),
+      duration: 0.6,
+      ease: 'elastic.out(1, 0.75)'
+    });
+    gsap.to(ref.current.querySelector('.ev-details'), {
+      opacity: expanded ? 1 : 0,
+      y: expanded ? 0 : -10,
+      duration: expanded ? 0.3 : 0.2,
+      display: expanded ? 'block' : 'none'
+    });
+  }, [expanded]);
+
+  return (
+    <div 
+      ref={ref}
+      onClick={() => setExpanded(!expanded)}
+      className={`relative overflow-hidden cursor-pointer shadow-island border border-white/10 ${live ? 'bg-white/10' : 'bg-black'}`}
+      style={{ height: 60, borderRadius: 30, animation: `fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${index * 0.05}s` }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-[60px] flex items-center justify-between px-5">
+        <div className="flex items-center gap-4 min-w-0">
+          <span className={`font-mono font-bold text-sm shrink-0 ${live ? 'text-white' : 'text-kiddy-cherry'}`}>{ev.time_start}</span>
+          <span className="font-bold text-white text-sm truncate">{ev.title}</span>
+        </div>
+        {ev.isPermanent && !live && <Users size={14} className="text-zinc-500 shrink-0 ml-2" />}
+        {live && <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0 ml-2" />}
+      </div>
+      <div className="ev-details hidden opacity-0 pt-[60px] px-5 pb-5">
+        {ev.time_end && <p className="text-zinc-400 text-xs font-mono mb-2">До {ev.time_end}</p>}
+        {ev.description && <p className="text-zinc-300 text-sm leading-relaxed mb-3">{ev.description}</p>}
+        {ev.location && <p className="text-zinc-400 text-xs flex items-center gap-1.5"><MapPin size={12} /> {ev.location}</p>}
+      </div>
+    </div>
+  );
+};
 
 type SlideDir = 'left' | 'right' | null;
 
@@ -268,59 +317,7 @@ export const Schedule: React.FC = () => {
                   <div className="space-y-2">
                     {events.map((ev, i) => {
                       const live = isEventLive(ev, now, isToday);
-                      return (
-                        <div
-                          key={ev.id}
-                          className={`flex items-start gap-4 rounded-xl px-4 py-3 transition-all duration-200 ${
-                            live
-                              ? 'bg-white/10 border border-white/20'
-                              : ev.isPermanent
-                                ? 'bg-white/[0.025] border border-white/[0.05] hover:border-white/[0.1]'
-                                : 'bg-white/[0.05] border border-white/10 hover:border-white/20'
-                          }`}
-                          style={{
-                            animation: `fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both`,
-                            animationDelay: `${dayIdx * 0.04 + i * 0.03 + 0.1}s`,
-                          }}
-                        >
-                          <div className="w-16 shrink-0 pt-0.5">
-                            <span
-                              className={`font-mono font-bold text-sm ${
-                                live
-                                  ? 'text-white'
-                                  : ev.isPermanent
-                                    ? 'text-kiddy-textSecondary'
-                                    : 'text-zinc-300'
-                              }`}
-                            >
-                              {ev.time_start}
-                            </span>
-                            {ev.time_end && (
-                              <span className={`font-mono text-[11px] block ${live ? 'text-zinc-400' : 'text-kiddy-textMuted'}`}>
-                                {ev.time_end}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex min-w-0 items-start gap-2">
-                              <span className={`min-w-0 flex-1 break-words text-sm font-semibold leading-snug line-clamp-2 ${live ? 'text-white' : 'text-white'}`}>
-                                {ev.title}
-                              </span>
-                              {ev.isPermanent && !live && (
-                                <Users size={14} className="mt-0.5 shrink-0 text-kiddy-textMuted" aria-hidden />
-                              )}
-                            </div>
-                            {ev.description && (
-                              <p className="text-kiddy-textMuted text-xs mt-0.5 truncate">{ev.description}</p>
-                            )}
-                            {ev.location && (
-                              <p className="text-kiddy-textMuted text-xs mt-0.5 flex items-center gap-1">
-                                <MapPin size={10} /> {ev.location}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
+                      return <EventIsland key={ev.id} ev={ev} live={live} index={i} />;
                     })}
                   </div>
                 )}
