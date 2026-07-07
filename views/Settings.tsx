@@ -56,7 +56,7 @@ export const Settings: React.FC = () => {
     const inner = (
       <>
         <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
-          <Icon size={20} className={dimmed ? 'text-kiddy-textMuted' : 'text-kiddy-cherry'} />
+          <Icon size={20} className={dimmed ? 'text-kiddy-textMuted' : 'text-white'} />
         </div>
         <div className="flex-1 min-w-0 text-left">
           <p className={`font-semibold text-sm ${dimmed ? 'text-kiddy-textMuted' : 'text-white'}`}>{title}</p>
@@ -66,8 +66,8 @@ export const Settings: React.FC = () => {
       </>
     );
     const className = dimmed
-      ? 'w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.04] bg-kiddy-surfaceElevated/30 opacity-80 cursor-not-allowed text-left'
-      : 'w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/60 hover:bg-kiddy-surfaceElevated hover:border-white/[0.1] transition-all text-left group';
+      ? 'w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.04] bg-black opacity-80 cursor-not-allowed text-left'
+      : 'w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[#0a0a0a] hover:bg-[#111] hover:border-white/[0.1] transition-all text-left group shadow-premium';
     if (to) {
       return (
         <Link to={to} className={className}>
@@ -120,10 +120,10 @@ export const Settings: React.FC = () => {
           <button
             type="button"
             onClick={() => setBadgeModalOpen(true)}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-kiddy-cherry/20 bg-kiddy-cherry/[0.06] hover:border-kiddy-cherry/35 transition-all text-left"
+            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/10 bg-[#0a0a0a] hover:border-white/20 hover:bg-[#111] transition-all text-left shadow-premium"
           >
-            <div className="w-11 h-11 rounded-xl bg-kiddy-cherry/15 border border-kiddy-cherry/25 flex items-center justify-center shrink-0">
-              <Sparkles size={20} className="text-kiddy-cherry" />
+            <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+              <Sparkles size={20} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm text-white">Медали на аватаре</p>
@@ -131,7 +131,7 @@ export const Settings: React.FC = () => {
                 До 6 значков вокруг аватара — только за достижения
               </p>
             </div>
-            <ChevronRight size={18} className="text-kiddy-cherry shrink-0" />
+            <ChevronRight size={18} className="text-white shrink-0" />
           </button>
         </section>
       )}
@@ -139,7 +139,7 @@ export const Settings: React.FC = () => {
       <button
         type="button"
         onClick={handleLogout}
-        className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border border-white/[0.08] text-kiddy-textMuted hover:text-kiddy-cherry hover:border-kiddy-cherry/30 transition-all font-bold text-sm"
+        className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border border-white/[0.08] text-kiddy-textMuted hover:text-white hover:border-white/30 transition-all font-bold text-sm bg-[#0a0a0a] shadow-premium"
       >
         <LogOut size={18} />
         Выйти из аккаунта

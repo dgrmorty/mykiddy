@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
@@ -24,6 +24,7 @@ import {
   Lock,
   Settings2,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase } from '../services/supabase';
@@ -44,6 +45,10 @@ import {
   isBundledSchoolAvatar,
   resolveBundledOrDefault,
 } from '../data/defaultAvatars';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 interface ProfileProps {
   user: User;
 }
@@ -119,6 +124,36 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       setAvatarSaving(false);
     }
   };
+
+  const [isMatrixExpanded, setIsMatrixExpanded] = useState(false);
+  const matrixRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!matrixRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isMatrixExpanded) {
+        gsap.to(matrixRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out' });
+      } else {
+        gsap.to(matrixRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out' });
+      }
+    }, matrixRef);
+    return () => ctx.revert();
+  }, [isMatrixExpanded]);
+
+  const [isAvatarPickerExpanded, setIsAvatarPickerExpanded] = useState(false);
+  const avatarPickerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!avatarPickerRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isAvatarPickerExpanded) {
+        gsap.to(avatarPickerRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
+      } else {
+        gsap.to(avatarPickerRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+      }
+    }, avatarPickerRef);
+    return () => ctx.revert();
+  }, [isAvatarPickerExpanded]);
 
   const [myRank, setMyRank] = useState<number | null>(null);
 
@@ -258,18 +293,14 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       <section className="stagger-1 group relative isolate w-full overflow-visible rounded-[3rem] shadow-2xl transition-all md:h-80">
         {/* Фон в отдельном слое с overflow — бейджи и плашка LVL не режутся */}
         <div className="absolute inset-0 overflow-hidden rounded-[3rem]">
-          <div className="absolute inset-0 z-10 bg-gradient-to-r from-kiddy-base via-kiddy-base/60 to-transparent" />
-          <img
-            src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop"
-            className="absolute inset-0 h-full w-full object-cover grayscale opacity-30 transition-transform duration-1000 group-hover:scale-105"
-            alt=""
-          />
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-black via-black/80 to-transparent" />
+          <div className="absolute inset-0 bg-black" />
         </div>
 
         <div className="relative z-20 flex min-h-[22rem] flex-col justify-center px-5 py-8 sm:min-h-[24rem] sm:px-8 sm:py-10 md:h-full md:min-h-0 md:px-16 md:py-0">
             <div className="flex flex-col items-center gap-7 md:flex-row md:gap-8">
                 <div className="relative group/avatar">
-                    <div className="absolute inset-0 bg-white blur-3xl opacity-10 animate-pulse" />
+                    <div className="absolute inset-0 bg-kiddy-cherry blur-3xl opacity-[0.15] animate-pulse" />
                     {/* Badge ring */}
                     <div className="relative w-44 h-44 md:w-48 md:h-48">
                       {equippedIds
@@ -392,49 +423,61 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       </section>
 
       {currentUser.id !== 'guest' && (
-        <div className="stagger-1 -mt-4 w-full max-w-3xl rounded-2xl border border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5 backdrop-blur-md">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-kiddy-textMuted">Персонаж</p>
-          <p className="mb-4 text-sm text-kiddy-textMuted">Мальчик или девочка — нажми на вариант, он сразу сохранится в профиле.</p>
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              disabled={avatarSaving}
-              onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
-              className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
-                effectiveBundledAvatar === AVATAR_BOY_PATH
-                  ? 'border-white ring-2 ring-white/30'
-                  : 'border-white/[0.1] hover:border-white/25'
-              }`}
-              aria-label="Персонаж мальчик"
-            >
-              <img
-                src={AVATAR_BOY_PATH}
-                alt=""
-                className="h-full w-full origin-center scale-[1.14] object-cover object-center"
-                loading="eager"
-                decoding="async"
-              />
-            </button>
-            <button
-              type="button"
-              disabled={avatarSaving}
-              onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
-              className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
-                effectiveBundledAvatar === AVATAR_GIRL_PATH
-                  ? 'border-white ring-2 ring-white/30'
-                  : 'border-white/[0.1] hover:border-white/25'
-              }`}
-              aria-label="Персонаж девочка"
-            >
-              <img
-                src={AVATAR_GIRL_PATH}
-                alt=""
-                className="h-full w-full origin-center scale-[1.14] object-cover object-center"
-                loading="eager"
-                decoding="async"
-              />
-            </button>
-            {avatarSaving && <Loader2 className="animate-spin text-white" size={22} />}
+        <div className="stagger-1 w-full max-w-3xl rounded-3xl border border-white/[0.08] bg-[#0a0a0a] p-5 shadow-premium">
+          <button 
+            onClick={() => setIsAvatarPickerExpanded(!isAvatarPickerExpanded)}
+            className="w-full flex items-center justify-between text-left group"
+          >
+            <div>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-kiddy-textMuted">Внешность</p>
+              <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Сменить персонажа</p>
+            </div>
+            <ChevronDown size={20} className={`text-kiddy-textMuted transition-transform duration-500 ${isAvatarPickerExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          
+          <div ref={avatarPickerRef} className="overflow-hidden h-0 opacity-0">
+            <p className="mb-4 text-xs text-kiddy-textMuted">Мальчик или девочка — нажми на вариант, он сразу сохранится в профиле.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                disabled={avatarSaving}
+                onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
+                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
+                  effectiveBundledAvatar === AVATAR_BOY_PATH
+                    ? 'border-white ring-2 ring-white/30'
+                    : 'border-white/[0.1] hover:border-white/25'
+                }`}
+                aria-label="Персонаж мальчик"
+              >
+                <img
+                  src={AVATAR_BOY_PATH}
+                  alt=""
+                  className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                  loading="eager"
+                  decoding="async"
+                />
+              </button>
+              <button
+                type="button"
+                disabled={avatarSaving}
+                onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
+                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-600 transition-all disabled:opacity-50 ${
+                  effectiveBundledAvatar === AVATAR_GIRL_PATH
+                    ? 'border-white ring-2 ring-white/30'
+                    : 'border-white/[0.1] hover:border-white/25'
+                }`}
+                aria-label="Персонаж девочка"
+              >
+                <img
+                  src={AVATAR_GIRL_PATH}
+                  alt=""
+                  className="h-full w-full origin-center scale-[1.14] object-cover object-center"
+                  loading="eager"
+                  decoding="async"
+                />
+              </button>
+              {avatarSaving && <Loader2 className="animate-spin text-white" size={22} />}
+            </div>
           </div>
         </div>
       )}
@@ -447,7 +490,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
         {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
           <Card
             id="showcase-submit"
-            className="stagger-2 lg:col-span-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl scroll-mt-24"
+            className="stagger-2 lg:col-span-4 bg-[#0a0a0a] border-white/[0.08] scroll-mt-24 shadow-premium"
           >
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 flex-1 items-start gap-4">
@@ -476,25 +519,31 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
           </Card>
         )}
 
-        <Card className="stagger-2 md:col-span-2 bg-kiddy-surfaceElevated/80 border-white/[0.08] backdrop-blur-xl p-10 flex flex-col justify-between" noPadding>
-            <div className="flex items-center justify-between mb-8 px-2">
-                <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
-                    <Target size={16} className="text-white" />
-                    Матрица компетенций
-                </h3>
-            </div>
-            <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
-                        <PolarGrid stroke="#18181b" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 10, fontWeight: 700 }} />
-                        <Radar name="Уровень" dataKey="A" stroke="#ffffff" fill="#ffffff" fillOpacity={0.4} />
-                    </RadarChart>
-                </ResponsiveContainer>
+        <Card className="stagger-2 md:col-span-2 bg-[#0a0a0a] border-white/[0.08] p-6 md:p-10 flex flex-col shadow-premium" noPadding>
+            <button 
+              onClick={() => setIsMatrixExpanded(!isMatrixExpanded)}
+              className="flex items-center justify-between w-full text-left group"
+            >
+              <h3 className="text-white font-bold text-xs uppercase tracking-[0.3em] flex items-center gap-3">
+                  <Target size={16} className="text-white" />
+                  Матрица компетенций
+              </h3>
+              <ChevronDown size={20} className={`text-kiddy-textMuted transition-transform duration-500 ${isMatrixExpanded ? 'rotate-180' : ''}`} />
+            </button>
+            <div ref={matrixRef} className="overflow-hidden h-0 opacity-0">
+              <div className="h-64 w-full mt-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
+                          <PolarGrid stroke="#18181b" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 10, fontWeight: 700 }} />
+                          <Radar name="Уровень" dataKey="A" stroke="#ffffff" fill="#ffffff" fillOpacity={0.4} />
+                      </RadarChart>
+                  </ResponsiveContainer>
+              </div>
             </div>
         </Card>
 
-        <Card className="stagger-3 bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
+        <Card className="stagger-3 bg-[#0a0a0a] border-white/[0.08] p-8 md:p-10 flex flex-col justify-between shadow-premium" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                     <Zap className="text-yellow-500" size={24} />
@@ -516,7 +565,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
         </Card>
 
-        <Card className="stagger-4 bg-kiddy-surfaceElevated/80 border-white/[0.08] p-10 flex flex-col justify-between" noPadding>
+        <Card className="stagger-4 bg-[#0a0a0a] border-white/[0.08] p-8 md:p-10 flex flex-col justify-between shadow-premium" noPadding>
             <div>
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
                     <Award className="text-white" size={24} />
@@ -554,8 +603,8 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                   key={b.id}
                   className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                     unlocked
-                      ? 'bg-kiddy-surfaceElevated/80 border-white/[0.08]'
-                      : 'bg-kiddy-surfaceElevated/40 border-white/[0.04] opacity-70'
+                      ? 'bg-[#0a0a0a] border-white/[0.08] shadow-premium'
+                      : 'bg-black border-white/[0.04] opacity-70'
                   }`}
                 >
                   <BadgeOrb tier={b.tier} icon={b.icon} size={44} locked={!unlocked} />
@@ -582,7 +631,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
       {/* Badge Picker Modal */}
       {/* Logout Section */}
-      <section className="pt-10 border-t border-zinc-900">
+      <section className="pt-10 border-t border-white/[0.06]">
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
             className="flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/[0.08] rounded-2xl text-kiddy-textMuted hover:text-white hover:border-white/30 transition-all font-bold group"
