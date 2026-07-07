@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -20,6 +20,7 @@ export const Card: React.FC<CardProps> = ({
   glow = false,
   hero = false,
   onClick,
+  ...rest
 }) => {
   const innerRow = className.includes('flex') && !className.includes('flex-col');
   const innerItems = className.includes('items-start')
@@ -39,6 +40,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
   <div
+    {...rest}
     onClick={onClick}
     role={onClick ? 'button' : undefined}
     style={style}

@@ -11,6 +11,7 @@ import { useBranding } from '../contexts/BrandingContext';
 import { NotificationProvider, useNotificationSummary } from '../contexts/NotificationContext';
 import { OnboardingTour } from './onboarding/OnboardingTour';
 import { useProfileLastSeenHeartbeat } from '../hooks/useProfileLastSeenHeartbeat';
+import { KnowledgeField } from './ui/KnowledgeField';
 
 interface LayoutProps {
   user: User;
@@ -90,6 +91,7 @@ function LayoutShell({ user }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen min-h-[100dvh] flex-col bg-transparent font-sans text-white selection:bg-kiddy-cherry/30 selection:text-white md:flex-row">
+      <KnowledgeField />
       {isOffline && (
         <div className="fixed left-0 right-0 top-0 z-[100] bg-amber-500/95 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] text-center text-sm font-semibold text-black">
           Нет соединения с интернетом. Часть функций недоступна.
@@ -126,14 +128,14 @@ function LayoutShell({ user }: LayoutProps) {
         </div>
       </header>
 
-      <main className="flex min-h-0 w-full min-w-0 max-w-[100vw] flex-1 flex-col overflow-x-hidden px-3 py-6 pb-28 sm:px-4 md:ml-[288px] md:max-w-none md:min-h-screen md:px-10 md:py-12 md:pb-12 xl:px-16 2xl:px-20">
+      <main className="relative z-10 flex min-h-0 w-full min-w-0 max-w-[100vw] flex-1 flex-col overflow-x-hidden px-3 py-6 pb-28 sm:px-4 md:ml-[288px] md:max-w-none md:min-h-screen md:px-10 md:py-12 md:pb-12 xl:px-16 2xl:px-20">
         <PageTransition>
           <Outlet />
         </PageTransition>
       </main>
 
       <nav
-        className={`glass fixed bottom-0 left-0 right-0 z-50 grid w-full max-w-[100vw] items-stretch px-safe py-2 pb-safe md:hidden ${
+        className={`glass fixed bottom-0 left-0 right-0 z-50 grid w-full max-w-[100vw] items-stretch rounded-t-[2rem] px-safe py-2 pb-safe md:hidden ${
           isAdmin ? 'grid-cols-7' : 'grid-cols-6'
         }`}
       >

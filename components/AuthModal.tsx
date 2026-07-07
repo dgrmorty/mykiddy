@@ -32,7 +32,7 @@ function describeGoogleOAuthError(err: { message?: string } | null): string {
     return 'Вход через Google не настроен: в Supabase → Authentication → Providers включи Google и укажи Client ID и Client Secret из Google Cloud.';
   }
   if (/redirect|url|uri/.test(msg)) {
-    return 'Неверный адрес редиректа: в Supabase → URL Configuration добавь URL сайта; в Google Cloud — Redirect URI вида https://<project>.supabase.co/auth/v1/callback.';
+    return 'Неверный адрес редиректа: проверь Redirect URLs для detivtope.online и Railway в Supabase, а в Google Cloud — URI вида https://<project>.supabase.co/auth/v1/callback.';
   }
   if (msg.length < 220) return err?.message || 'Ошибка Google OAuth.';
   return 'Не удалось войти через Google. Открой консоль браузера (F12) для подробностей.';
@@ -208,17 +208,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="max-w-[420px]">
-      <div className="p-8 md:p-10 relative overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-64 h-64 bg-kiddy-cherryGlow rounded-full blur-[80px] opacity-30 pointer-events-none animate-glow-pulse" />
-        <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-kiddy-cherry/10 rounded-full blur-[60px] pointer-events-none" />
+    <Modal isOpen={true} onClose={onClose} maxWidth="max-w-[440px]">
+      <div className="relative overflow-hidden p-7 md:p-9">
+        <div className="absolute -top-28 -left-28 h-72 w-72 rounded-full bg-kiddy-cherryGlow blur-[86px] opacity-45 pointer-events-none animate-glow-pulse" />
+        <div className="absolute -right-24 top-16 h-56 w-56 rounded-full bg-kiddy-cyber/20 blur-[72px] pointer-events-none" />
+        <div className="absolute -bottom-24 left-16 h-48 w-48 rounded-full bg-kiddy-cyan/10 blur-[64px] pointer-events-none" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-        <div className="mb-8 text-center relative z-10">
-          <h2 className="font-display font-bold text-4xl text-white tracking-tighter mb-3">
+        <div className="relative z-10 mb-8 text-center">
+          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-kiddy-cherry shadow-depth">
+            IT-школа будущего
+          </div>
+          <h2 className="mb-3 font-display text-4xl font-extrabold tracking-tighter text-white md:text-[2.6rem]">
             {mode === 'forgot' ? 'Сброс пароля' : mode === 'signup' ? 'Регистрация' : 'Вход'}
           </h2>
-          <p className="text-sm text-kiddy-textSecondary">
-            {mode === 'forgot' ? 'Введите email — отправим ссылку' : 'Для доступа к платформе «Дети В ТОПЕ»'}
+          <p className="text-sm leading-relaxed text-kiddy-textSecondary">
+            {mode === 'forgot'
+              ? 'Введите email — отправим ссылку для восстановления доступа.'
+              : 'Войди в личный кабинет, чтобы продолжить обучение, проекты и прогресс.'}
           </p>
         </div>
 
@@ -227,7 +234,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-zinc-800 font-bold text-sm hover:bg-zinc-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-spring disabled:opacity-50 shadow-lg shadow-white/10"
+            className="magnetic-target flex w-full items-center justify-center gap-3 rounded-[1.35rem] border border-white/80 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_20px_50px_-24px_rgba(255,255,255,0.7)] transition-all duration-300 ease-spring hover:scale-[1.02] hover:bg-zinc-100 active:scale-[0.98] disabled:opacity-50"
           >
             {loading && mode === 'login' && !email ? (
               <Loader2 size={20} className="animate-spin" />
@@ -300,12 +307,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             )}
 
             {error && (
-              <div className="animate-reveal-up py-3 px-4 rounded-xl bg-kiddy-cherryDim border border-kiddy-cherry/20 text-sm text-kiddy-cherry font-medium text-center">
+              <div className="animate-reveal-up rounded-2xl border border-kiddy-cherry/25 bg-kiddy-cherryDim px-4 py-3 text-center text-sm font-semibold text-red-100">
                 {error}
               </div>
             )}
             {success && (
-              <div className="animate-reveal-up py-3 px-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-400 font-medium text-center">
+              <div className="animate-reveal-up rounded-2xl border border-green-500/25 bg-green-500/10 px-4 py-3 text-center text-sm font-semibold text-green-300">
                 {success}
               </div>
             )}
@@ -315,7 +322,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
                 type="button"
                 disabled={loading}
                 onClick={handleConfirmedClick}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] text-white font-bold text-sm hover:bg-white/[0.06] transition-all disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-[1.35rem] border border-white/[0.12] bg-white/[0.06] py-4 text-sm font-bold text-white transition-all hover:bg-white/[0.08] disabled:opacity-50"
               >
                 {loading ? <Loader2 size={20} className="animate-spin" /> : 'Я подтвердил — войти'}
               </button>
@@ -324,7 +331,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-cta w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
+              className="btn-cta magnetic-target flex w-full items-center justify-center gap-2 py-4 disabled:opacity-50"
             >
               {loading ? <Loader2 size={20} className="animate-spin" /> : (
                 mode === 'forgot' ? 'Отправить ссылку' : mode === 'signup' ? 'Создать аккаунт' : 'Войти'

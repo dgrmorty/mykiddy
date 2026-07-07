@@ -11,9 +11,12 @@ const getBase = () => {
 
 export const API_BASE_URL = getBase();
 
+const normalizeOrigin = (value: string | undefined): string => (value || '').trim().replace(/\/$/, '');
+
 /**
  * База для redirectTo / emailRedirectTo в Supabase.
- * На *.railway.app в проде всегда отдаём публичный домен, иначе сессия «прилипает» к старому URL.
+ * На *.railway.app в проде по умолчанию отдаём публичный домен, но разрешаем
+ * оставить Railway основным через VITE_PUBLIC_APP_URL.
  */
 export function getAuthRedirectOrigin(): string {
   if (typeof window === 'undefined') return '';
@@ -21,7 +24,7 @@ export function getAuthRedirectOrigin(): string {
 
   const host = window.location.hostname;
   if (host.endsWith('.railway.app')) {
-    const fromEnv = (import.meta.env.VITE_PUBLIC_APP_URL || '').trim().replace(/\/$/, '');
+    const fromEnv = normalizeOrigin(import.meta.env.VITE_PUBLIC_APP_URL);
     return fromEnv || 'https://detivtope.online';
   }
   return window.location.origin;

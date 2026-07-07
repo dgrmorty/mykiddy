@@ -29,6 +29,39 @@ function isLikelyOAuthReturn(): boolean {
   );
 }
 
+function cleanAuthReturnUrl(): void {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  const authParams = [
+    'code',
+    'access_token',
+    'refresh_token',
+    'provider_token',
+    'expires_at',
+    'expires_in',
+    'token_type',
+    'type',
+  ];
+  let changed = false;
+
+  authParams.forEach((param) => {
+    if (url.searchParams.has(param)) {
+      url.searchParams.delete(param);
+      changed = true;
+    }
+  });
+
+  if (url.hash) {
+    changed = true;
+    url.hash = '';
+  }
+
+  if (changed) {
+    const clean = `${url.pathname}${url.search}`;
+    window.history.replaceState({}, '', clean || '/');
+  }
+}
+
 /** Сохраняем аватар из ответа БД; штатные ИИ — пути `/avatars/student-*.png`. */
 function mergePreserveAvatar(prev: User, next: User): User {
   if (prev.id !== next.id || prev.role === Role.GUEST) return next;
@@ -302,12 +335,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // После подтверждения email Supabase возвращает токены в URL/hash.
           // Чистим URL, чтобы не оставлять "технические" параметры и не ловить повторные гонки на init.
           try {
-            if (typeof window !== 'undefined') {
-              const { pathname, search } = window.location;
-              if (window.location.hash || window.location.search.includes('code=')) {
-                window.history.replaceState({}, '', `${pathname}${search}`);
-              }
-            }
+            cleanAuthReturnUrl();
           } catch {}
           endOAuthRecoveryWindow();
           setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(session.user)));

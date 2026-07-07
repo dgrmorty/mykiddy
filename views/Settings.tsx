@@ -12,7 +12,6 @@ import {
 import { clearAllOnboardingKeys } from '../data/onboardingTour';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 
 export const Settings: React.FC = () => {

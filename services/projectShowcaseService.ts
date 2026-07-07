@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import type { MediaItem, PhraseSelections } from '../data/projectShowcaseCatalog';
 
+export type { MediaItem };
+
 const BUCKET = 'project_showcase';
 
 export interface ShowcasePostRow {

@@ -23,7 +23,7 @@ function roundedRectShape(width: number, height: number, radius: number) {
 }
 
 // Процедурная модель (fallback) — матовый чёрный корпус, cherry на экране
-function ProceduralLaptop({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
+function ProceduralLaptop({ groupRef }: { groupRef: React.RefObject<THREE.Group> }) {
   const matteBlack = new THREE.Color('#0a0a0a');
   const matteBlackLight = new THREE.Color('#141414');
   const screenBezel = new THREE.Color('#0d0d0d');
@@ -126,7 +126,7 @@ function GLBView({
   groupRef,
 }: {
   scene: THREE.Group;
-  groupRef: React.RefObject<THREE.Group | null>;
+  groupRef: React.RefObject<THREE.Group>;
 }) {
   const { scale, position } = useMemo(() => {
     const b = new THREE.Box3().setFromObject(scene);
@@ -149,7 +149,7 @@ function GLBView({
 
 // Загружает laptop.glb из public; при успехе показывает его, иначе — процедурную модель
 function LaptopWithFallback() {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null!);
   const [glbScene, setGlbScene] = useState<THREE.Group | null>(null);
 
   useEffect(() => {

@@ -14,6 +14,9 @@ export function runCanonicalHostRedirect(): void {
 
   if (window.location.origin === targetOrigin) return;
 
+  // Если Railway выбран основным публичным URL, не трогаем OAuth callback.
+  if (targetOrigin.includes('.railway.app')) return;
+
   const tail = window.location.pathname + window.location.search + window.location.hash;
   window.location.replace(targetOrigin + tail);
 }

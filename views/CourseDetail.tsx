@@ -114,7 +114,7 @@ function readOneFileAsAttachment(file: File): Promise<{ mime: string; base64: st
 }
 
 export const CourseDetail: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { activeCourse, setActiveCourse, activeLesson, setActiveLesson } = useContentContext();
   const { showToast } = useToast();
   
