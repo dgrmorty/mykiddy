@@ -4,13 +4,17 @@ import { Modal } from './ui/Modal';
 import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAuthRedirectOrigin } from '../config';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 interface AuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const inputClass = "input-premium w-full pl-12 pr-4 py-4 text-sm font-medium";
+const inputClass = "w-full rounded-2xl bg-[#111] border border-white/10 pl-12 pr-12 py-4 text-sm text-white placeholder:text-zinc-500 focus:border-white/30 focus:bg-[#1a1a1a] transition-colors outline-none";
 const MIN_PASSWORD_LENGTH = 8;
 
 function validatePassword(p: string): string | null {
@@ -24,7 +28,6 @@ function normalizeEmail(raw: string): string {
   return (raw || '').trim().toLowerCase();
 }
 
-/** Сообщение пользователю по ошибке OAuth (частые случаи Supabase / Google). */
 function describeGoogleOAuthError(err: { message?: string } | null): string {
   const msg = (err?.message || '').toLowerCase();
   if (!msg) return 'Не удалось войти через Google. Попробуйте ещё раз.';
@@ -40,10 +43,10 @@ function describeGoogleOAuthError(err: { message?: string } | null): string {
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#ffffff"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#ffffff"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#ffffff"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#ffffff"/>
   </svg>
 );
 
@@ -58,8 +61,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<{ email: string; password: string } | null>(null);
-  /** Синхронная защита от двойного сабмита до срабатывания setState(loading) */
+  
   const authInFlightRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewsRef = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useGSAP(() => {
+    const currentView = viewsRef.current[mode];
+    if (!currentView || !containerRef.current) return;
+
+    // Animate container height
+    gsap.to(containerRef.current, {
+      height: currentView.offsetHeight,
+      duration: 0.6,
+      ease: 'elastic.out(1, 0.75)'
+    });
+
+    // Animate sliding views
+    const modes = ['login', 'signup', 'forgot'];
+    const currentIndex = modes.indexOf(mode);
+
+    Object.keys(viewsRef.current).forEach((key) => {
+      const view = viewsRef.current[key];
+      if (!view) return;
+      
+      const viewIndex = modes.indexOf(key);
+      
+      if (key === mode) {
+        gsap.to(view, { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out', pointerEvents: 'auto' });
+      } else {
+        const dir = viewIndex < currentIndex ? -40 : 40;
+        gsap.to(view, { x: dir, opacity: 0, duration: 0.4, ease: 'power2.inOut', pointerEvents: 'none' });
+      }
+    });
+  }, [mode, error, success, pendingConfirm]);
 
   const handleGoogleLogin = async () => {
     if (authInFlightRef.current || loading) return;
@@ -70,19 +105,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Всегда корень SPA — тот же URL должен быть в Supabase → Authentication → Redirect URLs
           redirectTo: `${getAuthRedirectOrigin()}/`,
           queryParams: { prompt: 'select_account' },
         },
       });
       if (err) {
-        console.error('[AuthModal] signInWithOAuth error', err);
         setError(describeGoogleOAuthError(err));
         return;
       }
-      // При успехе браузер уходит на Google, дальше этот код часто не выполняется
     } catch (e: unknown) {
-      console.error('[AuthModal] Google OAuth exception', e);
       const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : '';
       setError(describeGoogleOAuthError(msg ? { message: msg } : null));
     } finally {
@@ -122,13 +153,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           email: emailNormalized, password,
           options: {
             data: { name: name.trim(), role: 'Student', is_approved: true },
-            // После клика по письму Supabase вернёт пользователя на корень SPA.
-            // Дальше `detectSessionInUrl: true` подхватит сессию, и `AuthContext` залогинит пользователя.
             emailRedirectTo: `${getAuthRedirectOrigin()}/auth/confirmed`,
           },
         });
         if (err) throw err;
-        // Если подтверждение email включено — сессии не будет до клика по письму.
         if (data?.user && !data.session) {
           setPendingConfirm({ email: emailNormalized, password });
           setSuccess(
@@ -137,14 +165,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           );
           return;
         }
-        // Если Supabase вернул сессию (например, confirm email выключен) — всё равно оставляем UX предсказуемым.
-        // Пользователь уже вошёл, просто закрываем модалку.
       } else {
         const { error: err } = await supabase.auth.signInWithPassword({ email: emailNormalized, password });
         if (err) throw err;
       }
-      // Для signup с подтверждением email — сюда не дойдём (return выше).
-      // Для login/авто-сессии — обновляем профиль и закрываем модалку.
       try { await refreshUser(); } catch {}
       setTimeout(onSuccess, 300);
     } catch (err: any) {
@@ -153,7 +177,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       const msgLower = msg.toLowerCase();
 
       if (status === 429 || msgLower.includes('too many') || msgLower.includes('rate limit')) {
-        setError('Слишком много попыток регистрации или писем за короткое время. Подождите несколько минут и попробуйте снова.');
+        setError('Слишком много попыток. Подождите пару минут.');
       } else if (msg === 'Invalid login credentials' || msg.includes('Invalid')) {
         setError('Неверный email или пароль');
       } else if (msgLower.includes('email') && msgLower.includes('confirm')) {
@@ -207,139 +231,155 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     setPendingConfirm(null);
   };
 
-  return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="max-w-[440px]">
-      <div className="relative overflow-hidden p-7 md:p-9">
-        <div className="relative z-10 mb-8 text-center">
-          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-kiddy-cherry shadow-depth">
-            IT-школа будущего
-          </div>
-          <h2 className="mb-3 font-display text-4xl font-extrabold tracking-tighter text-white md:text-[2.6rem]">
-            {mode === 'forgot' ? 'Сброс пароля' : mode === 'signup' ? 'Регистрация' : 'Вход'}
-          </h2>
-          <p className="text-sm leading-relaxed text-kiddy-textSecondary">
-            {mode === 'forgot'
-              ? 'Введите email — отправим ссылку для восстановления доступа.'
-              : 'Войди в личный кабинет, чтобы продолжить обучение, проекты и прогресс.'}
-          </p>
+  const renderForm = (currentMode: 'login' | 'signup' | 'forgot') => (
+    <div 
+      ref={el => viewsRef.current[currentMode] = el} 
+      className="absolute top-0 left-0 w-full p-7 md:p-9 opacity-0 pointer-events-none"
+    >
+      <div className="text-center mb-8">
+        <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-white">
+          IT-школа будущего
+        </div>
+        <h2 className="mb-3 font-display text-4xl font-extrabold tracking-tighter text-white md:text-[2.6rem]">
+          {currentMode === 'forgot' ? 'Сброс пароля' : currentMode === 'signup' ? 'Регистрация' : 'Вход'}
+        </h2>
+        <p className="text-sm leading-relaxed text-zinc-400">
+          {currentMode === 'forgot'
+            ? 'Введите email — отправим ссылку для восстановления доступа.'
+            : 'Войди в личный кабинет, чтобы продолжить обучение, проекты и прогресс.'}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/10 active:scale-[0.98] disabled:opacity-50"
+        >
+          {loading && mode === 'login' && !email ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <>
+              <GoogleIcon />
+              Войти через Google
+            </>
+          )}
+        </button>
+
+        <div className="flex items-center gap-4 my-2">
+          <div className="flex-1 h-px bg-white/[0.06]" />
+          <span className="text-xs text-zinc-500 font-medium">или</span>
+          <div className="flex-1 h-px bg-white/[0.06]" />
         </div>
 
-        <div className="space-y-4 relative z-10">
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="magnetic-target flex w-full items-center justify-center gap-3 rounded-[1.35rem] border border-kiddy-cherry bg-kiddy-cherry px-6 py-4 text-sm font-extrabold text-white shadow-[0_20px_50px_-24px_rgba(230,0,43,0.5)] transition-all duration-300 ease-spring hover:scale-[1.02] hover:bg-[#ff1a45] active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading && mode === 'login' && !email ? (
-              <Loader2 size={20} className="animate-spin" />
-            ) : (
-              <>
-                <GoogleIcon />
-                Войти через Google
-              </>
-            )}
-          </button>
+        <form onSubmit={handleEmailAuth} className="space-y-3">
+          {currentMode === 'signup' && (
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+              <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя и Фамилия" required />
+            </div>
+          )}
 
-          <div className="flex items-center gap-4 my-2">
-            <div className="flex-1 h-px bg-white/[0.06]" />
-            <span className="text-xs text-kiddy-textMuted font-medium">или</span>
-            <div className="flex-1 h-px bg-white/[0.06]" />
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="Электронная почта" required />
           </div>
 
-          <form onSubmit={handleEmailAuth} className="space-y-3">
-            {mode === 'signup' && (
-              <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
-                <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя и Фамилия" required />
-              </div>
-            )}
-
+          {currentMode !== 'forgot' && (
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="Электронная почта" required />
-            </div>
-
-            {mode !== 'forgot' && (
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-kiddy-textMuted group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className={`${inputClass} pr-12`}
-                  placeholder={mode === 'signup' ? 'Пароль (мин. 8 символов, буквы и цифры)' : 'Пароль'}
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-kiddy-textMuted hover:text-white transition-colors"
-                  onMouseDown={() => setShowPassword(true)}
-                  onMouseUp={() => setShowPassword(false)}
-                  onMouseLeave={() => setShowPassword(false)}
-                  onTouchStart={() => setShowPassword(true)}
-                  onTouchEnd={() => setShowPassword(false)}
-                  aria-label="Показать пароль"
-                >
-                  {showPassword ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
-                </button>
-              </div>
-            )}
-
-            {mode === 'login' && (
-              <p className="text-right">
-                <button type="button" onClick={() => switchMode('forgot')} className="text-xs text-kiddy-textMuted hover:text-white transition-colors">
-                  Забыли пароль?
-                </button>
-              </p>
-            )}
-            {mode === 'forgot' && (
-              <p className="text-right">
-                <button type="button" onClick={() => switchMode('login')} className="text-xs text-kiddy-textMuted hover:text-white transition-colors">
-                  Вернуться к входу
-                </button>
-              </p>
-            )}
-
-            {error && (
-              <div className="animate-reveal-up rounded-2xl border border-kiddy-cherry/25 bg-kiddy-cherryDim px-4 py-3 text-center text-sm font-semibold text-red-100">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="animate-reveal-up rounded-2xl border border-green-500/25 bg-green-500/10 px-4 py-3 text-center text-sm font-semibold text-green-300">
-                {success}
-              </div>
-            )}
-
-            {mode === 'signup' && pendingConfirm && (
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className={inputClass}
+                placeholder={currentMode === 'signup' ? 'Пароль (мин. 8 символов)' : 'Пароль'}
+                required
+              />
               <button
                 type="button"
-                disabled={loading}
-                onClick={handleConfirmedClick}
-                className="flex w-full items-center justify-center gap-2 rounded-[1.35rem] border border-white/[0.12] bg-white/[0.06] py-4 text-sm font-bold text-white transition-all hover:bg-white/[0.08] disabled:opacity-50"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-white transition-colors"
+                onMouseDown={() => setShowPassword(true)}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={() => setShowPassword(true)}
+                onTouchEnd={() => setShowPassword(false)}
+                aria-label="Показать пароль"
               >
-                {loading ? <Loader2 size={20} className="animate-spin" /> : 'Я подтвердил — войти'}
+                {showPassword ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
               </button>
-            )}
+            </div>
+          )}
 
+          {currentMode === 'login' && (
+            <p className="text-right">
+              <button type="button" onClick={() => switchMode('forgot')} className="text-xs text-zinc-500 hover:text-white transition-colors">
+                Забыли пароль?
+              </button>
+            </p>
+          )}
+          {currentMode === 'forgot' && (
+            <p className="text-right">
+              <button type="button" onClick={() => switchMode('login')} className="text-xs text-zinc-500 hover:text-white transition-colors">
+                Вернуться к входу
+              </button>
+            </p>
+          )}
+
+          {error && (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-center text-sm font-semibold text-red-200">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-center text-sm font-semibold text-green-200">
+              {success}
+            </div>
+          )}
+
+          {currentMode === 'signup' && pendingConfirm && (
             <button
-              type="submit"
+              type="button"
               disabled={loading}
-              className="btn-cta magnetic-target flex w-full items-center justify-center gap-2 py-4 disabled:opacity-50"
+              onClick={handleConfirmedClick}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 disabled:opacity-50"
             >
-              {loading ? <Loader2 size={20} className="animate-spin" /> : (
-                mode === 'forgot' ? 'Отправить ссылку' : mode === 'signup' ? 'Создать аккаунт' : 'Войти'
-              )}
+              {loading ? <Loader2 size={20} className="animate-spin" /> : 'Я подтвердил — войти'}
             </button>
-          </form>
+          )}
 
-          <p className="text-center relative z-10 pt-2">
-            <button type="button" onClick={() => switchMode(mode === 'signup' ? 'login' : 'signup')} className="text-sm font-medium text-kiddy-textSecondary hover:text-white transition-colors">
-              {mode === 'signup' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Регистрация'}
-            </button>
-          </p>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={20} className="animate-spin" /> : (
+              currentMode === 'forgot' ? 'Отправить ссылку' : currentMode === 'signup' ? 'Создать аккаунт' : 'Войти'
+            )}
+          </button>
+        </form>
+
+        <p className="text-center pt-2">
+          <button type="button" onClick={() => switchMode(currentMode === 'signup' ? 'login' : 'signup')} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+            {currentMode === 'signup' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Регистрация'}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal 
+      isOpen={true} 
+      onClose={onClose} 
+      maxWidth="max-w-[440px]"
+      panelClassName="shadow-island !rounded-[2.5rem] !bg-black"
+    >
+      <div className="relative overflow-hidden w-full" ref={containerRef} style={{ height: 500 }}>
+        {renderForm('login')}
+        {renderForm('signup')}
+        {renderForm('forgot')}
       </div>
     </Modal>
   );
