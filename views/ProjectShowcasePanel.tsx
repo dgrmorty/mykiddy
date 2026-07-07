@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { UserAvatar } from '../components/UserAvatar';
@@ -145,7 +145,6 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
   const [loading, setLoading] = useState(true);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
   const [countMap, setCountMap] = useState<Record<string, number>>({});
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -186,7 +185,6 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
 
   const handleDeleteAsAdmin = async (postId: string) => {
     if (!window.confirm('Удалить этот пост с витрины? Лайки тоже сбросятся.')) return;
-    setDeletingId(postId);
     try {
       await deleteShowcasePost(postId);
       showToast('Пост удалён', 'success');
@@ -203,8 +201,6 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
       });
     } catch {
       showToast('Не удалось удалить пост', 'error');
-    } finally {
-      setDeletingId(null);
     }
   };
 

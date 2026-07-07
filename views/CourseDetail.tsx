@@ -1,5 +1,8 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+gsap.registerPlugin(useGSAP);
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
