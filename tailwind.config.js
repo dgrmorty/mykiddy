@@ -11,25 +11,14 @@ export default {
     extend: {
       colors: {
         kiddy: {
-          base: '#07070b',
-          ink: '#0b0b12',
-          surface: '#101018',
-          surfaceElevated: '#171723',
-          surfaceHighlight: '#222235',
-          surfaceDark: '#0c0c12',
+          base: '#000000',
+          surface: '#0a0a0a',
+          surfaceElevated: '#121212',
           border: 'rgba(255,255,255,0.08)',
-          borderStrong: 'rgba(255,255,255,0.14)',
           cherry: '#e6002b',
-          cherryHover: '#ff1a45',
-          cherryGlow: 'rgba(230,0,43,0.35)',
-          cherryDim: 'rgba(230,0,43,0.12)',
-          cyber: '#7c3cff',
-          cyan: '#4ddcff',
-          amber: '#ffb84d',
-          primary: '#e6002b',
           text: '#ffffff',
-          textSecondary: '#c8c8d6',
-          textMuted: '#747486',
+          textSecondary: '#888888',
+          textMuted: '#555555',
         },
       },
       fontFamily: {
@@ -50,10 +39,8 @@ export default {
         '5xl': '2.5rem',
       },
       boxShadow: {
-        depth: '0 16px 50px -24px rgba(0,0,0,0.9), 0 1px 0 0 rgba(255,255,255,0.08) inset',
-        'cherry-glow': '0 0 44px -10px rgba(230,0,43,0.55)',
-        elevated: '0 26px 80px -28px rgba(0,0,0,0.85)',
-        'neon-panel': '0 24px 90px -32px rgba(230,0,43,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset',
+        island: '0 20px 40px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1) inset',
+        premium: '0 10px 30px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset',
       },
       transitionTimingFunction: {
         entrance: 'cubic-bezier(0.16, 1, 0.3, 1)',

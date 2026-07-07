@@ -46,9 +46,8 @@ const AppContent: React.FC = () => {
         style={{ background: '#050505' }}
       >
         <div className="relative">
-          <div className="absolute inset-0 rounded-full bg-kiddy-cherry/20 blur-2xl animate-glow-pulse" />
           <div
-            className="relative animate-spin rounded-full border-2 border-white/10 border-t-[#e6002b]"
+            className="relative animate-spin rounded-full border-2 border-white/10 border-t-white"
             style={{ width: 44, height: 44 }}
           />
         </div>

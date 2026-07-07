@@ -22,7 +22,7 @@ function Fallback({ error }: { error: Error | null }) {
           {hint.length > 220 ? `${hint.slice(0, 220)}…` : hint}
         </p>
       )}
-      <button type="button" onClick={() => window.location.reload()} style={{ padding: '12px 24px', background: '#e6002b', color: '#fff', border: 'none', borderRadius: 9999, fontWeight: 700, cursor: 'pointer' }}>
+      <button type="button" onClick={() => window.location.reload()} style={{ padding: '12px 24px', background: '#ffffff', color: '#000000', border: 'none', borderRadius: 9999, fontWeight: 700, cursor: 'pointer' }}>
         Обновить
       </button>
     </div>

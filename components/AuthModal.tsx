@@ -210,11 +210,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="max-w-[440px]">
       <div className="relative overflow-hidden p-7 md:p-9">
-        <div className="absolute -top-28 -left-28 h-72 w-72 rounded-full bg-kiddy-cherryGlow blur-[86px] opacity-45 pointer-events-none animate-glow-pulse" />
-        <div className="absolute -right-24 top-16 h-56 w-56 rounded-full bg-kiddy-cyber/20 blur-[72px] pointer-events-none" />
-        <div className="absolute -bottom-24 left-16 h-48 w-48 rounded-full bg-kiddy-cyan/10 blur-[64px] pointer-events-none" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-
         <div className="relative z-10 mb-8 text-center">
           <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-kiddy-cherry shadow-depth">
             IT-школа будущего

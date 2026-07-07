@@ -82,10 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
   const titleTail = isVtopeStyle ? nameWords.slice(-2).join(' ') : nameWords.join(' ');
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 z-50 h-screen w-[288px] flex-col border-r border-white/[0.1] bg-kiddy-base/82 shadow-[24px_0_90px_-52px_rgba(230,0,43,0.55)] backdrop-blur-2xl">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_95%_48%_at_48%_-18%,rgba(230,0,43,0.16),transparent),radial-gradient(ellipse_80%_38%_at_0%_100%,rgba(124,60,255,0.12),transparent)]" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-white/[0.025]" />
-      <div className="pointer-events-none absolute -left-16 bottom-32 h-52 w-52 rounded-full bg-kiddy-cherry/[0.09] blur-[76px]" />
+    <aside className="hidden md:flex fixed left-0 top-0 z-50 h-screen w-[288px] flex-col border-r border-white/[0.05] bg-[#000000]">
 
       <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-5 pt-7">
         <div
@@ -124,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
               to="/notifications"
               title="Уведомления"
               aria-label="Уведомления"
-              className="group relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.06] text-kiddy-textSecondary shadow-depth transition-colors hover:border-kiddy-cherry/40 hover:bg-kiddy-cherry/12 hover:text-white"
+              className="group relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.05] bg-white/[0.02] text-kiddy-textSecondary transition-colors hover:border-white/[0.1] hover:bg-white/[0.05] hover:text-white"
             >
               <AnimatedIcon name="bell" size={20} active={false} />
               {unreadCount > 0 && (
@@ -156,8 +153,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
                         className={({ isActive: navIsActive }) =>
                           `flex items-center gap-3.5 rounded-2xl border border-transparent py-2.5 pl-3 pr-3 text-sm font-semibold transition-all duration-300 ease-entrance
                           ${item.locked ? 'pointer-events-none opacity-40' : 'active:scale-[0.99]'}
-                          ${navIsActive && !item.locked ? 'nav-active border-kiddy-cherry/35 shadow-[0_16px_36px_-26px_rgba(230,0,43,0.8),inset_0_0_0_1px_rgba(255,255,255,0.06)]' : ''}
-                          ${!navIsActive || item.locked ? 'text-kiddy-textSecondary hover:border-white/[0.08] hover:bg-white/[0.055] hover:text-white' : ''}`
+                          ${navIsActive && !item.locked ? 'nav-active' : ''}
+                          ${!navIsActive || item.locked ? 'text-kiddy-textSecondary hover:border-white/[0.05] hover:bg-white/[0.02] hover:text-white' : ''}`
                         }
                         style={{
                           animationDelay: `${STAGGER[Math.min(i, STAGGER.length - 1)]}s`,
@@ -198,7 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
             <Link
               to="/profile"
               title="Мой профиль"
-              className="flex items-center gap-3 rounded-[1.35rem] border border-white/[0.11] bg-white/[0.055] px-3 py-3 shadow-depth transition-colors hover:border-white/[0.16] hover:bg-white/[0.075]"
+              className="flex items-center gap-3 rounded-[1.35rem] border border-white/[0.05] bg-white/[0.02] px-3 py-3 transition-colors hover:border-white/[0.1] hover:bg-white/[0.05]"
             >
               <div className="relative shrink-0">
                 <UserAvatar user={currentUser} size="md" />
@@ -228,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
               </div>
             </Link>
           ) : (
-            <div className="flex items-center gap-3 rounded-[1.35rem] border border-white/[0.11] bg-white/[0.055] px-3 py-3 shadow-depth">
+            <div className="flex items-center gap-3 rounded-[1.35rem] border border-white/[0.05] bg-white/[0.02] px-3 py-3">
               <div className="relative shrink-0">
                 <UserAvatar user={currentUser} size="md" />
               </div>

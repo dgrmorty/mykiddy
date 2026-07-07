@@ -93,7 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
           ${isExiting
             ? 'opacity-0 scale-[0.98]'
             : 'opacity-100 scale-100 animate-scale-in'}
-          ${transparentContainer ? '' : 'rounded-[1.75rem] sm:rounded-[2.25rem] bg-kiddy-surfaceElevated/92 border border-white/[0.12] shadow-[0_38px_110px_-24px_rgba(0,0,0,0.95),0_0_60px_-40px_rgba(230,0,43,0.8)] backdrop-blur-2xl'}
+          ${transparentContainer ? '' : 'rounded-[1.75rem] sm:rounded-[2.25rem] bg-[#0a0a0a] border border-white/[0.08] shadow-premium'}
           ${panelClassName}
         `}
         style={{ maxHeight: maxPanelHeight }}
