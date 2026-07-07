@@ -229,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="magnetic-target flex w-full items-center justify-center gap-3 rounded-[1.35rem] border border-white/80 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_20px_50px_-24px_rgba(255,255,255,0.7)] transition-all duration-300 ease-spring hover:scale-[1.02] hover:bg-zinc-100 active:scale-[0.98] disabled:opacity-50"
+            className="magnetic-target flex w-full items-center justify-center gap-3 rounded-[1.35rem] border border-kiddy-cherry bg-kiddy-cherry px-6 py-4 text-sm font-extrabold text-white shadow-[0_20px_50px_-24px_rgba(230,0,43,0.5)] transition-all duration-300 ease-spring hover:scale-[1.02] hover:bg-[#ff1a45] active:scale-[0.98] disabled:opacity-50"
           >
             {loading && mode === 'login' && !email ? (
               <Loader2 size={20} className="animate-spin" />

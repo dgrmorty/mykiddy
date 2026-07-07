@@ -60,24 +60,24 @@ export default {
           '100%': { opacity: '1' },
         },
         'reveal-up': {
-          '0%': { opacity: '0', transform: 'translateY(24px) scale(0.98)', filter: 'blur(6px)' },
-          '100%': { opacity: '1', transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'translateY(24px) scale(0.98)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
         'slide-up': {
-          '0%': { opacity: '0', transform: 'translateY(40px)', filter: 'blur(4px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'translateY(40px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         'scale-in': {
-          '0%': { opacity: '0', transform: 'scale(0.92)', filter: 'blur(4px)' },
-          '100%': { opacity: '1', transform: 'scale(1)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'scale(0.92)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
         'fade-in-up': {
           '0%': { opacity: '0', transform: 'translateY(16px) scale(0.98)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
         'slide-in-right': {
-          '0%': { opacity: '0', transform: 'translateX(40px) scale(0.96)', filter: 'blur(6px)' },
-          '100%': { opacity: '1', transform: 'translateX(0) scale(1)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'translateX(40px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
         },
         'bounce-left': {
           '0%': { transform: 'translateX(0)' },
@@ -99,8 +99,8 @@ export default {
           '50%': { opacity: '0.7', transform: 'scale(1.05)' },
         },
         'week-slide-in': {
-          '0%': { opacity: '0', transform: 'translateX(40px)', filter: 'blur(4px)' },
-          '100%': { opacity: '1', transform: 'translateX(0)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'translateX(40px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
         },
         /** Лупа поиска: только opacity — scale на родителе размывает SVG в Safari */
         'loupe-pulse': {

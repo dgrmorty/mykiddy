@@ -46,12 +46,17 @@ const DynamicIsland = ({ user, isGuest }: { user: User, isGuest: boolean }) => {
 
   return (
     <div 
-      className="flex justify-center mb-16 relative z-50 perspective-[1000px]"
+      className="flex justify-center mb-16 relative z-50 perspective-[1000px] will-change-transform"
       onMouseLeave={() => setIsExpanded(false)}
     >
+      {/* Subtle cherry glow behind the island */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-kiddy-cherry/20 blur-2xl rounded-full pointer-events-none transition-all duration-700 ease-out" 
+        style={{ width: isExpanded ? 360 : 220, height: isExpanded ? 240 : 60, opacity: isExpanded ? 0.4 : 0.15 }} 
+      />
       <div 
         ref={containerRef}
-        className="cursor-pointer flex flex-col items-center bg-black shadow-island overflow-hidden relative"
+        className="cursor-pointer flex flex-col items-center bg-black shadow-island overflow-hidden relative will-change-[width,height,border-radius]"
         onClick={() => setIsExpanded(!isExpanded)}
         style={{ width: 200, height: 48, borderRadius: 24 }}
       >
