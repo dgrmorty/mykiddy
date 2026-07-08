@@ -47,7 +47,7 @@ const DynamicIsland = ({ user, isGuest }: { user: User, isGuest: boolean }) => {
 
   return (
     <div 
-      className="flex justify-center mb-16 relative z-50 perspective-[1000px] will-change-transform"
+      className="hero-island flex justify-center mb-16 relative z-50 perspective-[1000px] will-change-transform"
       onMouseLeave={() => setIsExpanded(false)}
     >
       {/* Subtle cherry glow behind the island */}
@@ -122,12 +122,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useGSAP(() => {
     const mm = gsap.matchMedia();
     mm.add('(prefers-reduced-motion: no-preference)', () => {
+      // Анимация Dynamic Island при загрузке
+      gsap.from('.hero-island', {
+        y: 50,
+        scale: 0.85,
+        opacity: 0,
+        duration: 1.2,
+        ease: 'elastic.out(1, 0.75)',
+      });
+
       // Анимация заголовка и текста
       gsap.from('.hero-text', {
         y: 60,
         opacity: 0,
         duration: 1.2,
         stagger: 0.15,
+        delay: 0.15,
         ease: 'elastic.out(1, 0.75)',
       });
 
@@ -137,7 +147,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         opacity: 0,
         duration: 1,
         stagger: 0.1,
-        delay: 0.3,
+        delay: 0.4,
         ease: 'elastic.out(1, 0.6)',
       });
 

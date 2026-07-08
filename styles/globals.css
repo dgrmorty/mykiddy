@@ -122,12 +122,21 @@ body {
 .svg-line {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  animation: draw-line 0.8s var(--ease-spring) forwards;
+  opacity: 0;
+  animation: draw-line 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes draw-line {
-  to {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
     stroke-dashoffset: 0;
+    opacity: 1;
   }
 }
 
