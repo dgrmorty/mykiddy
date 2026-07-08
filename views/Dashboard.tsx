@@ -10,7 +10,8 @@ import { ProjectShowcasePanel } from './ProjectShowcasePanel';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
-gsap.registerPlugin(useGSAP);
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 interface DashboardProps {
   user: User;
@@ -121,12 +122,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useGSAP(() => {
     const mm = gsap.matchMedia();
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      gsap.from('.dash-reveal', {
+      // Анимация заголовка и текста
+      gsap.from('.hero-text', {
+        y: 60,
+        opacity: 0,
+        duration: 1.2,
+        stagger: 0.15,
+        ease: 'elastic.out(1, 0.75)',
+      });
+
+      // Анимация кнопок
+      gsap.from('.hero-btn', {
+        scale: 0.8,
+        opacity: 0,
+        duration: 1,
+        stagger: 0.1,
+        delay: 0.3,
+        ease: 'elastic.out(1, 0.6)',
+      });
+
+      // Анимация блока витрины (появляется при скролле или сразу, если на экране)
+      gsap.from('.showcase-header', {
         y: 40,
         opacity: 0,
         duration: 1,
-        stagger: 0.15,
         ease: 'power3.out',
+        scrollTrigger: {
+          trigger: '.showcase-section',
+          start: 'top 80%',
+        }
       });
     });
     return () => mm.revert();
@@ -145,30 +169,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       
       <DynamicIsland user={user} isGuest={isGuest} />
 
-      <div className="dash-reveal text-center mb-20">
-        <h1 className="text-5xl md:text-7xl font-display font-medium tracking-tight text-white mb-6">
+      <div className="text-center mb-20">
+        <h1 className="hero-text text-5xl md:text-7xl font-display font-medium tracking-tight text-white mb-6">
           {isGuest ? 'Начни свой путь в IT.' : 'Продолжай учиться.'}
         </h1>
-        <p className="text-lg md:text-xl text-kiddy-textSecondary max-w-2xl mx-auto mb-12 font-light">
+        <p className="hero-text text-lg md:text-xl text-kiddy-textSecondary max-w-2xl mx-auto mb-12 font-light">
           {loadError 
             ? 'Не удалось загрузить данные. Попробуйте обновить страницу.' 
             : 'Твоя персональная траектория, проекты и сообщество в одном месте.'}
         </p>
         
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <button onClick={handleGoCourses} className="btn-cta px-8 py-4 text-sm">
+          <button onClick={handleGoCourses} className="hero-btn btn-cta px-8 py-4 text-sm">
             <BookOpen size={18} className="mr-2" />
             Мои курсы
           </button>
-          <button onClick={handleGoSchedule} className="btn-secondary px-8 py-4 text-sm">
+          <button onClick={handleGoSchedule} className="hero-btn btn-secondary px-8 py-4 text-sm">
             <CalendarDays size={18} className="mr-2" />
             Расписание
           </button>
         </div>
       </div>
 
-      <div className="dash-reveal mt-32">
-        <div className="flex items-end justify-between mb-10">
+      <div className="showcase-section mt-32">
+        <div className="showcase-header flex items-end justify-between mb-10">
           <div>
             <h2 className="text-3xl md:text-4xl font-display font-medium text-white tracking-tight">Витрина проектов</h2>
             <p className="text-kiddy-textSecondary mt-3 text-lg font-light">Лучшие работы наших учеников.</p>
