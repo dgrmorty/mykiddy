@@ -171,6 +171,20 @@ export const UserPublicProfile: React.FC = () => {
     return () => ctx.revert();
   }, [isBadgesExpanded]);
 
+  const [isCoursesExpanded, setIsCoursesExpanded] = useState(false);
+  const coursesRef = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!coursesRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isCoursesExpanded) {
+        gsap.to(coursesRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
+      } else {
+        gsap.to(coursesRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+      }
+    }, coursesRef);
+    return () => ctx.revert();
+  }, [isCoursesExpanded]);
+
   const [userFriendships, setUserFriendships] = useState<FriendshipRow[]>([]);
   const [loadingUserFriends, setLoadingUserFriends] = useState(true);
 
