@@ -116,9 +116,19 @@ body {
 
 /* ─── Active nav ─── */
 .nav-active {
-  background-color: rgba(230,0,43,0.1);
-  color: var(--kiddy-cherry) !important;
-  border-color: rgba(230,0,43,0.2) !important;
+  color: #000000 !important;
+}
+
+.svg-line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw-line 0.8s var(--ease-spring) forwards;
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ─── Glass morphism ─── */
