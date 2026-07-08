@@ -190,20 +190,19 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
       )}
       {rect && (
         <div
-          className="pointer-events-none absolute rounded-2xl border-2 border-kiddy-cherry transition-all duration-300 ease-out"
+          className="pointer-events-none absolute rounded-[2rem] border border-white/20 transition-all duration-300 ease-out"
           style={{
             top: rect.top,
             left: rect.left,
             width: rect.width,
             height: rect.height,
             zIndex: OVERLAY_Z + 1,
-            animation: 'onboarding-pulse-ring 2.2s ease-in-out infinite',
-            boxShadow: '0 0 0 4px rgba(230,0,43,0.25), 0 0 48px rgba(230,0,43,0.35)',
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.1), 0 0 32px rgba(255,255,255,0.1)',
           }}
         />
       )}
       <div
-        className="absolute max-w-[340px] rounded-2xl border border-white/[0.12] bg-kiddy-surfaceElevated/95 p-5 shadow-2xl shadow-black/60 animate-fade-in"
+        className="absolute max-w-[340px] rounded-[2rem] border border-white/10 bg-black/90 backdrop-blur-2xl p-6 shadow-island animate-fade-in"
         style={{
           top: tooltipPos.top,
           left: tooltipPos.left,
@@ -212,33 +211,32 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
           animationDuration: '0.4s',
         }}
       >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 text-kiddy-cherry">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 text-white">
             <Sparkles size={18} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em]">Что нового</span>
           </div>
           <button
             type="button"
             onClick={finishTour}
-            className="rounded-lg p-1.5 text-kiddy-textMuted transition-colors hover:bg-white/[0.06] hover:text-white"
+            className="rounded-full p-1.5 text-zinc-500 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Закрыть гайд"
           >
             <X size={18} />
           </button>
         </div>
-        <h2 id="onboarding-title" className="font-display text-xl font-bold italic text-white">
+        <h2 id="onboarding-title" className="font-display text-xl font-bold text-white tracking-tight">
           {step.title}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-kiddy-textMuted">{step.body}</p>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-4">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+        <p className="mt-2 text-sm leading-relaxed text-zinc-400">{step.body}</p>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
             {stepIndex + 1} / {steps.length}
           </span>
           <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
               onClick={finishTour}
-              className="rounded-xl px-3 py-2 text-xs font-bold text-kiddy-textMuted transition-colors hover:text-white"
+              className="rounded-xl px-3 py-2 text-xs font-bold text-zinc-500 transition-colors hover:text-white"
             >
               Пропустить
             </button>
@@ -246,7 +244,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
               <button
                 type="button"
                 onClick={back}
-                className="flex items-center gap-1 rounded-xl border border-white/[0.1] px-3 py-2 text-xs font-bold text-white transition-colors hover:border-white/20"
+                className="flex items-center gap-1 rounded-xl bg-white/5 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-white/10"
               >
                 <ChevronLeft size={16} /> Назад
               </button>
@@ -254,7 +252,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
             <button
               type="button"
               onClick={next}
-              className="flex items-center gap-1 rounded-xl bg-kiddy-cherry px-4 py-2 text-xs font-bold text-white shadow-lg shadow-kiddy-cherry/25 transition-all hover:bg-kiddy-cherryHover"
+              className="flex items-center gap-1 rounded-xl bg-white px-5 py-2 text-xs font-bold text-black shadow-premium transition-all hover:bg-zinc-200"
             >
               {lastStep ? 'Готово' : 'Далее'}
               {!lastStep && <ChevronRight size={16} />}
@@ -262,12 +260,6 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
           </div>
         </div>
       </div>
-      <style>{`
-        @keyframes onboarding-pulse-ring {
-          0%, 100% { box-shadow: 0 0 0 4px rgba(230,0,43,0.2), 0 0 36px rgba(230,0,43,0.28); }
-          50% { box-shadow: 0 0 0 6px rgba(230,0,43,0.35), 0 0 52px rgba(230,0,43,0.45); }
-        }
-      `}</style>
     </div>
   );
 

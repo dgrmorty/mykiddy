@@ -65,8 +65,9 @@ const DynamicIsland = ({ user, isGuest }: { user: User, isGuest: boolean }) => {
         <div className="island-compact absolute inset-0 flex items-center justify-between px-1.5 w-full h-[48px]">
           <UserAvatar user={user} size="sm" />
           <span className="text-sm font-medium text-white truncate px-3">{user.name.split(' ')[0]}</span>
-          <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-            <Zap size={16} className="text-white" />
+          <div className="h-9 w-12 rounded-full bg-white/10 flex items-center justify-center shrink-0 gap-1 px-2">
+            <Flame size={14} className="text-orange-500" />
+            <span className="text-xs font-bold text-white">{user.streakCurrent || 0}</span>
           </div>
         </div>
 

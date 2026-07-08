@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
 import { UserAvatar } from '../components/UserAvatar';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -244,10 +244,11 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
           <Loader2 className="animate-spin text-white" size={40} />
         </div>
       ) : posts.length === 0 ? (
-        <Card className="border border-white/[0.06] bg-kiddy-surfaceElevated/40 p-10 text-center text-sm text-kiddy-textMuted">
-          <Sparkles className="mx-auto mb-4 text-white/50" size={36} />
-          <p>Пока нет опубликованных работ. Загляни позже или стань первым — через профиль.</p>
-        </Card>
+        <EmptyState 
+          title="Нет проектов" 
+          description="Пока нет опубликованных работ. Загляни позже или стань первым — через профиль." 
+          icon={<Sparkles size={40} strokeWidth={1} />}
+        />
       ) : (
         <div className={feedWrap}>
           <ul className="flex flex-col gap-5 sm:gap-6">

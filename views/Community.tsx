@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
 import { UserAvatar } from '../components/UserAvatar';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -294,7 +294,11 @@ export const Community: React.FC = () => {
               <Loader2 className="animate-spin text-white" size={40} />
             </div>
           ) : filteredStudents.length === 0 ? (
-            <Card className="p-10 text-center text-sm text-kiddy-textMuted">Никого не нашли</Card>
+            <EmptyState 
+              title="Никого не нашли" 
+              description="Попробуйте изменить запрос поиска" 
+              icon={<Search size={40} strokeWidth={1} />}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredStudents.map((s, i) => {
@@ -332,7 +336,11 @@ export const Community: React.FC = () => {
                   <Inbox size={16} className="text-white" /> К вам
                 </h2>
                 {incoming.length === 0 ? (
-                  <p className="py-4 text-sm text-kiddy-textMuted">Нет входящих заявок</p>
+                  <EmptyState 
+                    title="Нет заявок" 
+                    description="У вас пока нет входящих заявок в друзья" 
+                    icon={<Inbox size={40} strokeWidth={1} />}
+                  />
                 ) : (
                   <div className="space-y-3">
                     {incoming.map((row, i) => {
@@ -401,7 +409,11 @@ export const Community: React.FC = () => {
                   <Users size={16} className="text-white" /> От вас
                 </h2>
                 {outgoing.length === 0 ? (
-                  <p className="py-4 text-sm text-kiddy-textMuted">Нет исходящих заявок</p>
+                  <EmptyState 
+                    title="Нет заявок" 
+                    description="Вы еще никому не отправляли заявки в друзья" 
+                    icon={<UserPlus size={40} strokeWidth={1} />}
+                  />
                 ) : (
                   <div className="space-y-3">
                     {outgoing.map((row) => {
@@ -460,10 +472,11 @@ export const Community: React.FC = () => {
               <Loader2 className="animate-spin text-kiddy-cherry" size={36} />
             </div>
           ) : friends.length === 0 ? (
-            <Card className="p-10 text-center">
-              <Users className="mx-auto mb-4 text-kiddy-textMuted" size={40} />
-              <p className="text-sm text-kiddy-textMuted">Пока нет друзей — загляните во «Все» и отправьте заявку.</p>
-            </Card>
+            <EmptyState 
+              title="Нет друзей" 
+              description="Пока нет друзей — загляните во «Все» и отправьте заявку." 
+              icon={<Users size={40} strokeWidth={1} />}
+            />
           ) : (
             <div className="space-y-2">{friends.map((row, i) => renderFriendRow(row, i))}</div>
           )}

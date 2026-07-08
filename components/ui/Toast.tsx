@@ -41,21 +41,22 @@ export const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
   return (
     <div
       className={`
-        flex items-center gap-3 px-5 py-3.5 rounded-2xl border backdrop-blur-xl shadow-elevated
-        ${accent.border} ${accent.bg}
-        transition-all duration-350 ease-entrance
-        ${exiting ? 'opacity-0 translate-y-2 scale-95 blur-sm' : 'opacity-100 translate-y-0 scale-100'}
+        flex items-center gap-3 px-4 py-3 rounded-full border border-white/10 bg-black/90 backdrop-blur-2xl shadow-island
+        transition-all duration-400 ease-out
+        ${exiting ? 'opacity-0 -translate-y-8 scale-90' : 'opacity-100 translate-y-0 scale-100'}
       `}
-      style={{ animation: exiting ? 'none' : 'fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both' }}
+      style={{ animation: exiting ? 'none' : 'slide-down-island 0.5s cubic-bezier(0.16, 1, 0.3, 1) both' }}
     >
-      <span className={accent.icon}>{icons[type]}</span>
-      <span className="text-sm font-semibold text-white flex-1">{message}</span>
-      <button
-        onClick={handleClose}
-        className="ml-1 p-1 rounded-lg opacity-50 hover:opacity-100 hover:bg-white/5 transition-all"
-      >
-        <X size={14} className="text-white" />
-      </button>
+      <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/5 ${accent.icon}`}>
+        {icons[type]}
+      </div>
+      <span className="text-sm font-bold text-white flex-1 tracking-wide pr-2">{message}</span>
+      <style>{`
+        @keyframes slide-down-island {
+          0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
     </div>
   );
 };

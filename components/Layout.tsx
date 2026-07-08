@@ -133,7 +133,7 @@ function LayoutShell({ user }: LayoutProps) {
 
       <nav
         className={`glass fixed bottom-0 left-0 right-0 z-50 grid w-full max-w-[100vw] items-stretch rounded-t-[2rem] px-safe py-2 pb-safe md:hidden ${
-          isAdmin ? 'grid-cols-7' : 'grid-cols-6'
+          isAdmin ? 'grid-cols-6' : 'grid-cols-5'
         }`}
       >
         <MobileNavItem to="/" iconName="dashboard" locked={false} label="Главная" tourAnchor="nav-home" />
@@ -143,7 +143,6 @@ function LayoutShell({ user }: LayoutProps) {
         {isAdmin && (
           <MobileNavItem to="/admin" iconName="shield" locked={false} label="Управление" tourAnchor="nav-admin" />
         )}
-        <MobileNavItem to="/settings" iconName="settings" locked={isGuest} label="Настройки" tourAnchor="nav-settings" />
         <MobileNavItem to="/profile" iconName="user" locked={isGuest} label="Профиль" tourAnchor="nav-profile" />
       </nav>
 

@@ -30,9 +30,8 @@ export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ childr
       ref={containerRef}
       className="flex min-h-0 flex-1 flex-col transition-all duration-200 ease-entrance"
       style={{
-        opacity: 1,
+        opacity: transitioning ? 0 : 1,
         transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
-        filter: transitioning ? 'blur(1px)' : 'blur(0)',
       }}
     >
       {displayChildren}

@@ -52,7 +52,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser }) => {
       title: 'Аккаунт',
       items: [
         { iconName: 'user', label: 'Профиль', path: '/profile', locked: isGuest, onboardingAnchor: 'nav-profile' },
-        { iconName: 'settings', label: 'Настройки', path: '/settings', locked: isGuest, onboardingAnchor: 'nav-settings' },
       ],
     },
   ];

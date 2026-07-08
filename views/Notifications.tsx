@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationSummary } from '../contexts/NotificationContext';
+import { useFriendships, friendshipStateForPair } from '../hooks/useFriendships';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../services/supabase';
 import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { UserAvatar } from '../components/UserAvatar';
@@ -43,7 +45,10 @@ export const Notifications: React.FC = () => {
   const { user } = useAuth();
   const { refreshUnreadCount } = useNotificationSummary();
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { rows: friendRows, accept: acceptFriend, remove: removeFriend } = useFriendships(user.id !== 'guest' ? user.id : undefined);
   const [rows, setRows] = useState<ActivityNotificationRow[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [actors, setActors] = useState<
     Record<
       string,
@@ -203,9 +208,19 @@ export const Notifications: React.FC = () => {
                 : '';
             let Icon: LucideIcon = UserPlus;
             let title = '';
+            let showFriendButtons = false;
+            let friendshipRowId: string | null = null;
+
             if (row.kind === 'friend_request') {
               Icon = UserPlus;
               title = `${name} хочет добавиться в друзья`;
+              if (row.actor_id) {
+                const fState = friendshipStateForPair(friendRows, user.id, row.actor_id);
+                if (fState.label === 'incoming' && fState.row) {
+                  showFriendButtons = true;
+                  friendshipRowId = fState.row.id;
+                }
+              }
             } else if (row.kind === 'friend_accepted') {
               Icon = UserCheck;
               title = `${name} принял(а) вашу заявку в друзья`;
@@ -262,9 +277,50 @@ export const Notifications: React.FC = () => {
                       <p className="mt-1 text-xs text-kiddy-textMuted line-clamp-3">{reason}</p>
                     ) : null}
                     <p className="mt-1 text-xs text-kiddy-textMuted">{formatActivityRu(row.created_at)}</p>
+                    
+                    {showFriendButtons && friendshipRowId && (
+                      <div className="flex items-center gap-2 mt-3">
+                        <button
+                          type="button"
+                          disabled={busyId === friendshipRowId}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setBusyId(friendshipRowId);
+                            const { error } = await acceptFriend(friendshipRowId);
+                            setBusyId(null);
+                            if (error) showToast('Ошибка', 'error');
+                            else {
+                              showToast('Заявка принята', 'success');
+                              void markRead(row.id);
+                            }
+                          }}
+                          className="rounded-xl bg-white text-black px-4 py-2 text-xs font-bold hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                        >
+                          {busyId === friendshipRowId ? <Loader2 size={14} className="animate-spin" /> : 'Принять'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId === friendshipRowId}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setBusyId(friendshipRowId);
+                            const { error } = await removeFriend(friendshipRowId);
+                            setBusyId(null);
+                            if (error) showToast('Ошибка', 'error');
+                            else {
+                              showToast('Заявка отклонена', 'success');
+                              void markRead(row.id);
+                            }
+                          }}
+                          className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
+                        >
+                          Отклонить
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {unread && (
-                    <span className="mt-1 shrink-0 rounded-full bg-kiddy-cherry px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white sm:mt-0">
+                  {unread && !showFriendButtons && (
+                    <span className="mt-1 shrink-0 rounded-full bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black sm:mt-0">
                       Новое
                     </span>
                   )}

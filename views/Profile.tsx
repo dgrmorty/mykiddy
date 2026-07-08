@@ -17,6 +17,7 @@ import {
   Medal,
   Sparkles,
   ChevronDown,
+  Settings2,
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase } from '../services/supabase';
@@ -30,6 +31,8 @@ import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
+import { BadgePickerModal } from '../components/BadgePickerModal';
+import { clearAllOnboardingKeys } from '../data/onboardingTour';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
 import {
   AVATAR_BOY_PATH,
@@ -57,6 +60,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
   const [editName, setEditName] = useState(() => (user.id !== 'guest' ? user : initialUser).name);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
@@ -67,7 +71,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const currentUser = user.id !== 'guest' ? user : initialUser;
 
   const badgeUserId = currentUser.id !== 'guest' ? currentUser.id : undefined;
-  const { stats: badgeStats, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
+  const { stats: badgeStats, equippedIds, setEquipped, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
 
   useEffect(() => { refreshBadges(); }, [currentUser.xp, currentUser.level]);
 
@@ -500,7 +504,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
               <div ref={badgesRef} className="overflow-hidden h-0 opacity-0">
                 <div className="flex justify-end mb-4 mt-4">
-                  <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-white text-[10px] uppercase tracking-widest font-bold hover:text-zinc-300 transition-colors flex items-center gap-1">
+                  <button type="button" onClick={() => setBadgeModalOpen(true)} className="text-white text-[10px] uppercase tracking-widest font-bold hover:text-zinc-300 transition-colors flex items-center gap-1">
                     Настроить витрину <ChevronRight size={12} />
                   </button>
                 </div>
@@ -561,8 +565,24 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </>
           )}
 
+          {/* Settings Section */}
+          {currentUser.id !== 'guest' && (
+            <div className="pt-4 animate-slide-up" style={{ animationDelay: '0.45s' }}>
+              <button 
+                onClick={() => {
+                  clearAllOnboardingKeys(currentUser.id);
+                  window.location.reload();
+                }}
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white/5 border border-white/10 text-white rounded-[2rem] font-bold hover:bg-white/10 transition-all group"
+              >
+                <Settings2 size={18} className="group-hover:rotate-45 transition-transform" />
+                Гид по разделам
+              </button>
+            </div>
+          )}
+
           {/* Logout Section */}
-          <div className="pt-8 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <div className="pt-4 animate-slide-up" style={{ animationDelay: '0.5s' }}>
             <button 
               onClick={() => setIsLogoutModalOpen(true)}
               className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-kiddy-cherry/10 border border-kiddy-cherry/20 text-kiddy-cherry rounded-[2rem] font-bold hover:bg-kiddy-cherry/20 transition-all group"
@@ -684,17 +704,17 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
                   <AnimatedIcon name="sparkle" size={24} />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Достижения</h3>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">
-                    {BADGE_CATALOG.filter(b => badgeStats && b.isUnlocked(badgeStats)).length} / {BADGE_CATALOG.length} открыто
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Достижения</h3>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">
+                  {BADGE_CATALOG.filter(b => badgeStats && b.isUnlocked(badgeStats)).length} / {BADGE_CATALOG.length} открыто
+                </p>
               </div>
-              <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-zinc-400 text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
-                Настроить <ChevronRight size={14} />
-              </button>
             </div>
+            <button type="button" onClick={() => setBadgeModalOpen(true)} className="text-zinc-400 text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
+              Настроить <ChevronRight size={14} />
+            </button>
+          </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {BADGE_CATALOG.map((b) => {
@@ -751,8 +771,24 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
           </>
         )}
 
+        {/* Settings Section */}
+        {currentUser.id !== 'guest' && (
+          <div className="pt-4 animate-slide-up" style={{ animationDelay: '0.55s' }}>
+            <button 
+              onClick={() => {
+                clearAllOnboardingKeys(currentUser.id);
+                window.location.reload();
+              }}
+              className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-white/5 border border-white/10 text-white rounded-[2rem] font-bold hover:bg-white/10 transition-all group"
+            >
+              <Settings2 size={20} className="group-hover:rotate-45 transition-transform" />
+              Гид по разделам
+            </button>
+          </div>
+        )}
+
         {/* Logout Section */}
-        <div className="pt-8 animate-slide-up" style={{ animationDelay: '0.6s' }}>
+        <div className="pt-4 animate-slide-up" style={{ animationDelay: '0.6s' }}>
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
             className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-kiddy-cherry/10 border border-kiddy-cherry/20 text-kiddy-cherry rounded-[2rem] font-bold hover:bg-kiddy-cherry/20 transition-all group"
@@ -1002,6 +1038,22 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               </div>
           </div>
       </Modal>
+
+      {badgeUserId && (
+        <BadgePickerModal
+          isOpen={badgeModalOpen}
+          onClose={() => {
+            setBadgeModalOpen(false);
+            refreshBadges();
+          }}
+          stats={badgeStats}
+          equippedIds={equippedIds}
+          onSave={(ids) => {
+            setEquipped(ids);
+            refreshBadges();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -173,11 +173,11 @@ body {
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 /* ─── Utility animation classes ─── */
-.animate-slide-up { animation: slide-up 0.7s var(--ease-apple) both; will-change: transform, opacity; }
-.animate-fade-in { animation: fade-in 0.6s var(--ease-apple) both; will-change: opacity; }
-.animate-fade-in-up { animation: fade-in-up 0.5s var(--ease-apple) both; will-change: transform, opacity; }
-.animate-reveal-up { animation: reveal-up 0.8s var(--ease-apple) both; will-change: transform, opacity; }
-.animate-scale-in { animation: scale-in 0.6s var(--ease-apple) both; will-change: transform, opacity; }
+.animate-slide-up { animation: slide-up 0.7s var(--ease-apple) both; }
+.animate-fade-in { animation: fade-in 0.6s var(--ease-apple) both; }
+.animate-fade-in-up { animation: fade-in-up 0.5s var(--ease-apple) both; }
+.animate-reveal-up { animation: reveal-up 0.8s var(--ease-apple) both; }
+.animate-scale-in { animation: scale-in 0.6s var(--ease-apple) both; }
 
 @keyframes reveal-up {
   0% { opacity: 0; transform: translateY(24px) scale(0.98); }

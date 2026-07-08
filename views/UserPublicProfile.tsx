@@ -171,19 +171,66 @@ export const UserPublicProfile: React.FC = () => {
     return () => ctx.revert();
   }, [isBadgesExpanded]);
 
-  const [isCoursesExpanded, setIsCoursesExpanded] = useState(false);
-  const coursesRef = useRef<HTMLDivElement>(null);
-  useGSAP(() => {
-    if (!coursesRef.current) return;
-    const ctx = gsap.context(() => {
-      if (isCoursesExpanded) {
-        gsap.to(coursesRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
-      } else {
-        gsap.to(coursesRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+  const [userFriendships, setUserFriendships] = useState<FriendshipRow[]>([]);
+  const [loadingUserFriends, setLoadingUserFriends] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingUserFriends(true);
+      try {
+        const { data, error } = await supabase
+          .from('friendships')
+          .select('*')
+          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+          .eq('status', 'accepted');
+        if (error) throw error;
+        if (!cancelled) setUserFriendships((data as FriendshipRow[]) || []);
+      } catch {
+        if (!cancelled) setUserFriendships([]);
+      } finally {
+        if (!cancelled) setLoadingUserFriends(false);
       }
-    }, coursesRef);
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const [communityStudents, setCommunityStudents] = useState<any[]>([]);
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('list_community_students');
+        if (error) throw error;
+        if (!cancelled) setCommunityStudents(data || []);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const userFriendsList = useMemo(() => {
+    if (!communityStudents.length || !userFriendships.length) return [];
+    const friendIds = new Set(userFriendships.map(r => r.requester_id === userId ? r.addressee_id : r.requester_id));
+    return communityStudents.filter(s => friendIds.has(s.id));
+  }, [communityStudents, userFriendships, userId]);
+
+  const [isFriendsExpanded, setIsFriendsExpanded] = useState(false);
+  const userFriendsRef = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!userFriendsRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isFriendsExpanded) {
+        gsap.to(userFriendsRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
+      } else {
+        gsap.to(userFriendsRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+      }
+    }, userFriendsRef);
     return () => ctx.revert();
-  }, [isCoursesExpanded]);
+  }, [isFriendsExpanded]);
 
   if (user.id === 'guest') {
     return <Navigate to="/" replace />;
@@ -527,6 +574,52 @@ export const UserPublicProfile: React.FC = () => {
             </div>
           )}
 
+          {/* Friends Island */}
+          {!loadingUserFriends && userFriendsList.length > 0 && (
+            <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.4s' }}>
+              <button 
+                onClick={() => setIsFriendsExpanded(!isFriendsExpanded)}
+                className="w-full flex items-center justify-between text-left group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
+                    <AnimatedIcon name="usersGroup" size={20} active={isFriendsExpanded} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Друзья</p>
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">
+                      {userFriendsList.length} друзей
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isFriendsExpanded ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div ref={userFriendsRef} className="overflow-hidden h-0 opacity-0">
+                <div className="grid grid-cols-1 gap-3 mt-4">
+                  {userFriendsList.map((friend) => (
+                    <button
+                      key={friend.id}
+                      onClick={() => navigate(`/users/${friend.id}`)}
+                      className="flex items-center gap-3 bg-white/5 rounded-2xl p-3 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-colors text-left"
+                    >
+                      <AvatarImage
+                        src={resolveBundledOrDefault(friend.id, friend.avatar)}
+                        name={friend.name || 'Ученик'}
+                        alt=""
+                        className="h-10 w-10 rounded-full border border-white/10 object-cover shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-white text-sm truncate">{friend.name}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">Ур. {levelFromXp(friend.xp || 0)}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Showcase Section */}
           {(loadingShowcase || showcasePosts.length > 0) && (
             <section className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
@@ -762,9 +855,47 @@ export const UserPublicProfile: React.FC = () => {
           </section>
         )}
 
-        {/* Showcase Section */}
-        {(loadingShowcase || showcasePosts.length > 0) && (
-          <section className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
+              {/* Friends Section */}
+              {!loadingUserFriends && userFriendsList.length > 0 && (
+                <section className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.6s' }}>
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                      <AnimatedIcon name="usersGroup" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Друзья</h3>
+                      <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">
+                        {userFriendsList.length} друзей
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {userFriendsList.map((friend) => (
+                      <button
+                        key={friend.id}
+                        onClick={() => navigate(`/users/${friend.id}`)}
+                        className="flex items-center gap-4 bg-white/5 rounded-2xl p-4 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-colors text-left"
+                      >
+                        <AvatarImage
+                          src={resolveBundledOrDefault(friend.id, friend.avatar)}
+                          name={friend.name || 'Ученик'}
+                          alt=""
+                          className="h-12 w-12 rounded-full border border-white/10 object-cover shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-white text-sm truncate">{friend.name}</p>
+                          <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">Ур. {levelFromXp(friend.xp || 0)}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Showcase Section */}
+              {(loadingShowcase || showcasePosts.length > 0) && (
+                <section className="animate-slide-up" style={{ animationDelay: '0.7s' }}>
             <h3 className="mb-6 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white px-2">
               <Sparkles size={16} className="text-white" />
               Витрина
