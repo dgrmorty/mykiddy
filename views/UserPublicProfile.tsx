@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { Card } from '../components/ui/Card';
 import { AvatarImage } from '../components/AvatarImage';
 import { BadgeOrb } from '../components/BadgeOrb';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,8 +10,9 @@ import { useFriendships, friendshipStateForPair } from '../hooks/useFriendships'
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { useContent } from '../hooks/useContent';
 import { useSkillData } from '../hooks/useSkillData';
-import { BADGE_CATALOG, getBadgeById } from '../data/badgeCatalog';
-import { levelFromXp } from '../progression';
+import { BADGE_CATALOG } from '../data/badgeCatalog';
+import { levelFromXp, xpLevelProgressPercent } from '../progression';
+import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import {
   ChevronLeft,
   Loader2,
@@ -21,18 +21,20 @@ import {
   Clock,
   XCircle,
   Users,
-  Award,
-  Target,
-  BookOpen,
+  Crown,
   Check,
-  Lock,
   Sparkles,
   Trash2,
+  ChevronDown,
 } from 'lucide-react';
 import { fetchUserShowcasePosts, mediaPublicUrl, deleteShowcasePost, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 interface PublicProfileRow {
   id: string;
@@ -62,23 +64,9 @@ export const UserPublicProfile: React.FC = () => {
 
   const myId = user.id !== 'guest' ? user.id : undefined;
   const { rows, loading: loadingFriends, sendRequest, accept, remove } = useFriendships(myId);
-  const { stats: badgeStats, loading: loadingBadges, equippedIds } = useBadgeProgress(userId, { publicView: true });
-  const { courses, loading: loadingCourses, loadError: coursesError } = useContent(userId);
+  const { stats: badgeStats, loading: loadingBadges } = useBadgeProgress(userId, { publicView: true });
+  const { courses, loading: loadingCourses } = useContent(userId);
   const skillData = useSkillData(courses);
-
-  const lessonTotals = useMemo(() => {
-    let total = 0;
-    let done = 0;
-    for (const c of courses) {
-      for (const m of c.modules) {
-        for (const l of m.lessons) {
-          total++;
-          if (l.isCompleted) done++;
-        }
-      }
-    }
-    return { total, done };
-  }, [courses]);
 
   useEffect(() => {
     if (!userId) {
@@ -155,6 +143,48 @@ export const UserPublicProfile: React.FC = () => {
     return friendshipStateForPair(rows, myId, userId);
   }, [rows, myId, userId]);
 
+  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
+  const statsRef = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!statsRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isStatsExpanded) {
+        gsap.to(statsRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
+      } else {
+        gsap.to(statsRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+      }
+    }, statsRef);
+    return () => ctx.revert();
+  }, [isStatsExpanded]);
+
+  const [isBadgesExpanded, setIsBadgesExpanded] = useState(false);
+  const badgesRef = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!badgesRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isBadgesExpanded) {
+        gsap.to(badgesRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
+      } else {
+        gsap.to(badgesRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+      }
+    }, badgesRef);
+    return () => ctx.revert();
+  }, [isBadgesExpanded]);
+
+  const [isCoursesExpanded, setIsCoursesExpanded] = useState(false);
+  const coursesRef = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!coursesRef.current) return;
+    const ctx = gsap.context(() => {
+      if (isCoursesExpanded) {
+        gsap.to(coursesRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
+      } else {
+        gsap.to(coursesRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
+      }
+    }, coursesRef);
+    return () => ctx.revert();
+  }, [isCoursesExpanded]);
+
   if (user.id === 'guest') {
     return <Navigate to="/" replace />;
   }
@@ -198,385 +228,591 @@ export const UserPublicProfile: React.FC = () => {
   const statsReady = profile && !loadingBadges;
   const showProgressSection = statsReady && !loadingCourses;
 
-  return (
-    <div className="space-y-8 pb-20">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-kiddy-textMuted text-sm font-bold hover:text-white transition-colors"
-      >
-        <ChevronLeft size={18} /> Назад
-      </button>
-
-      {loadingProfile ? (
-        <div className="flex justify-center py-24">
-          <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
-        </div>
-      ) : loadError || !profile ? (
-        <Card className="p-10 text-center">
-          <p className="text-white font-bold text-lg mb-2">Профиль недоступен</p>
-          <p className="text-kiddy-textMuted text-sm mb-6">Такого ученика нет или у вас нет доступа к этой странице.</p>
+  const renderFriendButtons = () => {
+    if (!canUseFriends && !isAdminViewer) return null;
+    if (loadingFriends) return <Loader2 className="animate-spin text-white" size={18} />;
+    
+    if (canUseFriends) {
+      if (pairState.label === 'none') {
+        return (
           <button
             type="button"
-            onClick={() => navigate('/community')}
-            className="text-kiddy-cherry text-sm font-bold hover:underline"
+            disabled={actionBusy}
+            onClick={handleAddFriend}
+            className="inline-flex items-center gap-2 rounded-xl bg-white text-black px-4 py-2.5 text-xs font-bold shadow-premium transition-all hover:bg-zinc-200 disabled:opacity-50"
           >
+            {actionBusy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+            В друзья
+          </button>
+        );
+      }
+      if (pairState.label === 'outgoing') {
+        return (
+          <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-zinc-400">
+            <Clock size={16} /> Заявка отправлена
+          </span>
+        );
+      }
+      if (pairState.label === 'incoming' && pairState.row) {
+        return (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={handleAccept}
+              className="inline-flex items-center gap-2 rounded-xl bg-white text-black px-4 py-2.5 text-xs font-bold shadow-premium hover:bg-zinc-200 disabled:opacity-50"
+            >
+              {actionBusy ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
+              Принять
+            </button>
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={handleRemove}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-zinc-400 hover:text-white disabled:opacity-50"
+            >
+              <XCircle size={16} />
+            </button>
+          </div>
+        );
+      }
+      if (pairState.label === 'friends') {
+        return (
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-400">
+              <Users size={16} /> В друзьях
+            </span>
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={handleRemove}
+              className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-kiddy-cherry transition-colors"
+            >
+              Удалить
+            </button>
+          </div>
+        );
+      }
+    }
+    return null;
+  };
+
+  if (loadingProfile) {
+    return (
+      <div className="flex justify-center py-24">
+        <Loader2 className="animate-spin text-white" size={40} />
+      </div>
+    );
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="space-y-8 pb-20 max-w-4xl mx-auto">
+        <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-zinc-500 text-sm font-bold hover:text-white transition-colors">
+          <ChevronLeft size={18} /> Назад
+        </button>
+        <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-10 text-center">
+          <p className="text-white font-bold text-lg mb-2">Профиль недоступен</p>
+          <p className="text-zinc-500 text-sm mb-6">Такого ученика нет или у вас нет доступа к этой странице.</p>
+          <button type="button" onClick={() => navigate('/community')} className="text-white text-sm font-bold hover:underline">
             К каталогу учеников →
           </button>
-        </Card>
-      ) : (
-        <>
-          <section className="relative overflow-hidden rounded-[2.5rem] border border-white/[0.08] bg-kiddy-surfaceElevated/80 p-8 md:p-12">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_-20%,rgba(230,0,43,0.12),transparent)]" />
-            <div className="relative flex flex-col md:flex-row items-center gap-8 md:gap-12">
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* ========================================= */}
+      {/* MOBILE VIEW                               */}
+      {/* ========================================= */}
+      <div className="md:hidden space-y-6 pb-24 max-md:pb-28">
+        <div className="px-4">
+          <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-zinc-500 text-sm font-bold hover:text-white transition-colors pt-4">
+            <ChevronLeft size={18} /> Назад
+          </button>
+        </div>
+
+        {/* Sticky Header Island */}
+        <section className="sticky top-4 z-40 mx-auto w-full max-w-3xl rounded-[2.5rem] bg-black/80 backdrop-blur-2xl border border-white/10 shadow-island p-4 transition-all animate-slide-up">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
               <div className="relative shrink-0">
-                <div className="absolute inset-0 rounded-full bg-kiddy-cherry/20 blur-2xl scale-110" />
-                <div className="relative h-44 w-44 md:h-48 md:w-48">
-                  {equippedIds
-                    .filter((id): id is string => Boolean(id && getBadgeById(id)))
-                    .map((id, i, placed) => {
-                      const n = placed.length;
-                      const cx = 88;
-                      const r = 76;
-                      const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
-                      const left = cx + r * Math.cos(angle) - 17;
-                      const top = cx + r * Math.sin(angle) - 17;
-                      const b = getBadgeById(id)!;
-                      return (
-                        <div key={`${id}-${i}`} className="absolute z-20" style={{ left, top, width: 34, height: 34 }}>
-                          <BadgeOrb tier={b.tier} icon={b.icon} size={34} />
-                        </div>
-                      );
-                    })}
-                  <div className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-zinc-700 shadow-2xl md:h-32 md:w-32">
-                    <AvatarImage
-                      src={resolveBundledOrDefault(profile.id, profile.avatar)}
-                      name={profile.name || 'У'}
-                      alt=""
-                      className="h-full w-full origin-center scale-[1.14] object-cover object-center"
-                    />
-                  </div>
-                  <div className="absolute -bottom-1 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] font-bold text-white">
-                    LVL {level}
-                  </div>
+                <AvatarImage
+                  src={resolveBundledOrDefault(profile.id, profile.avatar)}
+                  name={profile.name || 'У'}
+                  alt=""
+                  className="h-14 w-14 rounded-full border border-white/20 object-cover"
+                />
+                <div className="absolute -bottom-1 -right-1 bg-white text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-black z-20">
+                  LVL {level}
                 </div>
               </div>
-              <div className="flex-1 text-center md:text-left min-w-0">
-                <p className="text-kiddy-cherry text-[10px] font-bold uppercase tracking-[0.35em] mb-2">Ученик</p>
-                <h1 className="font-display text-3xl md:text-5xl font-bold text-white tracking-tight italic mb-4 break-words">
-                  {profile.name || 'Ученик'}
+              
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Crown className="text-white shrink-0" size={12} />
+                  <span className="text-zinc-400 text-[9px] font-bold uppercase tracking-[0.2em] truncate">Ученик</span>
+                </div>
+                <h1 className="text-xl font-display font-bold text-white tracking-tight truncate">
+                  {profile.name}
                 </h1>
-                <p className="text-kiddy-textMuted text-sm font-mono mb-2">
-                  {xp.toLocaleString()} <span className="text-kiddy-textSecondary">XP</span>
-                </p>
-                {statsReady && badgeStats?.leaderboardRank != null && (
-                  <p className="text-kiddy-textMuted text-xs mb-6">
-                    Место в рейтинге: <span className="font-bold text-white">#{badgeStats.leaderboardRank}</span>
-                  </p>
-                )}
-                {!statsReady && (
-                  <div className="mb-6 flex justify-center md:justify-start">
-                    <Loader2 className="animate-spin text-kiddy-cherry/80" size={22} />
-                  </div>
-                )}
-
-                {!loadingFriends && canUseFriends && (
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                    {pairState.label === 'none' && (
-                      <button
-                        type="button"
-                        disabled={actionBusy}
-                        onClick={handleAddFriend}
-                        className="inline-flex items-center gap-2 rounded-xl bg-kiddy-cherry px-5 py-3 text-sm font-bold text-white shadow-lg shadow-kiddy-cherry/20 transition-all hover:bg-kiddy-cherryHover disabled:opacity-50"
-                      >
-                        {actionBusy ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
-                        В друзья
-                      </button>
-                    )}
-                    {pairState.label === 'outgoing' && (
-                      <span className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200">
-                        <Clock size={16} /> Заявка отправлена
-                      </span>
-                    )}
-                    {pairState.label === 'incoming' && pairState.row && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={actionBusy}
-                          onClick={handleAccept}
-                          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
-                        >
-                          {actionBusy ? <Loader2 size={18} className="animate-spin" /> : <UserCheck size={18} />}
-                          Принять
-                        </button>
-                        <button
-                          type="button"
-                          disabled={actionBusy}
-                          onClick={handleRemove}
-                          className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-kiddy-textMuted hover:text-white disabled:opacity-50"
-                        >
-                          <XCircle size={18} /> Отклонить
-                        </button>
-                      </>
-                    )}
-                    {pairState.label === 'friends' && (
-                      <>
-                        <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200">
-                          <Users size={16} /> У вас в друзьях
-                        </span>
-                        <button
-                          type="button"
-                          disabled={actionBusy}
-                          onClick={handleRemove}
-                          className="text-xs font-bold uppercase tracking-widest text-kiddy-textMuted hover:text-kiddy-cherry transition-colors"
-                        >
-                          Убрать из друзей
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {!canUseFriends && user.role !== Role.STUDENT && (
-                  <p className="text-kiddy-textMuted text-xs max-w-md">
-                    Добавлять в друзья могут только ученики. Вы можете просматривать профили одноклассников.
-                  </p>
-                )}
               </div>
             </div>
-          </section>
+            <div className="shrink-0">
+              {renderFriendButtons()}
+            </div>
+          </div>
+        </section>
 
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* Stats Island */}
+          <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <button 
+              onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+              className="w-full flex items-center justify-between text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
+                  <AnimatedIcon name="zap" size={20} active={isStatsExpanded} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Статистика</p>
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">
+                    {xp.toLocaleString()} XP • Ранг #{badgeStats?.leaderboardRank ?? '—'}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isStatsExpanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            <div ref={statsRef} className="overflow-hidden h-0 opacity-0">
+              <div className="grid grid-cols-2 gap-4 mb-6 mt-6">
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Опыт</p>
+                  <p className="text-2xl font-display font-bold text-white">{xp.toLocaleString()}</p>
+                  <div className="mt-3 space-y-1.5">
+                    <div className="flex justify-between text-[9px] font-bold uppercase text-zinc-400">
+                      <span>Прогресс</span>
+                      <span>{Math.min(100, xpLevelProgressPercent(xp)).toFixed(0)}%</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, xpLevelProgressPercent(xp))}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Рейтинг</p>
+                    <p className="text-2xl font-display font-bold text-white">#{badgeStats?.leaderboardRank ?? '—'}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {showProgressSection && courses.length > 0 && (
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-4 text-center">Матрица компетенций</p>
+                  <div className="h-56 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
+                        <PolarGrid stroke="#333" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
+                        <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Achievements Island */}
           {statsReady && badgeStats && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Card className="border-white/[0.06]" noPadding>
-                <div className="flex items-center gap-3 p-6">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04]">
-                    <BookOpen className="text-kiddy-cherry" size={20} />
+            <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <button 
+                onClick={() => setIsBadgesExpanded(!isBadgesExpanded)}
+                className="w-full flex items-center justify-between text-left group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
+                    <AnimatedIcon name="sparkle" size={20} active={isBadgesExpanded} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Уроки</p>
-                    <p className="font-display text-2xl font-bold text-white">
-                      {badgeStats.lessonsCompleted}
-                      {lessonTotals.total > 0 && (
-                        <span className="text-base font-semibold text-kiddy-textMuted"> / {lessonTotals.total}</span>
-                      )}
+                    <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Достижения</p>
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">
+                      {BADGE_CATALOG.filter(b => b.isUnlocked(badgeStats)).length} / {BADGE_CATALOG.length} открыто
                     </p>
-                    <p className="text-kiddy-textMuted text-xs mt-0.5">завершено в каталоге</p>
                   </div>
                 </div>
-              </Card>
-              <Card className="border-white/[0.06]" noPadding>
-                <div className="flex items-center gap-3 p-6">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04]">
-                    <Award className="text-amber-400/90" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Домашки</p>
-                    <p className="font-display text-2xl font-bold text-white">{badgeStats.homeworkSubmitted}</p>
-                    <p className="text-kiddy-textMuted text-xs mt-0.5">сдано через платформу</p>
-                  </div>
+                <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isBadgesExpanded ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div ref={badgesRef} className="overflow-hidden h-0 opacity-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  {BADGE_CATALOG.map((b) => {
+                    const unlocked = b.isUnlocked(badgeStats);
+                    const prog = b.progress(badgeStats);
+                    return (
+                      <div
+                        key={b.id}
+                        className={`flex items-center gap-4 p-3 rounded-2xl border transition-all ${
+                          unlocked ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-50'
+                        }`}
+                      >
+                        <BadgeOrb tier={b.tier} icon={b.icon} size={40} locked={!unlocked} />
+                        <div className="flex-1 min-w-0">
+                          <span className={`font-bold text-sm truncate block ${unlocked ? 'text-white' : 'text-zinc-500'}`}>{b.title}</span>
+                          <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{b.requirement}</p>
+                          {!unlocked && (
+                            <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                              <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
+                            </div>
+                          )}
+                        </div>
+                        {unlocked && <Check size={14} className="text-white shrink-0 mr-1" />}
+                      </div>
+                    );
+                  })}
                 </div>
-              </Card>
-              <Card className="border-white/[0.06]" noPadding>
-                <div className="flex items-center gap-3 p-6">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04]">
-                    <Target className="text-emerald-400/90" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">Рейтинг</p>
-                    <p className="font-display text-2xl font-bold text-white">
-                      {badgeStats.leaderboardRank != null ? `#${badgeStats.leaderboardRank}` : '—'}
-                    </p>
-                    <p className="text-kiddy-textMuted text-xs mt-0.5">по XP в школе</p>
-                  </div>
-                </div>
-              </Card>
+              </div>
             </div>
           )}
 
-          {showProgressSection && coursesError && (
-            <p className="text-kiddy-textMuted text-sm text-center">Курсы временно не загрузились — прогресс по модулям скрыт.</p>
-          )}
-
+          {/* Courses Island */}
           {showProgressSection && courses.length > 0 && (
-            <Card className="border-white/[0.08] bg-kiddy-surfaceElevated/80 p-8 md:p-10" noPadding>
-              <div className="mb-8 flex items-center gap-3 px-8 pt-8 md:px-10 md:pt-10">
-                <Target size={18} className="text-kiddy-cherry" />
-                <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white">Матрица компетенций</h3>
+            <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <button 
+                onClick={() => setIsCoursesExpanded(!isCoursesExpanded)}
+                className="w-full flex items-center justify-between text-left group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
+                    <AnimatedIcon name="book" size={20} active={isCoursesExpanded} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Прогресс по курсам</p>
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">
+                      {courses.length} курсов
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isCoursesExpanded ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div ref={coursesRef} className="overflow-hidden h-0 opacity-0">
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                  {courses.map((course) => (
+                    <div key={course.id} className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                        <h4 className="font-bold text-white text-sm leading-snug">{course.title}</h4>
+                        <span className="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                          {COURSE_YEAR_LABELS[course.yearTier]}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                        <span>Прогресс</span>
+                        <span className="text-white">{course.progress}%</span>
+                      </div>
+                      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-white transition-all duration-500"
+                          style={{ width: `${course.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="h-64 w-full px-4 pb-8 md:px-8">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
-                    <PolarGrid stroke="#18181b" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 10, fontWeight: 700 }} />
-                    <Radar name="Уровень" dataKey="A" stroke="#be123c" fill="#be123c" fillOpacity={0.4} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+            </div>
           )}
 
+          {/* Showcase Section */}
           {(loadingShowcase || showcasePosts.length > 0) && (
-            <section>
-              <h3 className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white">
-                <Sparkles size={16} className="text-kiddy-cherry" />
+            <section className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
+              <h3 className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white px-2">
+                <Sparkles size={16} className="text-white" />
                 Витрина
               </h3>
               {loadingShowcase ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="animate-spin text-kiddy-cherry/80" size={28} />
+                  <Loader2 className="animate-spin text-white" size={28} />
                 </div>
               ) : (
                 <div className="space-y-4">
                   {showcasePosts.map((post) => {
                     const text = showcasePostBody((post.phrase_selections || {}) as PhraseSelections);
                     const media = (post.media || []) as MediaItem[];
-                    const statusLabel =
-                      post.status === 'approved'
-                        ? null
-                        : post.status === 'pending'
-                          ? 'На проверке'
-                          : 'Нужны правки';
                     return (
-                      <Card key={post.id} className="border-white/[0.08] bg-kiddy-surfaceElevated/60 p-5">
-                        {(statusLabel || isAdminViewer) && (
-                        <div
-                          className={`mb-3 flex flex-wrap items-center gap-2 ${statusLabel ? 'justify-between' : 'justify-end'}`}
-                        >
-                          {statusLabel && (
-                            <span className="inline-block rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200">
-                              {statusLabel}
-                            </span>
-                          )}
-                          {isAdminViewer && (
+                      <div key={post.id} className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-6">
+                        {isAdminViewer && (
+                          <div className="mb-4 flex justify-end">
                             <button
                               type="button"
                               disabled={deletingShowcaseId === post.id}
                               onClick={() => void handleDeleteShowcasePost(post.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-red-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
                             >
-                              {deletingShowcaseId === post.id ? (
-                                <Loader2 className="animate-spin" size={14} />
-                              ) : (
-                                <Trash2 size={14} />
-                              )}
+                              {deletingShowcaseId === post.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
                               Удалить
                             </button>
-                          )}
-                        </div>
+                          </div>
                         )}
-                        <p className="text-sm text-kiddy-textSecondary leading-relaxed whitespace-pre-wrap">{text}</p>
-                        {post.status === 'rejected' && post.reject_reason && (
-                          <p className="mt-2 text-xs text-kiddy-textMuted border-l-2 border-kiddy-cherry/40 pl-3">
-                            Комментарий наставника: {post.reject_reason}
-                          </p>
-                        )}
+                        <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{text}</p>
                         {media.length > 0 && (
                           <div className="mt-4 flex flex-wrap gap-2">
                             {media.map((m, i) =>
                               m.kind === 'video' ? (
-                                <video
-                                  key={i}
-                                  src={mediaPublicUrl(m.path)}
-                                  className="max-h-48 rounded-xl border border-white/10"
-                                  controls
-                                  muted
-                                />
+                                <video key={i} src={mediaPublicUrl(m.path)} className="max-h-48 rounded-xl border border-white/10" controls muted />
                               ) : (
-                                <img
-                                  key={i}
-                                  src={mediaPublicUrl(m.path)}
-                                  alt=""
-                                  className="max-h-48 rounded-xl border border-white/10 object-cover"
-                                />
-                              ),
+                                <img key={i} src={mediaPublicUrl(m.path)} alt="" className="max-h-48 rounded-xl border border-white/10 object-cover" />
+                              )
                             )}
                           </div>
                         )}
-                      </Card>
+                      </div>
                     );
                   })}
                 </div>
               )}
             </section>
           )}
+        </div>
+      </div>
+
+      {/* ========================================= */}
+      {/* DESKTOP VIEW                                */}
+      {/* ========================================= */}
+      <div className="hidden md:block space-y-8 pb-20 max-w-4xl mx-auto">
+        <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-zinc-500 text-sm font-bold hover:text-white transition-colors pt-4">
+          <ChevronLeft size={18} /> Назад
+        </button>
+
+        {/* Profile Header Card */}
+        <section className="relative w-full rounded-[3rem] bg-white/5 border border-white/10 shadow-premium p-8 md:p-12 overflow-hidden animate-slide-up">
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+            <div className="relative shrink-0">
+              <AvatarImage
+                src={resolveBundledOrDefault(profile.id, profile.avatar)}
+                name={profile.name || 'У'}
+                alt=""
+                className="h-32 w-32 rounded-full border-2 border-white/20 object-cover shadow-2xl"
+              />
+              <div className="absolute -bottom-2 -right-2 bg-white text-black text-xs font-bold px-2.5 py-1 rounded-full border-2 border-black z-20 shadow-lg">
+                LVL {level}
+              </div>
+            </div>
+            
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                <Crown className="text-white shrink-0" size={14} />
+                <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.3em]">Ученик</span>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-display font-bold text-white tracking-tight mb-2">
+                {profile.name}
+              </h1>
+              <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
+                ID: {profile.id.substring(0, 8)}
+              </p>
+            </div>
+
+            <div className="shrink-0 w-full md:w-auto mt-4 md:mt-0">
+              {renderFriendButtons()}
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-6">
+            <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                  <AnimatedIcon name="zap" size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Опыт</p>
+                  <p className="text-3xl font-display font-bold text-white">{xp.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  <span>Прогресс уровня</span>
+                  <span>{Math.min(100, xpLevelProgressPercent(xp)).toFixed(0)}%</span>
+                </div>
+                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, xpLevelProgressPercent(xp))}%` }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 flex flex-col justify-between animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                  <AnimatedIcon name="user" size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Рейтинг</p>
+                  <p className="text-3xl font-display font-bold text-white">#{badgeStats?.leaderboardRank ?? '—'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {showProgressSection && courses.length > 0 && (
-            <section>
-              <h3 className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white">
-                <BookOpen size={16} className="text-kiddy-cherry" />
-                Прогресс по курсам
-              </h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {courses.map((course) => (
-                  <Card key={course.id} className="border-white/[0.06] p-5">
-                    <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                      <h4 className="font-bold text-white leading-snug">{course.title}</h4>
-                      <span className="shrink-0 rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-kiddy-textMuted">
-                        {COURSE_YEAR_LABELS[course.yearTier]}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-kiddy-textMuted">
-                      <span>Прогресс</span>
-                      <span className="text-white">{course.progress}%</span>
-                    </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-kiddy-surfaceHighlight">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-kiddy-cherry to-kiddy-cherryHover transition-all duration-500"
-                        style={{ width: `${course.progress}%` }}
-                      />
-                    </div>
-                  </Card>
-                ))}
+            <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <div className="flex items-center justify-between mb-6">
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Матрица компетенций</p>
               </div>
-            </section>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
+                    <PolarGrid stroke="#333" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
+                    <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           )}
+        </section>
 
-          {statsReady && badgeStats && (
-            <section>
-              <h3 className="mb-6 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white">
-                <Award size={16} className="text-kiddy-cherry" />
-                Достижения
-              </h3>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {BADGE_CATALOG.map((b) => {
-                  const unlocked = b.isUnlocked(badgeStats);
-                  const prog = b.progress(badgeStats);
-                  return (
+        {/* Achievements Section */}
+        {statsReady && badgeStats && (
+          <section className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <AnimatedIcon name="sparkle" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Достижения</h3>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">
+                  {BADGE_CATALOG.filter(b => b.isUnlocked(badgeStats)).length} / {BADGE_CATALOG.length} открыто
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {BADGE_CATALOG.map((b) => {
+                const unlocked = b.isUnlocked(badgeStats);
+                const prog = b.progress(badgeStats);
+                return (
+                  <div
+                    key={b.id}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                      unlocked ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-50'
+                    }`}
+                  >
+                    <BadgeOrb tier={b.tier} icon={b.icon} size={48} locked={!unlocked} />
+                    <div className="flex-1 min-w-0">
+                      <span className={`font-bold text-sm truncate block ${unlocked ? 'text-white' : 'text-zinc-500'}`}>{b.title}</span>
+                      <p className="text-zinc-500 text-[10px] mt-1 leading-tight">{b.requirement}</p>
+                      {!unlocked && (
+                        <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Courses Section */}
+        {showProgressSection && courses.length > 0 && (
+          <section className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <AnimatedIcon name="book" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Прогресс по курсам</h3>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">
+                  {courses.length} курсов
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {courses.map((course) => (
+                <div key={course.id} className="bg-white/5 rounded-2xl p-6 border border-white/5">
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                    <h4 className="font-bold text-white leading-snug">{course.title}</h4>
+                    <span className="shrink-0 rounded-full border border-white/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      {COURSE_YEAR_LABELS[course.yearTier]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                    <span>Прогресс</span>
+                    <span className="text-white">{course.progress}%</span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                     <div
-                      key={b.id}
-                      className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${
-                        unlocked
-                          ? 'border-white/[0.08] bg-kiddy-surfaceElevated/80'
-                          : 'border-white/[0.04] bg-kiddy-surfaceElevated/40 opacity-75'
-                      }`}
-                    >
-                      <BadgeOrb tier={b.tier} icon={b.icon} size={44} locked={!unlocked} />
-                      <div className="min-w-0 flex-1">
-                        <span className={`font-bold text-sm ${unlocked ? 'text-white' : 'text-kiddy-textMuted'}`}>{b.title}</span>
-                        <p className="mt-0.5 text-xs text-kiddy-textMuted">{b.requirement}</p>
-                        {!unlocked && (
-                          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                            <div
-                              className="h-full rounded-full bg-kiddy-cherry/60 transition-all duration-500"
-                              style={{ width: `${prog * 100}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      {unlocked ? (
-                        <Check size={16} className="shrink-0 text-emerald-400" />
-                      ) : (
-                        <Lock size={14} className="shrink-0 text-kiddy-textMuted" />
+                      className="h-full rounded-full bg-white transition-all duration-500"
+                      style={{ width: `${course.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Showcase Section */}
+        {(loadingShowcase || showcasePosts.length > 0) && (
+          <section className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
+            <h3 className="mb-6 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.3em] text-white px-2">
+              <Sparkles size={16} className="text-white" />
+              Витрина
+            </h3>
+            {loadingShowcase ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="animate-spin text-white" size={28} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {showcasePosts.map((post) => {
+                  const text = showcasePostBody((post.phrase_selections || {}) as PhraseSelections);
+                  const media = (post.media || []) as MediaItem[];
+                  return (
+                    <div key={post.id} className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8">
+                      {isAdminViewer && (
+                        <div className="mb-4 flex justify-end">
+                          <button
+                            type="button"
+                            disabled={deletingShowcaseId === post.id}
+                            onClick={() => void handleDeleteShowcasePost(post.id)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-red-500/10 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            {deletingShowcaseId === post.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                            Удалить
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{text}</p>
+                      {media.length > 0 && (
+                        <div className="mt-6 flex flex-wrap gap-3">
+                          {media.map((m, i) =>
+                            m.kind === 'video' ? (
+                              <video key={i} src={mediaPublicUrl(m.path)} className="max-h-64 rounded-xl border border-white/10" controls muted />
+                            ) : (
+                              <img key={i} src={mediaPublicUrl(m.path)} alt="" className="max-h-64 rounded-xl border border-white/10 object-cover" />
+                            )
+                          )}
+                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
-            </section>
-          )}
-        </>
-      )}
-    </div>
+            )}
+          </section>
+        )}
+      </div>
+    </>
   );
 };
