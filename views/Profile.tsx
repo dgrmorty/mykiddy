@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
@@ -9,7 +9,6 @@ import {
   Crown,
   ChevronRight,
   Edit2,
-  Check,
   X,
   Loader2,
   LogOut,
@@ -17,7 +16,6 @@ import {
   Trophy,
   Medal,
   Sparkles,
-  ChevronDown,
 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase } from '../services/supabase';
@@ -90,7 +88,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setEditName(currentUser.name);
   }, [currentUser]);
 
-  const profileAvatarSrc = resolveBundledOrDefault(currentUser.id, currentUser.avatar);
   const effectiveBundledAvatar = resolveBundledOrDefault(currentUser.id, currentUser.avatar);
 
   const saveBundledAvatar = async (path: typeof AVATAR_BOY_PATH | typeof AVATAR_GIRL_PATH) => {
@@ -118,51 +115,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
       setAvatarSaving(false);
     }
   };
-
-  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
-  const statsRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    if (!statsRef.current) return;
-    const ctx = gsap.context(() => {
-      if (isStatsExpanded) {
-        gsap.to(statsRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
-      } else {
-        gsap.to(statsRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
-      }
-    }, statsRef);
-    return () => ctx.revert();
-  }, [isStatsExpanded]);
-
-  const [isBadgesExpanded, setIsBadgesExpanded] = useState(false);
-  const badgesRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    if (!badgesRef.current) return;
-    const ctx = gsap.context(() => {
-      if (isBadgesExpanded) {
-        gsap.to(badgesRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
-      } else {
-        gsap.to(badgesRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
-      }
-    }, badgesRef);
-    return () => ctx.revert();
-  }, [isBadgesExpanded]);
-
-  const [isAvatarPickerExpanded, setIsAvatarPickerExpanded] = useState(false);
-  const avatarPickerRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    if (!avatarPickerRef.current) return;
-    const ctx = gsap.context(() => {
-      if (isAvatarPickerExpanded) {
-        gsap.to(avatarPickerRef.current, { height: 'auto', opacity: 1, duration: 0.6, ease: 'expo.out', marginTop: 16 });
-      } else {
-        gsap.to(avatarPickerRef.current, { height: 0, opacity: 0, duration: 0.4, ease: 'expo.out', marginTop: 0 });
-      }
-    }, avatarPickerRef);
-    return () => ctx.revert();
-  }, [isAvatarPickerExpanded]);
 
   const [myRank, setMyRank] = useState<number | null>(null);
 
@@ -298,93 +250,220 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   };
 
   return (
-    <div className="space-y-6 pb-24 max-md:pb-28 md:pb-20">
-      {/* Sticky Header Island */}
-      <section className="sticky top-4 z-40 mx-auto w-full max-w-3xl rounded-[2.5rem] bg-black/80 backdrop-blur-2xl border border-white/10 shadow-island p-4 transition-all animate-slide-up">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            {isEditing ? (
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/20 bg-zinc-800">
-                <img src={profileAvatarSrc} className="h-full w-full object-cover scale-110" alt="" />
-                {saving && <div className="absolute inset-0 flex items-center justify-center bg-black/60"><Loader2 className="animate-spin text-white" size={16} /></div>}
-              </div>
-            ) : (
-              <div className="relative shrink-0">
-                <UserAvatar user={currentUser} size="lg" />
-                <div className="absolute -bottom-1 -right-1 bg-white text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-black z-20">
-                  LVL {currentUser.level}
-                </div>
-              </div>
-            )}
-            
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <Crown className="text-white shrink-0" size={12} />
-                <span className="text-zinc-400 text-[9px] font-bold uppercase tracking-[0.2em] truncate">Верифицирован</span>
-              </div>
-              {isEditing ? (
-                <input 
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="bg-white/10 border border-white/20 text-lg font-display font-bold text-white outline-none w-full px-3 py-1 rounded-xl focus:border-white/40 transition-colors"
-                  placeholder="Имя пользователя"
-                  autoFocus
-                />
-              ) : (
-                <h1 className="text-xl md:text-2xl font-display font-bold text-white tracking-tight truncate">
-                  {currentUser.name}
-                </h1>
-              )}
+    <div className="space-y-8 pb-24 max-md:pb-28 md:pb-20 max-w-4xl mx-auto">
+      {/* Profile Header Card */}
+      <section className="relative w-full rounded-[3rem] bg-white/5 border border-white/10 shadow-premium p-8 md:p-12 overflow-hidden animate-slide-up">
+        {/* Subtle background glow */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+          <div className="relative shrink-0">
+            <UserAvatar user={currentUser} size="xl" />
+            <div className="absolute -bottom-2 -right-2 bg-white text-black text-xs font-bold px-2.5 py-1 rounded-full border-2 border-black z-20 shadow-lg">
+              LVL {currentUser.level}
             </div>
           </div>
+          
+          <div className="flex-1 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+              <Crown className="text-white shrink-0" size={14} />
+              <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.3em]">Верифицирован</span>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-display font-bold text-white tracking-tight mb-2">
+              {currentUser.name}
+            </h1>
+            <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
+              ID: {currentUser.id.substring(0, 8)}
+            </p>
+          </div>
 
-          <div className="shrink-0 flex items-center gap-2">
-            {isEditing ? (
-              <>
-                <button onClick={() => setIsEditing(false)} disabled={saving} className="p-2.5 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-colors">
-                  <X size={18} />
-                </button>
-                <button onClick={handleSave} disabled={saving} className="p-2.5 bg-white rounded-xl text-black shadow-premium hover:bg-zinc-200 transition-colors">
-                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} strokeWidth={2.5} />}
-                </button>
-              </>
-            ) : (
-              <button onClick={() => setIsEditing(true)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors">
-                <Edit2 size={18} />
-              </button>
-            )}
+          <div className="shrink-0 w-full md:w-auto mt-4 md:mt-0">
+            <button 
+              onClick={() => setIsEditing(true)} 
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-white text-black rounded-2xl font-bold hover:bg-zinc-200 transition-all active:scale-[0.98]"
+            >
+              <Edit2 size={18} />
+              Редактировать профиль
+            </button>
           </div>
         </div>
       </section>
 
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Avatar Picker Island */}
-        {currentUser.id !== 'guest' && (
-          <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.1s' }}>
+      {/* Stats Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-6">
+          <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <AnimatedIcon name="zap" size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Опыт</p>
+                <p className="text-3xl font-display font-bold text-white">{currentUser.xp.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                <span>До след. уровня</span>
+                <span>{Math.min(100, xpLevelProgressPercent(currentUser.xp)).toFixed(0)}%</span>
+              </div>
+              <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, xpLevelProgressPercent(currentUser.xp))}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 flex flex-col justify-between animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <AnimatedIcon name="user" size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Рейтинг</p>
+                <p className="text-3xl font-display font-bold text-white">#{myRank ?? '—'}</p>
+              </div>
+            </div>
             <button 
-              onClick={() => setIsAvatarPickerExpanded(!isAvatarPickerExpanded)}
-              className="w-full flex items-center justify-between text-left group"
+              onClick={() => setIsLeaderboardOpen(true)}
+              className="flex items-center justify-between w-full p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
-                  <AnimatedIcon name="user" size={20} active={isAvatarPickerExpanded} />
+              <span className="text-xs font-bold uppercase tracking-widest text-white">Лидерборд</span>
+              <ChevronRight size={16} className="text-zinc-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500">Матрица компетенций</p>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
+                <PolarGrid stroke="#333" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
+                <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
+
+      {/* Achievements Section */}
+      {badgeUserId && (
+        <section className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <AnimatedIcon name="sparkle" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Достижения</h3>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">
+                  {BADGE_CATALOG.filter(b => badgeStats && b.isUnlocked(badgeStats)).length} / {BADGE_CATALOG.length} открыто
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-zinc-400 text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
+              Настроить <ChevronRight size={14} />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {BADGE_CATALOG.map((b) => {
+              const unlocked = badgeStats ? b.isUnlocked(badgeStats) : false;
+              const prog = badgeStats ? b.progress(badgeStats) : 0;
+              return (
+                <div
+                  key={b.id}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                    unlocked ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-50'
+                  }`}
+                >
+                  <BadgeOrb tier={b.tier} icon={b.icon} size={48} locked={!unlocked} />
+                  <div className="flex-1 min-w-0">
+                    <span className={`font-bold text-sm truncate block ${unlocked ? 'text-white' : 'text-zinc-500'}`}>{b.title}</span>
+                    <p className="text-zinc-500 text-[10px] mt-1 leading-tight">{b.requirement}</p>
+                    {!unlocked && (
+                      <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Showcase Submit Island */}
+      {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
+        <>
+          <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
+          <section id="showcase-submit" className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up scroll-mt-24" style={{ animationDelay: '0.5s' }}>
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                  <Sparkles size={24} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Внешность</p>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">Сменить персонажа</p>
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Витрина</p>
+                  <h3 className="text-lg font-bold text-white">Выложить проект</h3>
                 </div>
               </div>
-              <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isAvatarPickerExpanded ? 'rotate-180' : ''}`} />
+              <button
+                type="button"
+                onClick={() => setShowcaseModalOpen(true)}
+                className="w-full sm:w-auto rounded-2xl bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
+              >
+                Отправить работу
+              </button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Logout Section */}
+      <div className="pt-8 animate-slide-up" style={{ animationDelay: '0.6s' }}>
+        <button 
+          onClick={() => setIsLogoutModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-kiddy-cherry/10 border border-kiddy-cherry/20 text-kiddy-cherry rounded-[2rem] font-bold hover:bg-kiddy-cherry/20 transition-all group"
+        >
+          <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
+          Выход из системы
+        </button>
+      </div>
+
+      {/* Edit Profile Modal */}
+      <Modal isOpen={isEditing} onClose={() => !saving && setIsEditing(false)} maxWidth="max-w-md">
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-display font-bold text-white">Редактировать профиль</h2>
+            <button onClick={() => setIsEditing(false)} disabled={saving} className="text-zinc-500 hover:text-white transition-colors">
+              <X size={24} />
             </button>
-            
-            <div ref={avatarPickerRef} className="overflow-hidden h-0 opacity-0">
-              <p className="mb-4 text-xs text-zinc-400">Выберите персонажа, он сразу сохранится в профиле.</p>
-              <div className="flex flex-wrap items-center gap-4">
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Имя пользователя</label>
+              <input 
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 text-white text-lg font-bold px-4 py-4 rounded-2xl focus:border-white/30 focus:bg-white/10 transition-all outline-none"
+                placeholder="Твое имя"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Внешность</label>
+              <div className="flex gap-4">
                 <button
                   type="button"
                   disabled={avatarSaving}
                   onClick={() => void saveBundledAvatar(AVATAR_BOY_PATH)}
-                  className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-800 transition-all disabled:opacity-50 ${
+                  className={`relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-800 transition-all disabled:opacity-50 ${
                     effectiveBundledAvatar === AVATAR_BOY_PATH
                       ? 'border-white ring-2 ring-white/30'
                       : 'border-white/10 hover:border-white/30'
@@ -396,7 +475,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                   type="button"
                   disabled={avatarSaving}
                   onClick={() => void saveBundledAvatar(AVATAR_GIRL_PATH)}
-                  className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-800 transition-all disabled:opacity-50 ${
+                  className={`relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 bg-zinc-800 transition-all disabled:opacity-50 ${
                     effectiveBundledAvatar === AVATAR_GIRL_PATH
                       ? 'border-white ring-2 ring-white/30'
                       : 'border-white/10 hover:border-white/30'
@@ -404,171 +483,20 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 >
                   <img src={AVATAR_GIRL_PATH} alt="" className="h-full w-full scale-110 object-cover" />
                 </button>
-                {avatarSaving && <Loader2 className="animate-spin text-white" size={22} />}
+                {avatarSaving && <div className="h-24 w-24 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={24} /></div>}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Stats Island (XP, Rank, Matrix) */}
-        <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <button 
-            onClick={() => setIsStatsExpanded(!isStatsExpanded)}
-            className="w-full flex items-center justify-between text-left group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
-                <AnimatedIcon name="zap" size={20} active={isStatsExpanded} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Статистика</p>
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">
-                  {currentUser.xp.toLocaleString()} XP • Ранг #{myRank ?? '—'}
-                </p>
-              </div>
-            </div>
-            <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isStatsExpanded ? 'rotate-180' : ''}`} />
-          </button>
-
-          <div ref={statsRef} className="overflow-hidden h-0 opacity-0">
-            <div className="grid grid-cols-2 gap-4 mb-6 mt-6">
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Опыт</p>
-                <p className="text-2xl font-display font-bold text-white">{currentUser.xp.toLocaleString()}</p>
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex justify-between text-[9px] font-bold uppercase text-zinc-400">
-                    <span>До след. уровня</span>
-                    <span>{Math.min(100, xpLevelProgressPercent(currentUser.xp)).toFixed(0)}%</span>
-                  </div>
-                  <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, xpLevelProgressPercent(currentUser.xp))}%` }} />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Рейтинг</p>
-                  <p className="text-2xl font-display font-bold text-white">#{myRank ?? '—'}</p>
-                </div>
-                <button 
-                  onClick={() => setIsLeaderboardOpen(true)}
-                  className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-white hover:text-zinc-300 transition-colors group/btn w-fit"
-                >
-                  Лидерборд <ChevronRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-4 text-center">Матрица компетенций</p>
-              <div className="h-56 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
-                    <PolarGrid stroke="#333" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
-                    <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Achievements Island */}
-        {badgeUserId && (
-          <div className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <button 
-              onClick={() => setIsBadgesExpanded(!isBadgesExpanded)}
-              className="w-full flex items-center justify-between text-left group"
+              onClick={handleSave} 
+              disabled={saving} 
+              className="w-full flex items-center justify-center gap-2 py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all mt-4"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:text-white text-zinc-500 transition-colors">
-                  <AnimatedIcon name="sparkle" size={20} active={isBadgesExpanded} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white group-hover:text-zinc-300 transition-colors">Достижения</p>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-0.5">
-                    {BADGE_CATALOG.filter(b => badgeStats && b.isUnlocked(badgeStats)).length} / {BADGE_CATALOG.length} открыто
-                  </p>
-                </div>
-              </div>
-              <ChevronDown size={20} className={`text-zinc-500 transition-transform duration-500 ${isBadgesExpanded ? 'rotate-180' : ''}`} />
+              {saving ? <Loader2 size={20} className="animate-spin" /> : 'Сохранить изменения'}
             </button>
-
-            <div ref={badgesRef} className="overflow-hidden h-0 opacity-0">
-              <div className="flex justify-end mb-4 mt-4">
-                <button type="button" onClick={() => navigate('/settings', { state: { focusMedals: true } })} className="text-white text-[10px] uppercase tracking-widest font-bold hover:text-zinc-300 transition-colors flex items-center gap-1">
-                  Настроить витрину <ChevronRight size={12} />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {BADGE_CATALOG.map((b) => {
-                  const unlocked = badgeStats ? b.isUnlocked(badgeStats) : false;
-                  const prog = badgeStats ? b.progress(badgeStats) : 0;
-                  return (
-                    <div
-                      key={b.id}
-                      className={`flex items-center gap-4 p-3 rounded-2xl border transition-all ${
-                        unlocked ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-50'
-                      }`}
-                    >
-                      <BadgeOrb tier={b.tier} icon={b.icon} size={40} locked={!unlocked} />
-                      <div className="flex-1 min-w-0">
-                        <span className={`font-bold text-sm truncate block ${unlocked ? 'text-white' : 'text-zinc-500'}`}>{b.title}</span>
-                        <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{b.requirement}</p>
-                        {!unlocked && (
-                          <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${prog * 100}%` }} />
-                          </div>
-                        )}
-                      </div>
-                      {unlocked && <Check size={14} className="text-white shrink-0 mr-1" />}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
-        )}
-
-        {/* Showcase Submit Island */}
-        {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-          <>
-            <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
-            <div id="showcase-submit" className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up scroll-mt-24" style={{ animationDelay: '0.4s' }}>
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white border border-white/10">
-                    <Sparkles size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Витрина</p>
-                    <h3 className="text-sm font-bold text-white">Выложить проект</h3>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowcaseModalOpen(true)}
-                  className="w-full sm:w-auto rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
-                >
-                  Отправить
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Logout Section */}
-        <div className="pt-8 animate-slide-up" style={{ animationDelay: '0.5s' }}>
-          <button 
-            onClick={() => setIsLogoutModalOpen(true)}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-kiddy-cherry/10 border border-kiddy-cherry/20 text-kiddy-cherry rounded-[2rem] font-bold hover:bg-kiddy-cherry/20 transition-all group"
-          >
-            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-            Выход из системы
-          </button>
         </div>
-      </div>
+      </Modal>
 
       {/* Leaderboard Modal */}
       <Modal isOpen={isLeaderboardOpen} onClose={() => setIsLeaderboardOpen(false)} maxWidth="max-w-3xl">
