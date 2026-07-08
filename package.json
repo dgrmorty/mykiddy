@@ -1,7 +1,7 @@
 {
   "name": "deti-v-tope",
   "version": "1.0.0",
-  "description": "Дети В ТОПЕ — IT-школа будущего",
+  "description": "Дети В ТОПЕ",
   "type": "module",
   "scripts": {
     "dev": "vite",

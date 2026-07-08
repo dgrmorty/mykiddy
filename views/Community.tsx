@@ -256,7 +256,7 @@ export const Community: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="stagger-1 space-y-2">
         <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.35em]">Ученики</p>
-        <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Ученики школы</h1>
+        <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Резиденты</h1>
         <p className="max-w-xl text-sm text-kiddy-textMuted">
           Профили одноклассников, друзья и заявки. Лента проектов — на{' '}
           <button

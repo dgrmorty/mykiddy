@@ -57,7 +57,7 @@ export const SHOWCASE_PHRASE_SLOTS: ShowcasePhraseSlot[] = [
     label: 'Призыв',
     options: [
       { id: 'c_like', text: 'Поставьте лайк, если нравится!' },
-      { id: 'c_feedback', text: 'Напишите в комментариях школы, что думаете.' },
+      { id: 'c_feedback', text: 'Напишите в комментариях, что думаете.' },
       { id: 'c_try', text: 'Попробуйте сделать что-то похожее — это круто!' },
       { id: 'c_share', text: 'Поделитесь с одноклассниками.' },
     ],

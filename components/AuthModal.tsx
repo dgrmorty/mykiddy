@@ -359,7 +359,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
 
         <p className="text-center pt-2">
           <button type="button" onClick={() => switchMode(currentMode === 'signup' ? 'login' : 'signup')} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
-            {currentMode === 'signup' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Регистрация'}
+            {currentMode === 'signup' ? 'Уже есть аккаунт? Войти' : 'Создать аккаунт'}
           </button>
         </p>
       </div>
