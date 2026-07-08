@@ -3,7 +3,7 @@ import { supabase, uploadFile } from '../services/supabase';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
     Edit2, X, Search, Calendar, Sparkles, Users, BookOpen, 
-    CheckCircle, XCircle, ChevronLeft, MoreVertical, FileText
+    CheckCircle, XCircle, ChevronLeft, FileText, Save
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { type User, Role, type ScheduleEvent, type CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier } from '../types';
@@ -64,7 +64,6 @@ function homeworkLessonContext(s: HomeworkSubmissionRow): { path: string; homewo
 }
 
 // --- Components ---
-
 const IslandStats = ({ usersCount, showcaseCount, homeworkCount }: { usersCount: number, showcaseCount: number, homeworkCount: number }) => {
     const [expanded, setExpanded] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
@@ -134,9 +133,23 @@ export const AdminPanel: React.FC = () => {
     const [homeworkAuthors, setHomeworkAuthors] = useState<Record<string, { name: string; avatar?: string | null }>>({});
     const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
 
-    const [activeUser, setActiveUser] = useState<User | null>(null); // For Bottom Sheet
-    const [activeCourse, setActiveCourse] = useState<any | null>(null); // For Visual Builder
+    const [activeUser, setActiveUser] = useState<User | null>(null);
+    const [activeCourse, setActiveCourse] = useState<any | null>(null);
     const [rejectReason, setRejectReason] = useState('');
+
+    // Form States
+    const [courseModalOpen, setCourseModalOpen] = useState(false);
+    const [courseForm, setCourseForm] = useState<{ title: string; description: string; cover_image: string; id: string; year_tier: CourseYearTier; }>({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
+    
+    const [lessonModalOpen, setLessonModalOpen] = useState(false);
+    const [lessonForm, setLessonForm] = useState({ title: '', description: '', video_url: '', homework_task: '', module_id: '', id: '' });
+    
+    const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+    const [moduleForm, setModuleForm] = useState({ title: '', course_id: '', id: '' });
+
+    const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (currentView === 'content') fetchContent();
@@ -152,7 +165,20 @@ export const AdminPanel: React.FC = () => {
         try {
             const { data, error } = await supabase.from('courses').select('*, modules(*, lessons(*))').order('created_at', { ascending: false });
             if (error) throw error;
-            setCourses(data || []);
+            
+            const coursesWithContent = (data || []).map((course: any) => {
+                const sortedModules = (course.modules || []).sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()).map((module: any) => ({
+                    ...module,
+                    lessons: (module.lessons || []).sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
+                }));
+                return { ...course, modules: sortedModules };
+            });
+            
+            setCourses(coursesWithContent);
+            if (activeCourse) {
+                const updatedActive = coursesWithContent.find(c => c.id === activeCourse.id);
+                if (updatedActive) setActiveCourse(updatedActive);
+            }
         } catch (e) {
             showToast('Ошибка загрузки курсов', 'error');
         } finally { setLoading(false); }
@@ -161,12 +187,24 @@ export const AdminPanel: React.FC = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.rpc('get_all_users');
-            if (error) throw error;
-            setUsersList((data || []).map((u: any) => ({
-                id: u.id, email: u.email || '', name: u.name || 'Аноним', role: u.role || 'Student',
-                avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 1, xp: u.xp || 0, isApproved: u.is_approved === true
-            })));
+            const { data: rpcUsers, error: rpcError } = await supabase.rpc('get_all_users');
+            if (!rpcError && Array.isArray(rpcUsers)) {
+                setUsersList(rpcUsers.map((u: any) => ({
+                    id: u.id, email: u.email || '', name: u.name || 'Аноним', role: u.role || 'Student',
+                    avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 1, xp: u.xp || 0, isApproved: u.is_approved === true
+                })));
+            } else {
+                const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+                if (profilesError) throw profilesError;
+                if (profilesData) {
+                    setUsersList(profilesData.map((u: any) => ({
+                        id: u.id, email: u.email || '', name: u.name || 'Аноним', role: u.role || 'Student',
+                        avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 0, xp: u.xp || 0, isApproved: u.is_approved === true
+                    })));
+                } else {
+                    setUsersList([]);
+                }
+            }
         } catch (e) {
             showToast('Ошибка загрузки пользователей', 'error');
         } finally { setLoading(false); }
@@ -213,6 +251,140 @@ export const AdminPanel: React.FC = () => {
             const { data, error } = await supabase.from('schedule_events').select('*').order('day_of_week').order('time_start');
             if (!error) setScheduleEvents(data || []);
         } finally { setLoading(false); }
+    };
+
+    // --- Upload ---
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'course' | 'lesson') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        showToast('Загрузка файла...', 'info');
+        try {
+            const folder = target === 'course' ? 'covers' : 'videos';
+            const url = await uploadFile(file, folder);
+            if (url) {
+                if (target === 'course') setCourseForm(prev => ({ ...prev, cover_image: url }));
+                else setLessonForm(prev => ({ ...prev, video_url: url }));
+                showToast('Файл загружен', 'success');
+            }
+        } catch (error) {
+            showToast('Ошибка загрузки', 'error');
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    // --- Course CRUD ---
+    const saveCourse = async () => {
+        if (!courseForm.title) return showToast('Введите название', 'error');
+        setLoading(true);
+        try {
+            if (courseForm.id) {
+                await supabase.from('courses').update({ title: courseForm.title, description: courseForm.description, cover_image: courseForm.cover_image, year_tier: courseForm.year_tier }).eq('id', courseForm.id);
+                showToast('Курс обновлен', 'success');
+            } else {
+                await supabase.from('courses').insert({ title: courseForm.title, description: courseForm.description, cover_image: courseForm.cover_image, type: 'Course', year_tier: courseForm.year_tier });
+                showToast('Курс создан', 'success');
+            }
+            setCourseModalOpen(false);
+            fetchContent();
+        } catch (e) { showToast('Ошибка', 'error'); }
+        setLoading(false);
+    };
+
+    const deleteCourse = async (id: string) => {
+        if (!window.confirm('Удалить курс со всеми модулями и уроками?')) return;
+        setLoading(true);
+        try {
+            await supabase.from('courses').delete().eq('id', id);
+            showToast('Курс удален', 'success');
+            setActiveCourse(null);
+            fetchContent();
+        } catch (e) { showToast('Ошибка', 'error'); }
+        setLoading(false);
+    };
+
+    // --- Module CRUD ---
+    const saveModule = async () => {
+        if (!moduleForm.title) return showToast('Введите название', 'error');
+        setLoading(true);
+        try {
+            if (moduleForm.id) {
+                await supabase.from('modules').update({ title: moduleForm.title }).eq('id', moduleForm.id);
+                showToast('Модуль обновлен', 'success');
+            } else {
+                await supabase.from('modules').insert({ title: moduleForm.title, course_id: moduleForm.course_id });
+                showToast('Модуль создан', 'success');
+            }
+            setEditingModuleId(null);
+            setModuleForm({ title: '', course_id: '', id: '' });
+            fetchContent();
+        } catch (e) { showToast('Ошибка', 'error'); }
+        setLoading(false);
+    };
+
+    const deleteModule = async (id: string) => {
+        if (!window.confirm('Удалить модуль со всеми уроками?')) return;
+        setLoading(true);
+        try {
+            await supabase.from('modules').delete().eq('id', id);
+            showToast('Модуль удален', 'success');
+            fetchContent();
+        } catch (e) { showToast('Ошибка', 'error'); }
+        setLoading(false);
+    };
+
+    // --- Lesson CRUD ---
+    const saveLesson = async () => {
+        if (!lessonForm.title) return showToast('Введите название', 'error');
+        setLoading(true);
+        try {
+            if (lessonForm.id) {
+                await supabase.from('lessons').update({ title: lessonForm.title, description: lessonForm.description, video_url: lessonForm.video_url, homework_task: lessonForm.homework_task }).eq('id', lessonForm.id);
+                showToast('Урок обновлен', 'success');
+            } else {
+                await supabase.from('lessons').insert({ title: lessonForm.title, description: lessonForm.description, video_url: lessonForm.video_url, homework_task: lessonForm.homework_task, module_id: lessonForm.module_id });
+                showToast('Урок создан', 'success');
+            }
+            setLessonModalOpen(false);
+            fetchContent();
+        } catch (e) { showToast('Ошибка', 'error'); }
+        setLoading(false);
+    };
+
+    const deleteLesson = async (id: string) => {
+        if (!window.confirm('Удалить урок?')) return;
+        setLoading(true);
+        try {
+            await supabase.from('lessons').delete().eq('id', id);
+            showToast('Урок удален', 'success');
+            fetchContent();
+        } catch (e) { showToast('Ошибка', 'error'); }
+        setLoading(false);
+    };
+
+    // --- Schedule CRUD ---
+    const saveScheduleEvent = async () => {
+        if (!scheduleForm.title.trim()) return showToast('Введите название', 'error');
+        try {
+            await supabase.from('schedule_events').insert({
+                day_of_week: scheduleForm.day_of_week, time_start: scheduleForm.time_start, time_end: scheduleForm.time_end || null,
+                title: scheduleForm.title.trim(), description: scheduleForm.description.trim() || null, location: scheduleForm.location.trim() || null
+            });
+            showToast('Событие добавлено', 'success');
+            setScheduleForm({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
+            fetchSchedule();
+        } catch (e) { showToast('Ошибка', 'error'); }
+    };
+
+    const deleteScheduleEvent = async (id: string) => {
+        if (!window.confirm('Удалить событие?')) return;
+        try {
+            await supabase.from('schedule_events').delete().eq('id', id);
+            showToast('Удалено', 'success');
+            fetchSchedule();
+        } catch (e) { showToast('Ошибка', 'error'); }
     };
 
     // --- User Actions ---
@@ -312,7 +484,7 @@ export const AdminPanel: React.FC = () => {
                             </div>
                         )}
 
-                        {/* SHOWCASE VIEW (Tinder Style) */}
+                        {/* SHOWCASE VIEW */}
                         {currentView === 'showcase' && (
                             <div className="flex flex-col items-center justify-center min-h-[50vh]">
                                 {showcasePosts.length === 0 ? (
@@ -348,7 +520,7 @@ export const AdminPanel: React.FC = () => {
                             </div>
                         )}
 
-                        {/* HOMEWORK VIEW (Tinder Style) */}
+                        {/* HOMEWORK VIEW */}
                         {currentView === 'homework' && (
                             <div className="flex flex-col items-center justify-center min-h-[50vh]">
                                 {homeworkQueue.length === 0 ? (
@@ -388,7 +560,7 @@ export const AdminPanel: React.FC = () => {
                             <div className="space-y-8">
                                 {!activeCourse ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        <div className="bg-white/5 border border-white/10 border-dashed rounded-[2rem] p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors min-h-[200px]">
+                                        <div onClick={() => { setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' }); setCourseModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-[2rem] p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors min-h-[200px]">
                                             <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-4"><Plus className="text-white" /></div>
                                             <span className="text-white font-bold">Создать курс</span>
                                         </div>
@@ -408,32 +580,66 @@ export const AdminPanel: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="animate-fade-in">
-                                        <button onClick={() => setActiveCourse(null)} className="flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
-                                            <ChevronLeft size={20} /> Назад к курсам
-                                        </button>
+                                        <div className="flex items-center justify-between mb-6">
+                                            <button onClick={() => setActiveCourse(null)} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
+                                                <ChevronLeft size={20} /> Назад к курсам
+                                            </button>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => { setCourseForm({ id: activeCourse.id, title: activeCourse.title, description: activeCourse.description, cover_image: activeCourse.cover_image, year_tier: normalizeCourseYearTier(activeCourse.year_tier) }); setCourseModalOpen(true); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"><Edit2 size={16}/></button>
+                                                <button onClick={() => deleteCourse(activeCourse.id)} className="p-2 bg-kiddy-cherry/10 hover:bg-kiddy-cherry/20 text-kiddy-cherry rounded-xl transition-colors"><Trash2 size={16}/></button>
+                                            </div>
+                                        </div>
                                         <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8">
                                             <h2 className="text-3xl font-display font-bold text-white mb-8">{activeCourse.title}</h2>
                                             <div className="space-y-4">
                                                 {activeCourse.modules?.map((m: any, i: number) => (
                                                     <div key={m.id} className="bg-black/50 border border-white/10 rounded-3xl p-6 relative">
                                                         <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs">{i + 1}</div>
-                                                        <h4 className="text-white font-bold mb-4 ml-4">{m.title}</h4>
+                                                        
+                                                        {editingModuleId === m.id ? (
+                                                            <div className="ml-4 mb-4 flex gap-2">
+                                                                <input value={moduleForm.title} onChange={e => setModuleForm({...moduleForm, title: e.target.value})} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-white/30" />
+                                                                <button onClick={saveModule} className="px-4 py-2 bg-white text-black font-bold rounded-xl"><Save size={16}/></button>
+                                                                <button onClick={() => setEditingModuleId(null)} className="px-4 py-2 bg-white/5 text-white font-bold rounded-xl"><X size={16}/></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="ml-4 mb-4 flex items-center justify-between group">
+                                                                <h4 className="text-white font-bold">{m.title}</h4>
+                                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={() => { setModuleForm({ id: m.id, title: m.title, course_id: m.course_id }); setEditingModuleId(m.id); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
+                                                                    <button onClick={() => deleteModule(m.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={14}/></button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
                                                         <div className="ml-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                             {m.lessons?.map((l: any) => (
                                                                 <div key={l.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group">
                                                                     <span className="text-zinc-300 text-sm font-medium">{l.title}</span>
-                                                                    <button className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-white"><Edit2 size={14}/></button>
+                                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title, description: l.description, video_url: l.video_url, homework_task: l.homework_task, module_id: l.module_id }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
+                                                                        <button onClick={() => deleteLesson(l.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={14}/></button>
+                                                                    </div>
                                                                 </div>
                                                             ))}
-                                                            <div className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
+                                                            <div onClick={() => { setLessonForm({ title: '', description: '', video_url: '', homework_task: '', module_id: m.id, id: '' }); setLessonModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
                                                                 <span className="text-zinc-400 text-sm font-bold flex items-center gap-2"><Plus size={16}/> Добавить урок</span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <button className="w-full py-6 bg-white/5 border border-white/10 border-dashed rounded-3xl text-white font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
-                                                    <Plus size={20} /> Добавить модуль
-                                                </button>
+                                                
+                                                {editingModuleId === 'new' ? (
+                                                    <div className="bg-black/50 border border-white/10 rounded-3xl p-6 flex gap-2">
+                                                        <input value={moduleForm.title} onChange={e => setModuleForm({...moduleForm, title: e.target.value})} placeholder="Название модуля" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-white/30" />
+                                                        <button onClick={saveModule} className="px-4 py-2 bg-white text-black font-bold rounded-xl"><Save size={16}/></button>
+                                                        <button onClick={() => setEditingModuleId(null)} className="px-4 py-2 bg-white/5 text-white font-bold rounded-xl"><X size={16}/></button>
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={() => { setModuleForm({ title: '', course_id: activeCourse.id, id: '' }); setEditingModuleId('new'); }} className="w-full py-6 bg-white/5 border border-white/10 border-dashed rounded-3xl text-white font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                                                        <Plus size={20} /> Добавить модуль
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -443,15 +649,52 @@ export const AdminPanel: React.FC = () => {
                         
                         {/* SCHEDULE VIEW */}
                         {currentView === 'schedule' && (
-                            <div className="flex flex-col items-center justify-center min-h-[50vh]">
-                                <EmptyState title="Расписание" description="Визуальный редактор расписания в разработке." icon={<Calendar size={40} />} />
+                            <div className="space-y-6">
+                                <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 max-w-2xl mx-auto">
+                                    <h3 className="text-white font-bold mb-4">Добавить событие</h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="text-zinc-500 text-xs font-bold uppercase mb-1 block">День</label>
+                                            <select value={scheduleForm.day_of_week} onChange={e => setScheduleForm({...scheduleForm, day_of_week: +e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none">
+                                                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-zinc-500 text-xs font-bold uppercase mb-1 block">Начало</label>
+                                                <input value={scheduleForm.time_start} onChange={e => setScheduleForm({...scheduleForm, time_start: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="10:00" />
+                                            </div>
+                                            <div>
+                                                <label className="text-zinc-500 text-xs font-bold uppercase mb-1 block">Конец</label>
+                                                <input value={scheduleForm.time_end} onChange={e => setScheduleForm({...scheduleForm, time_end: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="11:00" />
+                                            </div>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <input value={scheduleForm.title} onChange={e => setScheduleForm({...scheduleForm, title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="Название (Урок Python)" />
+                                        </div>
+                                    </div>
+                                    <button onClick={saveScheduleEvent} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200">Добавить</button>
+                                </div>
+
+                                <div className="max-w-2xl mx-auto space-y-2">
+                                    {scheduleEvents.map(ev => (
+                                        <div key={ev.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+                                            <div>
+                                                <span className="text-zinc-500 font-bold mr-3">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][ev.day_of_week - 1]}</span>
+                                                <span className="text-white font-bold mr-3">{ev.time_start} - {ev.time_end}</span>
+                                                <span className="text-zinc-300">{ev.title}</span>
+                                            </div>
+                                            <button onClick={() => deleteScheduleEvent(ev.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={16}/></button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* User Action Bottom Sheet */}
+            {/* Modals */}
             {activeUser && (
                 <Modal isOpen={true} onClose={() => setActiveUser(null)} maxWidth="max-w-md" panelClassName="!rounded-t-[2.5rem] md:!rounded-[2.5rem] !bg-[#111] shadow-premium">
                     <div className="p-6">
@@ -471,6 +714,46 @@ export const AdminPanel: React.FC = () => {
                                 <Trash2 size={18} /> Удалить пользователя
                             </button>
                         </div>
+                    </div>
+                </Modal>
+            )}
+
+            {courseModalOpen && (
+                <Modal isOpen={true} onClose={() => setCourseModalOpen(false)} maxWidth="max-w-lg" panelClassName="!rounded-t-[2.5rem] md:!rounded-[2.5rem] !bg-[#111] shadow-premium">
+                    <div className="p-6 space-y-4">
+                        <h3 className="text-xl font-bold text-white mb-4">{courseForm.id ? 'Редактировать курс' : 'Новый курс'}</h3>
+                        <input value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                        <textarea value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} placeholder="Описание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
+                        <div className="flex gap-2">
+                            {(['year_1', 'year_2_plus'] as const).map((tier) => (
+                                <button key={tier} onClick={() => setCourseForm({ ...courseForm, year_tier: tier })} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${courseForm.year_tier === tier ? 'bg-white text-black' : 'bg-white/5 text-zinc-400'}`}>
+                                    {COURSE_YEAR_LABELS[tier]}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <input value={courseForm.cover_image} onChange={e => setCourseForm({...courseForm, cover_image: e.target.value})} placeholder="URL обложки" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                            <button onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white"><Upload size={18}/></button>
+                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => handleUpload(e, 'course')} />
+                        </div>
+                        <button onClick={saveCourse} className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 mt-4">Сохранить</button>
+                    </div>
+                </Modal>
+            )}
+
+            {lessonModalOpen && (
+                <Modal isOpen={true} onClose={() => setLessonModalOpen(false)} maxWidth="max-w-lg" panelClassName="!rounded-t-[2.5rem] md:!rounded-[2.5rem] !bg-[#111] shadow-premium">
+                    <div className="p-6 space-y-4">
+                        <h3 className="text-xl font-bold text-white mb-4">{lessonForm.id ? 'Редактировать урок' : 'Новый урок'}</h3>
+                        <input value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                        <textarea value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} placeholder="Описание" rows={2} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
+                        <div className="flex gap-2">
+                            <input value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="URL видео" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                            <button onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white"><Video size={18}/></button>
+                            <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={e => handleUpload(e, 'lesson')} />
+                        </div>
+                        <textarea value={lessonForm.homework_task} onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})} placeholder="Домашнее задание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
+                        <button onClick={saveLesson} className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 mt-4">Сохранить</button>
                     </div>
                 </Modal>
             )}
