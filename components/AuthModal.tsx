@@ -243,6 +243,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         <p className="text-sm leading-relaxed text-zinc-400">
           {currentMode === 'forgot'
             ? 'Восстановление доступа.'
+            : currentMode === 'signup'
+            ? 'Создайте аккаунт.'
             : 'С возвращением.'}
         </p>
       </div>
