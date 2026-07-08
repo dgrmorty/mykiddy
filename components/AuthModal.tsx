@@ -237,16 +237,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       className="absolute top-0 left-0 w-full p-7 md:p-9 opacity-0 pointer-events-none"
     >
       <div className="text-center mb-8">
-        <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-white">
-          IT-школа будущего
-        </div>
         <h2 className="mb-3 font-display text-4xl font-extrabold tracking-tighter text-white md:text-[2.6rem]">
           {currentMode === 'forgot' ? 'Сброс пароля' : currentMode === 'signup' ? 'Регистрация' : 'Вход'}
         </h2>
         <p className="text-sm leading-relaxed text-zinc-400">
           {currentMode === 'forgot'
-            ? 'Введите email — отправим ссылку для восстановления доступа.'
-            : 'Войди в личный кабинет, чтобы продолжить обучение, проекты и прогресс.'}
+            ? 'Восстановление доступа.'
+            : 'С возвращением.'}
         </p>
       </div>
 
