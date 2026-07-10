@@ -943,24 +943,27 @@ export const CourseDetail: React.FC = () => {
                   <X size={20} />
                 </button>
                 <div className="absolute bottom-0 left-0 right-0 z-[2] p-4 pb-5 sm:p-7 sm:pb-7 md:p-9 md:pb-8">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1 backdrop-blur-md">
-                      <MonitorPlay size={12} className="text-white" aria-hidden />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-300">Курс</span>
-                    </div>
-                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                      {COURSE_YEAR_LABELS[courseForModal.yearTier]}
-                    </span>
-                  </div>
                   <h2 className="font-display text-balance text-xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
                     {courseForModal.title}
                   </h2>
                   <p className="mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400 line-clamp-2 sm:line-clamp-3 md:text-base md:leading-relaxed lg:line-clamp-none">
                     {courseForModal.description}
                   </p>
-                  <div className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Прогресс</span>
-                    <span className="font-display text-xl font-bold tabular-nums text-white md:text-2xl">{courseForModal.progress}%</span>
+                  <div className="mt-4 w-full max-w-sm">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Прогресс</span>
+                      <span className="font-display text-lg font-bold tabular-nums text-white sm:text-xl">
+                        {courseForModal.progress}%
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10 ring-1 ring-white/5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ease-out ${
+                          courseForModal.progress >= 100 ? 'bg-kiddy-cherry' : 'bg-white'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(courseForModal.progress, courseForModal.progress > 0 ? 6 : 0))}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
