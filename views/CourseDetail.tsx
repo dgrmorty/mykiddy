@@ -920,11 +920,12 @@ export const CourseDetail: React.FC = () => {
           onClose={() => { setClosingCourse(activeCourse ?? null); setActiveCourse(null); }}
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-5xl"
-          maxPanelHeight="calc(100dvh - 0.5rem)"
+          mobileCentered
+          maxPanelHeight="min(88dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem))"
           panelClassName="ring-1 ring-white/10 shadow-premium"
         >
             <div className="flex flex-col bg-[#0a0a0a]">
-              <div className="relative h-[13.5rem] shrink-0 overflow-hidden sm:h-60 md:h-72 lg:h-80">
+              <div className="relative h-44 shrink-0 overflow-hidden sm:h-60 md:h-72 lg:h-80">
                 <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-b from-black/50 via-transparent to-transparent" />
                 <img
                   src={courseForModal.coverImage}
@@ -941,7 +942,7 @@ export const CourseDetail: React.FC = () => {
                 >
                   <X size={20} />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 z-[2] p-5 pb-6 sm:p-7 sm:pb-7 md:p-9 md:pb-8">
+                <div className="absolute bottom-0 left-0 right-0 z-[2] p-4 pb-5 sm:p-7 sm:pb-7 md:p-9 md:pb-8">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1 backdrop-blur-md">
                       <MonitorPlay size={12} className="text-white" aria-hidden />
@@ -951,7 +952,7 @@ export const CourseDetail: React.FC = () => {
                       {COURSE_YEAR_LABELS[courseForModal.yearTier]}
                     </span>
                   </div>
-                  <h2 className="font-display text-balance text-2xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                  <h2 className="font-display text-balance text-xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
                     {courseForModal.title}
                   </h2>
                   <p className="mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400 line-clamp-2 sm:line-clamp-3 md:text-base md:leading-relaxed lg:line-clamp-none">
@@ -963,7 +964,7 @@ export const CourseDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="space-y-10 border-t border-white/[0.06] bg-[#0a0a0a] px-5 py-7 pb-12 sm:px-7 md:space-y-12 md:px-10 md:py-9 md:pb-14">
+              <div className="space-y-8 border-t border-white/[0.06] bg-[#0a0a0a] px-4 py-6 pb-8 sm:px-7 md:space-y-12 md:px-10 md:py-9 md:pb-14">
                 {courseForModal.modules.map((module) => (
                   <div key={module.id} className="space-y-5 md:space-y-6">
                     <div className="flex items-center gap-3 min-w-0 md:gap-4">
