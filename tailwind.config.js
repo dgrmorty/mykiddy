@@ -9,13 +9,15 @@ export default {
   ],
   theme: {
     extend: {
-      colors: {
+          colors: {
         kiddy: {
           base: '#000000',
           surface: '#0a0a0a',
           surfaceElevated: '#121212',
           border: 'rgba(255,255,255,0.08)',
           cherry: '#e6002b',
+          cherryDim: 'rgba(230,0,43,0.18)',
+          cherryGlow: 'rgba(230,0,43,0.45)',
           text: '#ffffff',
           textSecondary: '#888888',
           textMuted: '#555555',

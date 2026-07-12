@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
+import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationSummary } from '../contexts/NotificationContext';
 import { useFriendships, friendshipStateForPair } from '../hooks/useFriendships';
@@ -9,6 +11,10 @@ import { supabase } from '../services/supabase';
 import { Loader2, Bell, UserPlus, UserCheck, Inbox, ShieldAlert, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 export type ActivityKind =
   | 'friend_request'
@@ -61,6 +67,36 @@ export const Notifications: React.FC = () => {
     >
   >({});
   const [loading, setLoading] = useState(true);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listAnimatedKeyRef = useRef<string | null>(null);
+
+  useGSAP(
+    () => {
+      if (loading || rows.length === 0) return;
+      const key = rows.map((r) => r.id).join(',');
+      if (listAnimatedKeyRef.current === key) return;
+      listAnimatedKeyRef.current = key;
+
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo(
+          '.notif-item',
+          { autoAlpha: 0, y: 16, scale: 0.98 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.55,
+            stagger: 0.045,
+            ease: 'power3.out',
+            overwrite: 'auto',
+          },
+        );
+      });
+      return () => mm.revert();
+    },
+    { scope: listRef, dependencies: [loading, rows] },
+  );
 
   const load = useCallback(async () => {
     if (user.id === 'guest') return;
@@ -174,7 +210,7 @@ export const Notifications: React.FC = () => {
           <button
             type="button"
             onClick={() => void markAllRead()}
-            className="shrink-0 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-kiddy-textMuted transition-colors hover:border-kiddy-cherry/35 hover:text-white"
+            className="btn-secondary shrink-0 px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
           >
             Прочитать все
           </button>
@@ -182,22 +218,18 @@ export const Notifications: React.FC = () => {
       </header>
 
       {loading ? (
-        <div className="flex justify-center py-24">
-          <Loader2 className="animate-spin text-kiddy-cherry" size={40} />
+        <div className="py-16">
+          <AnimatedEmptyState message="Загружаем уведомления" />
         </div>
       ) : rows.length === 0 ? (
-        <Card className="flex flex-col items-center p-12 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03]">
-            <Inbox className="text-kiddy-textMuted" size={28} />
-          </div>
-          <p className="font-bold text-white">Пока тихо</p>
-          <p className="mt-2 max-w-sm text-sm text-kiddy-textMuted">
-            Здесь появятся заявки в друзья, статус проекта на витрине и напоминания для наставников.
-          </p>
-        </Card>
+        <EmptyState
+          title="Пока тихо"
+          description="Здесь появятся заявки в друзья, статус проекта на витрине и напоминания для наставников."
+          icon={<Inbox size={36} strokeWidth={1.25} className="text-kiddy-textMuted" />}
+        />
       ) : (
-        <ul className="space-y-3">
-          {rows.map((row, i) => {
+        <ul ref={listRef} className="space-y-3">
+          {rows.map((row) => {
             const act = row.actor_id ? actors[row.actor_id] : null;
             const name = act?.name || 'Ученик';
             const actorIsStudent = (act?.role || '').toLowerCase() === 'student';
@@ -237,14 +269,14 @@ export const Notifications: React.FC = () => {
               title = 'Уведомление';
             }
             return (
-              <li key={row.id} style={{ animation: `fade-in-up 0.45s ease both`, animationDelay: `${Math.min(i, 12) * 0.04}s` }}>
+              <li key={row.id} className="notif-item">
                 <button
                   type="button"
                   onClick={() => void handleOpen(row)}
-                  className={`flex w-full items-start gap-4 rounded-[2rem] border p-4 text-left transition-all sm:items-center sm:p-5 shadow-island ${
+                  className={`flex w-full items-start gap-4 rounded-[2rem] border p-4 text-left shadow-island transition-all duration-400 ease-spring sm:items-center sm:p-5 ${
                     unread
-                      ? 'border-white/20 bg-white/5'
-                      : 'border-white/10 bg-black hover:border-white/20'
+                      ? 'border-white/20 bg-white/[0.06] ring-1 ring-white/10'
+                      : 'border-white/10 bg-black hover:border-white/20 hover:bg-white/[0.02]'
                   }`}
                 >
                   <div className="relative shrink-0">

@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
-const EXIT_DURATION_MS = 350;
+gsap.registerPlugin(useGSAP);
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,11 +12,8 @@ interface ModalProps {
   maxWidth?: string;
   transparentContainer?: boolean;
   onClosed?: () => void;
-  /** Max height of the panel (inline style). Taller = more viewport, keep small bottom margin. */
   maxPanelHeight?: string;
-  /** Extra classes on the panel (shadow, ring). */
   panelClassName?: string;
-  /** Center modal on mobile instead of bottom sheet. */
   mobileCentered?: boolean;
 }
 
@@ -29,51 +28,99 @@ export const Modal: React.FC<ModalProps> = ({
   panelClassName = '',
   mobileCentered = false,
 }) => {
-  const [isExiting, setIsExiting] = useState(false);
-  const wasOpenRef = useRef(false);
+  const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onClosedRef = useRef(onClosed);
+  const openAnimatedRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen) wasOpenRef.current = true;
-    else if (wasOpenRef.current) {
-      wasOpenRef.current = false;
-      setIsExiting(true);
+    onClosedRef.current = onClosed;
+  }, [onClosed]);
+
+  useEffect(() => {
+    if (isOpen) {
+      openAnimatedRef.current = false;
+      setPhase('open');
+    } else if (phase === 'open') {
+      setPhase('closing');
     }
-  }, [isOpen]);
+  }, [isOpen, phase]);
 
   useEffect(() => {
-    if (!isExiting) return;
-    const t = setTimeout(() => {
-      setIsExiting(false);
-      onClosed?.();
-    }, EXIT_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [isExiting, onClosed]);
-
-  useEffect(() => {
-    if (isOpen || isExiting) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-    } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.overflow = '';
-      if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1);
-    }
+    if (phase === 'closed') return;
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
     return () => {
+      const top = document.body.style.top;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.overflow = '';
+      if (top) window.scrollTo(0, parseInt(top || '0', 10) * -1);
     };
-  }, [isOpen, isExiting]);
+  }, [phase]);
 
-  const visible = isOpen || isExiting;
-  if (!visible) return null;
+  useGSAP(
+    () => {
+      if (phase === 'closed' || !backdropRef.current || !panelRef.current) return;
+
+      const backdrop = backdropRef.current;
+      const panel = panelRef.current;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const isMobileSheet = !mobileCentered && window.matchMedia('(max-width: 767px)').matches;
+
+      if (phase === 'open') {
+        if (openAnimatedRef.current) return;
+        openAnimatedRef.current = true;
+
+        if (reduce) {
+          gsap.set([backdrop, panel], { autoAlpha: 1, y: 0, scale: 1 });
+          return;
+        }
+        gsap.fromTo(backdrop, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.35, ease: 'power2.out' });
+        if (isMobileSheet) {
+          gsap.fromTo(
+            panel,
+            { autoAlpha: 0.7, y: 52 },
+            { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power3.out' },
+          );
+        } else {
+          gsap.fromTo(
+            panel,
+            { autoAlpha: 0, y: 18, scale: 0.96 },
+            { autoAlpha: 1, y: 0, scale: 1, duration: 0.55, ease: 'elastic.out(1, 0.72)' },
+          );
+        }
+        return;
+      }
+
+      if (phase === 'closing') {
+        openAnimatedRef.current = false;
+        const finish = () => {
+          setPhase('closed');
+          onClosedRef.current?.();
+        };
+        if (reduce) {
+          finish();
+          return;
+        }
+        const tl = gsap.timeline({ onComplete: finish });
+        tl.to(backdrop, { autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 0);
+        if (isMobileSheet) {
+          tl.to(panel, { autoAlpha: 0, y: 36, duration: 0.3, ease: 'power2.in' }, 0);
+        } else {
+          tl.to(panel, { autoAlpha: 0, y: 12, scale: 0.97, duration: 0.28, ease: 'power2.in' }, 0);
+        }
+      }
+    },
+    { dependencies: [phase, mobileCentered] },
+  );
+
+  if (phase === 'closed') return null;
 
   const modalTree = (
     <div
@@ -90,34 +137,28 @@ export const Modal: React.FC<ModalProps> = ({
       }}
     >
       <div
-        className={`fixed inset-0 bg-black/75 backdrop-blur-2xl cursor-pointer transition-all duration-400 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+        ref={backdropRef}
+        className="fixed inset-0 cursor-pointer bg-black/75 backdrop-blur-2xl"
         onClick={onClose}
         aria-hidden
       />
       <div
+        ref={panelRef}
         className={`relative z-10 flex w-full flex-col overflow-hidden ${maxWidth}
-          transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${isExiting
-            ? mobileCentered
-              ? 'opacity-0 scale-[0.96]'
-              : 'opacity-0 translate-y-full md:translate-y-0 md:scale-[0.98]'
-            : mobileCentered
-              ? 'opacity-100 scale-100 animate-scale-in'
-              : 'opacity-100 translate-y-0 md:scale-100 animate-slide-up md:animate-scale-in'}
           ${transparentContainer
             ? ''
             : mobileCentered
-              ? 'rounded-[2rem] bg-[#0a0a0a] border border-white/[0.08] shadow-premium'
-              : 'rounded-t-[2rem] md:rounded-[2.25rem] bg-[#0a0a0a] border border-white/[0.08] shadow-premium'}
+              ? 'rounded-[2rem] border border-white/[0.08] bg-[#0a0a0a] shadow-premium'
+              : 'rounded-t-[2rem] border border-white/[0.08] bg-[#0a0a0a] shadow-premium md:rounded-[2.25rem]'}
           ${panelClassName}
         `}
         style={{ maxHeight: maxPanelHeight }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-safe md:pb-0">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-safe md:pb-0">
           {!mobileCentered && (
-            <div className="w-full flex justify-center pt-3 pb-1 md:hidden">
-              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            <div className="flex w-full justify-center pb-1 pt-3 md:hidden">
+              <div className="h-1.5 w-12 rounded-full bg-white/20" />
             </div>
           )}
           {children}

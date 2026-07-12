@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { UserAvatar } from '../components/UserAvatar';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -40,7 +41,7 @@ import {
   type MediaItem,
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
-import { Heart, Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Heart, Sparkles, Trash2 } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 gsap.registerPlugin(useGSAP);
@@ -240,8 +241,8 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="animate-spin text-white" size={40} />
+        <div className="py-10">
+          <AnimatedEmptyState message="Загружаем витрину" />
         </div>
       ) : posts.length === 0 ? (
         <EmptyState 

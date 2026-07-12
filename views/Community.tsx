@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { UserAvatar } from '../components/UserAvatar';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,7 +15,7 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 gsap.registerPlugin(useGSAP);
 
-const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onClick, busyId, index }: any) => {
+const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onClick, busyId }: any) => {
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -44,8 +45,8 @@ const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onCli
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       onClick={onClick}
-      className="relative overflow-hidden cursor-pointer border border-white/10 shadow-island bg-black"
-      style={{ height: 64, borderRadius: 32, animation: `fade-in-up 0.5s ease both`, animationDelay: `${index * 0.04}s` }}
+      className="relative overflow-hidden cursor-pointer border border-white/10 shadow-island bg-black student-island"
+      style={{ height: 64, borderRadius: 32 }}
     >
       <div className="absolute top-0 left-0 right-0 h-[64px] flex items-center px-2 gap-3">
         <UserAvatar user={{ id: student.id, name: student.name || 'Ученик', avatar: student.avatar || '' }} size="md" presence={presence} />
@@ -114,6 +115,8 @@ export const Community: React.FC = () => {
   const [tab, setTab] = useState<TabKey>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const loadStudentsErrorToastShown = useRef(false);
+  const studentsGridRef = useRef<HTMLDivElement>(null);
+  const studentsAnimatedKeyRef = useRef<string | null>(null);
 
   const loadStudents = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
@@ -168,6 +171,34 @@ export const Community: React.FC = () => {
     if (q) list = list.filter((s) => (s.name || '').toLowerCase().includes(q));
     return list;
   }, [students, query, myId]);
+
+  useGSAP(
+    () => {
+      if (loadingStudents || filteredStudents.length === 0 || tab !== 'all') return;
+      const key = `${tab}:${filteredStudents.map((s) => s.id).join(',')}`;
+      if (studentsAnimatedKeyRef.current === key) return;
+      studentsAnimatedKeyRef.current = key;
+
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo(
+          '.student-island',
+          { autoAlpha: 0, y: 18, scale: 0.97 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.55,
+            stagger: 0.04,
+            ease: 'power3.out',
+            overwrite: 'auto',
+          },
+        );
+      });
+      return () => mm.revert();
+    },
+    { scope: studentsGridRef, dependencies: [loadingStudents, filteredStudents, tab] },
+  );
 
   const studentById = useMemo(() => {
     const m = new Map<string, StudentRow>();
@@ -285,13 +316,13 @@ export const Community: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Поиск по имени…"
-              className="w-full rounded-2xl border border-white/[0.08] bg-kiddy-surfaceElevated/80 py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none focus:border-kiddy-cherry/40"
+              className="input-premium w-full py-3.5 pl-12 pr-4 text-sm outline-none"
             />
           </div>
 
           {loadingStudents ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="animate-spin text-white" size={40} />
+            <div className="py-12">
+              <AnimatedEmptyState message="Ищем учеников" />
             </div>
           ) : filteredStudents.length === 0 ? (
             <EmptyState 
@@ -300,8 +331,8 @@ export const Community: React.FC = () => {
               icon={<Search size={40} strokeWidth={1} />}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {filteredStudents.map((s, i) => {
+            <div ref={studentsGridRef} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {filteredStudents.map((s) => {
                 const hasOutgoing = canFriend && friendRows.some((r) => r.requester_id === myId && r.addressee_id === s.id && r.status === 'pending');
                 const isFriend = friendRows.some((r) => r.status === 'accepted' && ((r.requester_id === myId && r.addressee_id === s.id) || (r.addressee_id === myId && r.requester_id === s.id)));
                 return (
@@ -314,7 +345,6 @@ export const Community: React.FC = () => {
                     onAdd={handleQuickAdd}
                     onClick={() => navigate(`/users/${s.id}`)}
                     busyId={busyId}
-                    index={i}
                   />
                 );
               })}
@@ -326,8 +356,8 @@ export const Community: React.FC = () => {
       {tab === 'requests' && (
         <section className="stagger-3 space-y-8">
           {loadingFriends ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="animate-spin text-kiddy-cherry" size={36} />
+            <div className="py-10">
+              <AnimatedEmptyState message="Загружаем заявки" />
             </div>
           ) : (
             <>
@@ -468,8 +498,8 @@ export const Community: React.FC = () => {
       {tab === 'friends' && (
         <section className="stagger-3">
           {loadingFriends ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="animate-spin text-kiddy-cherry" size={36} />
+            <div className="py-10">
+              <AnimatedEmptyState message="Загружаем друзей" />
             </div>
           ) : friends.length === 0 ? (
             <EmptyState 

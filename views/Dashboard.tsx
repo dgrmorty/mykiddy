@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { Role, User } from '../types';
-import { Sparkles, Loader2, Zap, BookOpen, Flame, CalendarDays, Trophy } from 'lucide-react';
+import { Sparkles, Zap, BookOpen, Flame, CalendarDays, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { useContent } from '../hooks/useContent';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
+import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -169,8 +170,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   if (loading && courses.length === 0) {
     return (
-      <div className="flex min-h-[min(420px,70vh)] flex-col items-center justify-center gap-4 pb-10">
-        <Loader2 className="animate-spin text-white" size={32} strokeWidth={2} />
+      <div className="flex min-h-[min(420px,70vh)] flex-col items-center justify-center pb-10">
+        <AnimatedEmptyState message="Собираем главную" />
       </div>
     );
   }

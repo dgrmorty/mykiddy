@@ -1,39 +1,67 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import gsap from 'gsap';
 
 export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [displayChildren, setDisplayChildren] = useState(children);
-  const [transitioning, setTransitioning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevPathRef = useRef(location.pathname);
+  const tweenRef = useRef<gsap.core.Timeline | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prevPathRef.current === location.pathname) {
       setDisplayChildren(children);
       return;
     }
+
+    const el = containerRef.current;
+    const reduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     prevPathRef.current = location.pathname;
-    setTransitioning(true);
+    tweenRef.current?.kill();
+    tweenRef.current = null;
 
-    const timer = setTimeout(() => {
+    if (!el || reduce) {
+      if (el) gsap.set(el, { autoAlpha: 1, y: 0, clearProps: 'transform' });
       setDisplayChildren(children);
-      setTransitioning(false);
-      containerRef.current?.scrollTo({ top: 0 });
-    }, 120);
+      el?.scrollTo({ top: 0 });
+      return;
+    }
 
-    return () => clearTimeout(timer);
+    const tl = gsap.timeline({
+      onComplete: () => {
+        tweenRef.current = null;
+        el.scrollTo({ top: 0 });
+      },
+    });
+    tweenRef.current = tl;
+
+    tl.to(el, {
+      autoAlpha: 0,
+      y: 8,
+      duration: 0.16,
+      ease: 'power2.in',
+      onComplete: () => setDisplayChildren(children),
+    }).to(el, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.38,
+      ease: 'power3.out',
+    });
+
+    return () => {
+      tl.kill();
+      tweenRef.current = null;
+      // Fast nav / unmount must never leave the shell invisible.
+      gsap.set(el, { autoAlpha: 1, y: 0, clearProps: 'transform' });
+    };
   }, [location.pathname, children]);
 
   return (
-    <div
-      ref={containerRef}
-      className="flex min-h-0 flex-1 flex-col transition-all duration-200 ease-entrance"
-      style={{
-        opacity: transitioning ? 0 : 1,
-        transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
-      }}
-    >
+    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col will-change-[opacity,transform]">
       {displayChildren}
     </div>
   );

@@ -90,11 +90,16 @@ body {
   background-color: var(--kiddy-surface);
   border: 1px solid var(--kiddy-border);
   border-radius: 24px;
-  transition: transform 0.5s var(--ease-apple), border-color 0.5s var(--ease-apple);
+  box-shadow: 0 10px 30px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: transform 0.5s var(--ease-apple), border-color 0.5s var(--ease-apple), box-shadow 0.5s var(--ease-apple);
 }
 @media (hover: hover) {
   .card-premium:hover {
-    border-color: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: 0 18px 40px -16px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .card-premium.hover-lift:hover {
+    transform: translateY(-3px);
   }
 }
 
