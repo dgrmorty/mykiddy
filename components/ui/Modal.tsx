@@ -28,7 +28,9 @@ export const Modal: React.FC<ModalProps> = ({
   panelClassName = '',
   mobileCentered = false,
 }) => {
-  const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
+  // Important: start open when isOpen is already true (e.g. AuthModal mounts with isOpen).
+  // Otherwise children never mount on the first paint and parent GSAP (opacity-0 forms) never runs.
+  const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>(() => (isOpen ? 'open' : 'closed'));
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const onClosedRef = useRef(onClosed);
@@ -40,8 +42,10 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      openAnimatedRef.current = false;
-      setPhase('open');
+      if (phase === 'closed' || phase === 'closing') {
+        openAnimatedRef.current = false;
+        setPhase('open');
+      }
     } else if (phase === 'open') {
       setPhase('closing');
     }
