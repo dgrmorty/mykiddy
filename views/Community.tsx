@@ -18,23 +18,56 @@ gsap.registerPlugin(useGSAP);
 const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onClick, busyId }: any) => {
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(() => {
-    if (!ref.current) return;
-    gsap.to(ref.current, {
-      height: expanded ? 120 : 64,
-      borderRadius: expanded ? 28 : 32,
-      backgroundColor: expanded ? '#111111' : '#000000',
-      duration: 0.6,
-      ease: 'elastic.out(1, 0.75)'
-    });
-    gsap.to(ref.current.querySelector('.st-details'), {
-      opacity: expanded ? 1 : 0,
-      y: expanded ? 0 : -10,
-      duration: expanded ? 0.3 : 0.2,
-      display: expanded ? 'flex' : 'none'
-    });
-  }, [expanded]);
+  useGSAP(
+    () => {
+      const el = ref.current;
+      const details = detailsRef.current;
+      if (!el || !details) return;
+
+      gsap.killTweensOf([el, details]);
+
+      if (expanded) {
+        gsap.set(details, { display: 'flex', pointerEvents: 'auto' });
+        gsap.to(el, {
+          height: 120,
+          borderRadius: 28,
+          backgroundColor: '#111111',
+          duration: 0.6,
+          ease: 'elastic.out(1, 0.75)',
+          overwrite: 'auto',
+        });
+        gsap.to(details, {
+          opacity: 1,
+          y: 0,
+          duration: 0.28,
+          ease: 'power3.out',
+          overwrite: 'auto',
+        });
+      } else {
+        gsap.to(details, {
+          opacity: 0,
+          y: -10,
+          duration: 0.12,
+          ease: 'power2.in',
+          overwrite: 'auto',
+          onComplete: () => {
+            gsap.set(details, { display: 'none', y: -10, pointerEvents: 'none' });
+          },
+        });
+        gsap.to(el, {
+          height: 64,
+          borderRadius: 32,
+          backgroundColor: '#000000',
+          duration: 0.35,
+          ease: 'power3.out',
+          overwrite: 'auto',
+        });
+      }
+    },
+    { scope: ref, dependencies: [expanded] },
+  );
 
   const lvl = levelFromXp(student.xp ?? 0);
   const presence = presenceFromLastSeen(student.last_seen_at);
@@ -48,11 +81,15 @@ const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onCli
       className="relative overflow-hidden cursor-pointer border border-white/10 shadow-island bg-black student-island"
       style={{ height: 64, borderRadius: 32 }}
     >
-      <div className="absolute top-0 left-0 right-0 h-[64px] flex items-center px-2 gap-3">
+      <div className="absolute top-0 left-0 right-0 z-10 flex h-[64px] items-center gap-3 px-2">
         <UserAvatar user={{ id: student.id, name: student.name || 'Ученик', avatar: student.avatar || '' }} size="md" presence={presence} />
-        <span className="font-bold text-white text-sm truncate">{student.name || 'Ученик'}</span>
+        <span className="truncate text-sm font-bold text-white">{student.name || 'Ученик'}</span>
       </div>
-      <div className="st-details hidden opacity-0 absolute bottom-0 left-0 right-0 h-[56px] px-5 pb-4 flex items-end justify-between">
+      <div
+        ref={detailsRef}
+        className="st-details pointer-events-none absolute bottom-0 left-0 right-0 flex h-[56px] items-end justify-between px-5 pb-4 opacity-0"
+        style={{ display: 'none' }}
+      >
         <div className="flex flex-col">
           <span className="text-zinc-400 text-xs font-bold">Ур. {lvl}</span>
           <span className="text-zinc-500 text-[10px] uppercase tracking-widest">{(student.xp ?? 0).toLocaleString()} XP</span>
@@ -61,7 +98,7 @@ const StudentIsland = ({ student, isFriend, hasOutgoing, canFriend, onAdd, onCli
           <button
             disabled={busyId === student.id}
             onClick={(e) => { e.stopPropagation(); onAdd(student.id); }}
-            className="bg-white text-black px-4 py-2 rounded-full text-xs font-bold hover:bg-zinc-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="pointer-events-auto flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
           >
             {busyId === student.id ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />} В друзья
           </button>

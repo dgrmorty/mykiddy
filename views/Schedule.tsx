@@ -22,23 +22,56 @@ const DAY_NAMES = ['Понедельник', 'Вторник', 'Среда', 'Ч
 const EventIsland = ({ ev, live, index }: { ev: MergedEvent, live: boolean, index: number }) => {
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(() => {
-    if (!ref.current) return;
-    gsap.to(ref.current, {
-      height: expanded ? 'auto' : 60,
-      borderRadius: expanded ? 24 : 30,
-      backgroundColor: live ? (expanded ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)') : (expanded ? '#111111' : '#000000'),
-      duration: 0.6,
-      ease: 'elastic.out(1, 0.75)'
-    });
-    gsap.to(ref.current.querySelector('.ev-details'), {
-      opacity: expanded ? 1 : 0,
-      y: expanded ? 0 : -10,
-      duration: expanded ? 0.3 : 0.2,
-      display: expanded ? 'block' : 'none'
-    });
-  }, [expanded]);
+  useGSAP(
+    () => {
+      const el = ref.current;
+      const details = detailsRef.current;
+      if (!el || !details) return;
+
+      gsap.killTweensOf([el, details]);
+
+      if (expanded) {
+        gsap.set(details, { display: 'block' });
+        gsap.to(el, {
+          height: 'auto',
+          borderRadius: 24,
+          backgroundColor: live ? 'rgba(255,255,255,0.15)' : '#111111',
+          duration: 0.6,
+          ease: 'elastic.out(1, 0.75)',
+          overwrite: 'auto',
+        });
+        gsap.to(details, {
+          opacity: 1,
+          y: 0,
+          duration: 0.28,
+          ease: 'power3.out',
+          overwrite: 'auto',
+        });
+      } else {
+        gsap.to(details, {
+          opacity: 0,
+          y: -10,
+          duration: 0.12,
+          ease: 'power2.in',
+          overwrite: 'auto',
+          onComplete: () => {
+            gsap.set(details, { display: 'none', y: -10 });
+          },
+        });
+        gsap.to(el, {
+          height: 60,
+          borderRadius: 30,
+          backgroundColor: live ? 'rgba(255,255,255,0.1)' : '#000000',
+          duration: 0.35,
+          ease: 'power3.out',
+          overwrite: 'auto',
+        });
+      }
+    },
+    { scope: ref, dependencies: [expanded, live] },
+  );
 
   return (
     <div 
@@ -47,7 +80,7 @@ const EventIsland = ({ ev, live, index }: { ev: MergedEvent, live: boolean, inde
       className={`relative overflow-hidden cursor-pointer shadow-island border border-white/10 ${live ? 'bg-white/10' : 'bg-black'}`}
       style={{ height: 60, borderRadius: 30, animation: `fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${index * 0.05}s` }}
     >
-      <div className="absolute top-0 left-0 right-0 h-[60px] flex items-center justify-between px-5">
+      <div className="absolute top-0 left-0 right-0 z-10 flex h-[60px] items-center justify-between px-5">
         <div className="flex items-center gap-4 min-w-0">
           <span className={`font-mono font-bold text-sm shrink-0 ${live ? 'text-white' : 'text-kiddy-cherry'}`}>{ev.time_start}</span>
           <span className="font-bold text-white text-sm truncate">{ev.title}</span>
@@ -55,7 +88,7 @@ const EventIsland = ({ ev, live, index }: { ev: MergedEvent, live: boolean, inde
         {ev.isPermanent && !live && <Users size={14} className="text-zinc-500 shrink-0 ml-2" />}
         {live && <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0 ml-2" />}
       </div>
-      <div className="ev-details hidden opacity-0 pt-[60px] px-5 pb-5">
+      <div ref={detailsRef} className="ev-details opacity-0 pt-[60px] px-5 pb-5" style={{ display: 'none' }}>
         {ev.time_end && <p className="text-zinc-400 text-xs font-mono mb-2">До {ev.time_end}</p>}
         {ev.description && <p className="text-zinc-300 text-sm leading-relaxed mb-3">{ev.description}</p>}
         {ev.location && <p className="text-zinc-400 text-xs flex items-center gap-1.5"><MapPin size={12} /> {ev.location}</p>}
