@@ -15,7 +15,8 @@
     "apk": "npm run build && npx cap sync android && chmod +x android/gradlew && cd android && ./gradlew assembleDebug",
     "supabase:migrations": "supabase migration list",
     "supabase:lint": "supabase db lint --linked",
-    "supabase:push": "supabase db push"
+    "supabase:push": "supabase db push",
+    "icons:generate": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
