@@ -20,6 +20,43 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
+/** Битый/просроченный JWT в localStorage → все REST-запросы (лента, логин) падают с 401. */
+export function isCorruptAuthError(err: unknown): boolean {
+  const msg = String(
+    (err as { message?: string })?.message ||
+      (err as { error_description?: string })?.error_description ||
+      err ||
+      '',
+  ).toLowerCase();
+  const code = String((err as { code?: string })?.code || '').toLowerCase();
+  return (
+    code === 'pgrst301' ||
+    msg.includes('jwt') ||
+    msg.includes('refresh token') ||
+    msg.includes('invalid claim') ||
+    msg.includes('session from session_id claim') ||
+    msg.includes('auth session missing')
+  );
+}
+
+let clearingCorruptSession: Promise<void> | null = null;
+
+/** Сбрасывает локальную сессию, чтобы клиент снова ходил как anon. */
+export async function clearCorruptAuthSession(reason?: string): Promise<void> {
+  if (clearingCorruptSession) return clearingCorruptSession;
+  clearingCorruptSession = (async () => {
+    console.warn('[Supabase] Clearing corrupt auth session', reason || '');
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('[Supabase] local signOut failed', e);
+    }
+  })().finally(() => {
+    clearingCorruptSession = null;
+  });
+  return clearingCorruptSession;
+}
+
 /** В фоновых вкладках браузер троттлит таймеры — без этого сессия может «отвалиться», а UI — потерять данные профиля. */
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const syncAuthRefresh = () => {

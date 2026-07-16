@@ -1,6 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase, signOut as supabaseSignOut } from '../services/supabase';
+import {
+  supabase,
+  signOut as supabaseSignOut,
+  isCorruptAuthError,
+  clearCorruptAuthSession,
+} from '../services/supabase';
 import { invalidateCoursesCache } from '../services/contentService';
 import { User, Role } from '../types';
 import { GUEST_USER } from '../constants';
@@ -323,12 +328,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) {
           console.error("[Auth] Session error:", error);
+          if (isCorruptAuthError(error)) {
+            await clearCorruptAuthSession(error.message);
+          }
           if (mounted) {
             endOAuthRecoveryWindow();
             setUser(GUEST_USER);
             setAuthLoading(false);
           }
           return;
+        }
+
+        // Локальная сессия есть, но JWT уже невалиден → иначе лента/логин сыплют 401.
+        if (session?.user) {
+          const { error: userErr } = await supabase.auth.getUser();
+          if (userErr && isCorruptAuthError(userErr)) {
+            console.warn('[Auth] Stored session rejected by Auth API, clearing', userErr.message);
+            await clearCorruptAuthSession(userErr.message);
+            session = null;
+          }
         }
 
         if (session?.user && mounted) {

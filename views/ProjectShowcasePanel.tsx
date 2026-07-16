@@ -173,6 +173,24 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
       const msg = err instanceof Error ? err.message : String(err);
       const code = typeof err === 'object' && err !== null && 'code' in err ? String((err as { code?: string }).code) : '';
       console.error('[Showcase] load failed', msg, code, err);
+      // Битый JWT в storage ломает весь REST (в т.ч. публичную ленту) — сбрасываем и пробуем ещё раз.
+      try {
+        const { isCorruptAuthError, clearCorruptAuthSession } = await import('../services/supabase');
+        if (isCorruptAuthError(err) || code === 'PGRST301') {
+          await clearCorruptAuthSession(msg);
+          const retry = (await fetchApprovedShowcasePosts(postLimit)).filter((row) => row.id && row.author_id);
+          setPosts(retry);
+          if (retry.length) {
+            const ids = [...new Set(retry.map((p) => p.author_id))];
+            if (ids.length) setAuthors(await fetchShowcaseAuthorsForFeed(ids));
+            setCountMap(await fetchLikeCounts(retry.map((p) => p.id)));
+            setLikeMap({});
+            return;
+          }
+        }
+      } catch (retryErr) {
+        console.error('[Showcase] retry after corrupt session failed', retryErr);
+      }
       setPosts([]);
       showToast('Не удалось загрузить ленту', 'error');
     } finally {
