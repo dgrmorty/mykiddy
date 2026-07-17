@@ -79,7 +79,7 @@ export function composeShowcaseText(sel: PhraseSelections): string {
 
 export const SHOWCASE_FREE_TEXT_KEY = '__free_text';
 
-export const SHOWCASE_MIN_CUSTOM_LEN = 10;
+export const SHOWCASE_MIN_CUSTOM_LEN = 1;
 export const SHOWCASE_MAX_CUSTOM_LEN = 2500;
 
 export function showcasePostBody(sel: PhraseSelections | null | undefined): string {

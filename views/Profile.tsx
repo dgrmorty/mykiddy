@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   Trophy,
   Medal,
-  Sparkles,
   ChevronDown,
   Settings2,
 } from 'lucide-react';
@@ -33,7 +32,7 @@ import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { clearAllOnboardingKeys } from '../data/onboardingTour';
-import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
+import { ShowcaseSubmitIsland } from '../components/ShowcaseSubmitIsland';
 import {
   AVATAR_BOY_PATH,
   AVATAR_GIRL_PATH,
@@ -57,7 +56,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
+  const [showcaseOpen, setShowcaseOpen] = useState(false);
   const [editName, setEditName] = useState(() => (user.id !== 'guest' ? user : initialUser).name);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
@@ -78,7 +77,9 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   useEffect(() => {
     if (location.hash !== '#showcase-submit') return;
     const t = window.setTimeout(() => {
-      document.getElementById('showcase-submit')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const desktop = window.matchMedia('(min-width: 768px)').matches;
+      const el = document.getElementById(desktop ? 'showcase-submit-desktop' : 'showcase-submit-mobile');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
     return () => window.clearTimeout(t);
   }, [location.hash]);
@@ -86,7 +87,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   useEffect(() => {
     if (location.hash !== '#showcase-submit') return;
     if (currentUser.role !== Role.STUDENT || currentUser.id === 'guest') return;
-    setShowcaseModalOpen(true);
+    setShowcaseOpen(true);
   }, [location.hash, currentUser.role, currentUser.id]);
 
   useEffect(() => {
@@ -540,29 +541,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
           {/* Showcase Submit Island */}
           {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-            <>
-              <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
-              <div id="showcase-submit" className="w-full rounded-[2rem] border border-white/10 bg-black p-5 shadow-island animate-slide-up scroll-mt-24" style={{ animationDelay: '0.4s' }}>
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white border border-white/10">
-                      <Sparkles size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Витрина</p>
-                      <h3 className="text-sm font-bold text-white">Выложить проект</h3>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowcaseModalOpen(true)}
-                    className="w-full sm:w-auto rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
-                  >
-                    Отправить
-                  </button>
-                </div>
-              </div>
-            </>
+            <ShowcaseSubmitIsland
+              open={showcaseOpen}
+              onOpenChange={setShowcaseOpen}
+              anchorId="showcase-submit-mobile"
+              className="animate-slide-up"
+            />
           )}
 
           {/* Settings Section */}
@@ -746,29 +730,12 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
         {/* Showcase Submit Island */}
         {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-          <>
-            <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
-            <section id="showcase-submit" className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up scroll-mt-24" style={{ animationDelay: '0.5s' }}>
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white">
-                    <Sparkles size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Витрина</p>
-                    <h3 className="text-lg font-bold text-white">Выложить проект</h3>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowcaseModalOpen(true)}
-                  className="w-full sm:w-auto rounded-2xl bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
-                >
-                  Отправить работу
-                </button>
-              </div>
-            </section>
-          </>
+          <ShowcaseSubmitIsland
+            open={showcaseOpen}
+            onOpenChange={setShowcaseOpen}
+            anchorId="showcase-submit-desktop"
+            className="animate-slide-up"
+          />
         )}
 
         {/* Settings Section */}
