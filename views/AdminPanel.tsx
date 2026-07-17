@@ -3,7 +3,7 @@ import { supabase, uploadFile } from '../services/supabase';
 import { uploadLessonVideoToBunny } from '../services/bunnyVideoService';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
-    Edit2, X, Search, Calendar, Sparkles, Users, BookOpen, 
+    Edit2, X, Search, Calendar, Sparkles, Users, BookOpen, User as UserIcon,
     CheckCircle, XCircle, ChevronLeft, FileText, Save
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -509,7 +509,7 @@ export const AdminPanel: React.FC = () => {
                                     <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-[2.5rem] p-6 shadow-premium relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-full h-1 bg-white/10"><div className="h-full bg-white" style={{width: '100%'}}/></div>
                                         <div className="mb-6 flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center"><User size={20} className="text-zinc-400"/></div>
+                                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center"><UserIcon size={20} className="text-zinc-400"/></div>
                                             <div>
                                                 <p className="text-white font-bold">{showcaseAuthors[showcasePosts[0].author_id]}</p>
                                                 <p className="text-zinc-500 text-xs">Ожидает проверки</p>
