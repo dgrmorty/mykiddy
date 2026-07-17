@@ -158,6 +158,49 @@ body {
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 .px-safe { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
 
+/* ─── Lesson video fullscreen (fallback cinema) ─── */
+html.lesson-video-fs,
+body.lesson-video-fs {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.lesson-video-cinema {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100dvh;
+  background: #000;
+}
+
+/* Визуальный landscape, если телефон в портрете и нет OS lock */
+@media (orientation: portrait) {
+  .lesson-video-cinema--rotate {
+    width: 100dvh;
+    height: 100dvw;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+}
+
+@media (orientation: landscape) {
+  .lesson-video-cinema--rotate {
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    transform: none;
+  }
+}
+
 /* ─── Dynamic Island ─── */
 .dynamic-island {
   background-color: #000000;
