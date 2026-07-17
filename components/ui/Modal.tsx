@@ -96,7 +96,7 @@ export const Modal: React.FC<ModalProps> = ({
           gsap.fromTo(
             panel,
             { autoAlpha: 0, y: 18, scale: 0.96 },
-            { autoAlpha: 1, y: 0, scale: 1, duration: 0.55, ease: 'elastic.out(1, 0.72)' },
+            { autoAlpha: 1, y: 0, scale: 1, duration: 0.4, ease: 'power3.out' },
           );
         }
         return;

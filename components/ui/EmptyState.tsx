@@ -27,7 +27,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
         tl.from('.es-glow', { autoAlpha: 0, scale: 0.6, duration: 0.8 })
-          .from('.es-icon', { autoAlpha: 0, y: 18, scale: 0.86, duration: 0.7, ease: 'elastic.out(1, 0.65)' }, '-=0.45')
+          .from('.es-icon', { autoAlpha: 0, y: 18, scale: 0.86, duration: 0.55, ease: 'power3.out' }, '-=0.45')
           .from('.es-copy', { autoAlpha: 0, y: 14, duration: 0.55, stagger: 0.08 }, '-=0.35')
           .from('.es-action', { autoAlpha: 0, y: 10, duration: 0.45 }, '-=0.25');
 
