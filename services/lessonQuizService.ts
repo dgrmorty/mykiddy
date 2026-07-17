@@ -21,8 +21,8 @@ export async function fetchAnsweredQuizCueIds(lessonId: string): Promise<string[
 }
 
 /**
- * Зафиксировать ответ на квиз.
- * +1 XP только если p_first_try и запись ещё не существовала.
+ * Зафиксировать правильный ответ на квиз.
+ * +1 XP при первом успешном прохождении cue (повторные вызовы — already).
  */
 export async function claimLessonQuizCue(
   lessonId: string,

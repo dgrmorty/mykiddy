@@ -604,20 +604,36 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     setSubmitting(true);
 
     let xpGot = 0;
+    let claimOk = false;
     if (lessonId && !isGuest) {
       try {
         const res = await claimLessonQuizCue(lessonId, activeCue.id, firstTryRef.current);
+        claimOk = res.ok;
         xpGot = res.awarded ? res.xp : 0;
+        if (res.awarded || res.already) {
+          void refreshUser?.();
+        }
       } catch (e) {
         console.warn('[quiz] claim failed', e);
       }
+    } else {
+      claimOk = true;
+    }
+
+    // Без успешного claim не закрываем cue — иначе XP потеряется навсегда
+    if (lessonId && !isGuest && !claimOk) {
+      setFeedback('correct');
+      setSubmitting(false);
+      window.setTimeout(() => {
+        setFeedback(null);
+      }, 800);
+      return;
     }
 
     answeredRef.current.add(activeCue.id);
     setFeedback('correct');
     if (xpGot > 0) {
       setAwardedXp(xpGot);
-      void refreshUser?.();
     }
     setSubmitting(false);
 
