@@ -15,10 +15,6 @@ import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data
 import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Modal } from '../components/ui/Modal';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-
-gsap.registerPlugin(useGSAP);
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase' | 'homework';
 
@@ -77,39 +73,28 @@ function safeShowcaseBody(sel: unknown): string {
 // --- Components ---
 const IslandStats = ({ usersCount, showcaseCount, homeworkCount }: { usersCount: number, showcaseCount: number, homeworkCount: number }) => {
     const [expanded, setExpanded] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useGSAP(() => {
-        if (!ref.current) return;
-        gsap.to(ref.current, {
-            width: expanded ? 300 : 120,
-            height: expanded ? 140 : 40,
-            borderRadius: expanded ? 24 : 20,
-            duration: 0.6,
-            ease: 'elastic.out(1, 0.7)',
-        });
-        
-        if (expanded) {
-            gsap.to('.stats-compact', { autoAlpha: 0, duration: 0.2 });
-            gsap.to('.stats-expanded', { autoAlpha: 1, duration: 0.4, delay: 0.1, stagger: 0.05 });
-        } else {
-            gsap.to('.stats-expanded', { autoAlpha: 0, duration: 0.2 });
-            gsap.to('.stats-compact', { autoAlpha: 1, duration: 0.4, delay: 0.2 });
-        }
-    }, [expanded]);
 
     return (
-        <div 
-            ref={ref}
-            onClick={() => setExpanded(!expanded)}
-            className="cursor-pointer bg-black/90 backdrop-blur-xl border border-white/10 shadow-island overflow-hidden relative mx-auto mb-6 z-40"
-            style={{ width: 120, height: 40, borderRadius: 20 }}
+        <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className={`cursor-pointer bg-black/90 backdrop-blur-xl border border-white/10 shadow-island overflow-hidden relative mx-auto mb-6 z-40 text-left transition-all duration-300 ease-out ${
+                expanded ? 'w-[300px] h-[140px] rounded-3xl' : 'w-[120px] h-10 rounded-full'
+            }`}
         >
-            <div className="stats-compact absolute inset-0 flex items-center justify-center gap-2 text-white text-xs font-bold">
+            <div
+                className={`absolute inset-0 flex items-center justify-center gap-2 text-white text-xs font-bold transition-opacity duration-200 ${
+                    expanded ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                }`}
+            >
                 <Shield size={14} className="text-kiddy-cherry" />
                 <span>Статистика</span>
             </div>
-            <div className="stats-expanded absolute inset-0 p-4 opacity-0 flex flex-col justify-center gap-3">
+            <div
+                className={`absolute inset-0 p-4 flex flex-col justify-center gap-3 transition-opacity duration-200 ${
+                    expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+            >
                 <div className="flex items-center justify-between">
                     <span className="text-zinc-400 text-xs uppercase tracking-widest font-bold">Пользователи</span>
                     <span className="text-white font-bold">{usersCount}</span>
@@ -123,7 +108,7 @@ const IslandStats = ({ usersCount, showcaseCount, homeworkCount }: { usersCount:
                     <span className="text-white font-bold">{showcaseCount}</span>
                 </div>
             </div>
-        </div>
+        </button>
     );
 };
 
