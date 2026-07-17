@@ -791,12 +791,28 @@ app.get('/api/lesson-video/play', async (req, res) => {
         return res.status(401).json({ error: 'Войдите в аккаунт, чтобы смотреть урок.', code: 'AUTH_REQUIRED' });
     }
     const rawPath = typeof req.query.path === 'string' ? req.query.path : '';
-    const filePath = rawPath.replace(/^bunny:/, '').replace(/^\/+/, '');
+    let filePath = rawPath.replace(/^bunny:/, '').replace(/^\/+/, '');
     if (!filePath || filePath.includes('..') || filePath.includes('\\')) {
         return res.status(400).json({ error: 'Некорректный путь к видео.', code: 'VALIDATION_ERROR' });
     }
     if (!filePath.startsWith('lessons/')) {
         return res.status(400).json({ error: 'Разрешены только пути lessons/.', code: 'VALIDATION_ERROR' });
+    }
+    // Chrome не играет QuickTime .mov — если есть remux .mp4 с тем же именем, отдаём его
+    if (/\.mov$/i.test(filePath)) {
+        const mp4Path = filePath.replace(/\.mov$/i, '.mp4');
+        try {
+            const headRes = await fetch(
+                `https://${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${mp4Path}`,
+                { method: 'HEAD', headers: { AccessKey: BUNNY_STORAGE_PASSWORD } },
+            );
+            if (headRes.ok) {
+                console.log('[bunny] play remux fallback', filePath, '->', mp4Path);
+                filePath = mp4Path;
+            }
+        } catch (e) {
+            console.warn('[bunny] mp4 probe failed', e?.message || e);
+        }
     }
     try {
         const signed = signBunnyCdnUrl(filePath, 7200);

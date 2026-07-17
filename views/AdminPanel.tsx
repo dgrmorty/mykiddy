@@ -267,6 +267,10 @@ export const AdminPanel: React.FC = () => {
                     showToast('Файл слишком большой (макс. ~1.5 GB)', 'error');
                     return;
                 }
+                const lower = file.name.toLowerCase();
+                if (lower.endsWith('.mov') || file.type === 'video/quicktime') {
+                    showToast('Лучше MP4 (H.264): .mov часто не играет в Chrome (00:00)', 'info');
+                }
                 // Не вызываем showToast до конца — раньше GSAP-toast ронял админку.
                 // Прогресс — спиннер на кнопке; URL пишем в форму, потом «Сохранить».
                 const bunnyUrl = await uploadLessonVideoToBunny(file, token, (pct) => {
@@ -772,7 +776,7 @@ export const AdminPanel: React.FC = () => {
                             <button type="button" onClick={() => lessonVideoInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white" disabled={uploading}>
                                 {uploading ? <Loader2 size={18} className="animate-spin" /> : <Video size={18} />}
                             </button>
-                            <input type="file" ref={lessonVideoInputRef} className="hidden" accept="video/mp4,video/webm,video/quicktime,video/*" onChange={e => handleUpload(e, 'lesson')} />
+                            <input type="file" ref={lessonVideoInputRef} className="hidden" accept="video/mp4,video/webm,.mp4,.webm" onChange={e => handleUpload(e, 'lesson')} />
                         </div>
                         {uploading && <p className="text-zinc-500 text-xs">Идёт загрузка на Bunny, не закрывайте окно…</p>}
                         <textarea value={lessonForm.homework_task || ''} onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})} placeholder="Домашнее задание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />

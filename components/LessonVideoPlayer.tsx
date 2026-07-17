@@ -11,6 +11,7 @@ type Props = {
 
 /**
  * Свой плеер: для bunny: получает временный CDN URL после логина.
+ * Важно: не форсировать type="video/mp4" — .mov с таким type даёт 00:00 в Chrome.
  */
 export function LessonVideoPlayer({ videoUrl, className = '' }: Props) {
   const [src, setSrc] = useState<string | null>(null);
@@ -58,7 +59,6 @@ export function LessonVideoPlayer({ videoUrl, className = '' }: Props) {
         setSrc(url);
         setLoading(false);
 
-        // Обновить ссылку за ~5 мин до истечения
         const ms = Math.max(60_000, expires * 1000 - Date.now() - 5 * 60_000);
         refreshTimer = setTimeout(() => {
           if (!cancelled) void load();
@@ -88,6 +88,8 @@ export function LessonVideoPlayer({ videoUrl, className = '' }: Props) {
     );
   }
 
+  const looksMov = !!src && /\.mov(\?|$)/i.test(src);
+
   return (
     <>
       {loading && (
@@ -98,15 +100,33 @@ export function LessonVideoPlayer({ videoUrl, className = '' }: Props) {
       {src && (
         <video
           key={src}
+          src={src}
           controls
+          playsInline
           controlsList="nodownload"
           className={`w-full h-full absolute inset-0 bg-black ${className}`}
           preload="metadata"
           onCanPlay={() => setLoading(false)}
-          onLoadedData={() => setLoading(false)}
-        >
-          <source src={src} type="video/mp4" />
-        </video>
+          onLoadedMetadata={(e) => {
+            setLoading(false);
+            const d = e.currentTarget.duration;
+            if (!Number.isFinite(d) || d === 0) {
+              setError(
+                looksMov
+                  ? 'Этот .mov браузер не может проиграть. Загрузите MP4 (H.264) в админке.'
+                  : 'Видео не удалось прочитать. Загрузите MP4 (H.264).',
+              );
+            }
+          }}
+          onError={() => {
+            setLoading(false);
+            setError(
+              looksMov
+                ? 'Формат .mov не поддерживается в этом браузере. Перезалейте урок как MP4.'
+                : 'Не удалось воспроизвести файл. Нужен MP4 (H.264 + AAC).',
+            );
+          }}
+        />
       )}
     </>
   );
