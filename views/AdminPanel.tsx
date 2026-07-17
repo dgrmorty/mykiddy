@@ -267,11 +267,15 @@ export const AdminPanel: React.FC = () => {
                     showToast('Файл слишком большой (макс. ~1.5 GB)', 'error');
                     return;
                 }
-                // Не вызываем showToast до конца — GSAP-toast ронял админку.
-                // Прогресс виден по спиннеру на кнопке (uploading).
-                const bunnyUrl = await uploadLessonVideoToBunny(file, token);
+                // Не вызываем showToast до конца — раньше GSAP-toast ронял админку.
+                // Прогресс — спиннер на кнопке; URL пишем в форму, потом «Сохранить».
+                const bunnyUrl = await uploadLessonVideoToBunny(file, token, (pct) => {
+                    if (pct === 100 || pct % 25 === 0) {
+                        console.info('[Admin] bunny upload', pct + '%');
+                    }
+                });
                 setLessonForm(prev => ({ ...prev, video_url: bunnyUrl }));
-                showToast('Видео загружено (Bunny)', 'success');
+                showToast('Видео в Bunny — нажмите Сохранить', 'success');
             } else {
                 showToast('Загрузка файла...', 'info');
                 const url = await uploadFile(file, 'covers');
