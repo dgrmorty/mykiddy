@@ -59,18 +59,20 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
       gsap.killTweensOf([card, compact, body, footer].filter(Boolean));
 
       const { targetW, maxH, short } = quizShellMetrics(root);
-      // Контент измеряем после того как он в DOM (может быть выше maxH → скролл внутри)
-      gsap.set(card, { clearProps: 'height' });
+
+      // Сначала показываем контент скрыто, меряем, потом анимируем.
+      // В конце — height:auto, иначе при «Неверно» футер обрезается overflow'ом.
       gsap.set(body, { visibility: 'hidden', opacity: 0 });
       if (footer) gsap.set(footer, { opacity: 0 });
+      gsap.set(card, { width: targetW, height: 'auto', maxHeight: maxH, overflow: 'hidden' });
 
-      const contentH = body.scrollHeight + (footer?.scrollHeight || 0) + 8;
+      const contentH = card.scrollHeight;
       const targetH = Math.min(Math.max(contentH, short ? 200 : 240), maxH);
 
       if (reduced) {
         gsap.set(card, {
           width: targetW,
-          height: targetH,
+          height: 'auto',
           maxHeight: maxH,
           borderRadius: short ? 22 : 28,
           opacity: 1,
@@ -123,25 +125,16 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
         );
 
       if (footer) {
-        tl.fromTo(footer, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.28 }, short ? 0.52 : 0.62);
+        tl.fromTo(footer, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.28 }, short ? 0.52 : 0.62);
       }
+
+      // Важно: дальше высота только через CSS auto — кнопка не уедет под карточку
+      tl.add(() => {
+        gsap.set(card, { height: 'auto', maxHeight: maxH, clearProps: 'overflow' });
+      });
     },
     { dependencies: [cue.id], scope: rootRef },
   );
-
-  // Подстроить высоту при смене feedback (ошибка / успех), не обрезая кнопку
-  useEffect(() => {
-    if (feedback === null) return;
-    const root = rootRef.current;
-    const card = cardRef.current;
-    const body = bodyRef.current;
-    const footer = footerRef.current;
-    if (!root || !card || !body) return;
-    const { maxH } = quizShellMetrics(root);
-    const contentH = body.scrollHeight + (footer?.scrollHeight || 0) + 8;
-    const targetH = Math.min(Math.max(contentH, 200), maxH);
-    gsap.to(card, { height: targetH, maxHeight: maxH, duration: 0.28, ease: 'power2.out' });
-  }, [feedback, awardedXp]);
 
   useGSAP(
     () => {
@@ -194,17 +187,16 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
       <div
         ref={cardRef}
         className="relative z-10 flex w-full max-w-[400px] flex-col overflow-hidden border border-white/12 bg-black/95 shadow-island backdrop-blur-2xl will-change-[width,height,border-radius,transform]"
-        style={{ maxHeight: '92%' }}
+        style={{ maxHeight: 'min(92%, 520px)' }}
       >
         <div
           ref={compactRef}
-          className="absolute inset-x-0 top-0 z-10 flex h-10 items-center justify-center gap-2 px-4"
+          className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-10 items-center justify-center gap-2 px-4"
         >
           <span className="h-2 w-2 shrink-0 rounded-full bg-kiddy-cherry animate-pulse" />
           <span className="text-xs font-bold tracking-wide text-white">Вопрос</span>
         </div>
 
-        {/* Скроллируемая часть — кнопка всегда снизу снаружи скролла */}
         <div
           ref={bodyRef}
           className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 sm:px-5 sm:pt-5"
@@ -215,7 +207,7 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
           <h3 className="mb-3 text-[15px] font-bold leading-snug text-white sm:mb-4 sm:text-lg">
             {cue.question}
           </h3>
-          <div className="space-y-2 pb-1">
+          <div className="space-y-2">
             {cue.options.map((opt, idx) => {
               const isSel = selected === idx;
               const showCorrect = feedback === 'correct' && idx === cue.correctIndex;
@@ -246,14 +238,17 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
               );
             })}
           </div>
-          {feedback === 'wrong' && (
-            <p className="mt-2 text-xs text-red-300/90">Неверно — попробуй ещё раз.</p>
-          )}
+          {/* Резерв места под ошибку — без скачка и без обрезания футера */}
+          <div className="mt-2 min-h-[1.25rem]" aria-live="polite">
+            {feedback === 'wrong' && (
+              <p className="text-xs text-red-300/90">Неверно — попробуй ещё раз.</p>
+            )}
+          </div>
         </div>
 
         <div
           ref={footerRef}
-          className="shrink-0 border-t border-white/[0.06] bg-black/90 px-4 py-3 sm:px-5 sm:py-3.5"
+          className="relative z-20 shrink-0 border-t border-white/[0.06] bg-black px-4 py-3 sm:px-5 sm:py-3.5"
         >
           {feedback !== 'correct' ? (
             <button
