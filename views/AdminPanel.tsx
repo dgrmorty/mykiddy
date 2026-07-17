@@ -161,6 +161,7 @@ export const AdminPanel: React.FC = () => {
     const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const lessonVideoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (currentView === 'content') fetchContent();
@@ -647,7 +648,7 @@ export const AdminPanel: React.FC = () => {
                                                                 <div key={l.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group">
                                                                     <span className="text-zinc-300 text-sm font-medium">{l.title}</span>
                                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title, description: l.description, video_url: l.video_url, homework_task: l.homework_task, module_id: l.module_id }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
+                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title || '', description: l.description || '', video_url: l.video_url || '', homework_task: l.homework_task || '', module_id: l.module_id }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
                                                                         <button onClick={() => deleteLesson(l.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={14}/></button>
                                                                     </div>
                                                                 </div>
@@ -775,15 +776,18 @@ export const AdminPanel: React.FC = () => {
                 <Modal isOpen={true} onClose={() => setLessonModalOpen(false)} maxWidth="max-w-lg" panelClassName="!rounded-t-[2.5rem] md:!rounded-[2.5rem] !bg-[#111] shadow-premium">
                     <div className="p-6 space-y-4">
                         <h3 className="text-xl font-bold text-white mb-4">{lessonForm.id ? 'Редактировать урок' : 'Новый урок'}</h3>
-                        <input value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
-                        <textarea value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} placeholder="Описание" rows={2} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
+                        <input value={lessonForm.title || ''} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                        <textarea value={lessonForm.description || ''} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} placeholder="Описание" rows={2} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
                         <div className="flex gap-2">
-                            <input value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="bunny:lessons/... или YouTube URL" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
-                            <button onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white"><Video size={18}/></button>
-                            <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={e => handleUpload(e, 'lesson')} />
+                            <input value={lessonForm.video_url || ''} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="bunny:lessons/... или YouTube URL" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                            <button type="button" onClick={() => lessonVideoInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white" disabled={uploading}>
+                                {uploading ? <Loader2 size={18} className="animate-spin" /> : <Video size={18} />}
+                            </button>
+                            <input type="file" ref={lessonVideoInputRef} className="hidden" accept="video/mp4,video/webm,video/quicktime,video/*" onChange={e => handleUpload(e, 'lesson')} />
                         </div>
-                        <textarea value={lessonForm.homework_task} onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})} placeholder="Домашнее задание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
-                        <button onClick={saveLesson} className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 mt-4">Сохранить</button>
+                        {uploading && <p className="text-zinc-500 text-xs">Идёт загрузка на Bunny, не закрывайте окно…</p>}
+                        <textarea value={lessonForm.homework_task || ''} onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})} placeholder="Домашнее задание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
+                        <button type="button" onClick={saveLesson} disabled={uploading} className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 mt-4 disabled:opacity-50">Сохранить</button>
                     </div>
                 </Modal>
             )}
