@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { CheckCircle2, Loader2, Maximize2, Minimize2, MonitorPlay, Sparkles, XCircle } from 'lucide-react';
 import { fetchLessonVideoPlayUrl, isBunnyLessonVideo } from '../services/bunnyVideoService';
-import { claimLessonQuizCue, fetchAnsweredQuizCueIds } from '../services/lessonQuizService';
+import { claimLessonQuizCue, fetchAnsweredQuizCueIds, recordLessonQuizMiss } from '../services/lessonQuizService';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { LessonQuizCue } from '../types';
@@ -328,7 +328,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   const [awardedXp, setAwardedXp] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const answeredRef = useRef<Set<string>>(new Set());
-  const firstTryRef = useRef(true);
+  const activeCueRef = useRef<LessonQuizCue | null>(null);
   const lastTimeRef = useRef(0);
   const [, setAnsweredTick] = useState(0);
 
@@ -336,7 +336,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   useEffect(() => {
     answeredRef.current = new Set();
     lastTimeRef.current = 0;
-    firstTryRef.current = true;
+    activeCueRef.current = null;
     setActiveCue(null);
     setSelected(null);
     setFeedback(null);
@@ -549,6 +549,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const openCue = useCallback(async (cue: LessonQuizCue) => {
     if (answeredRef.current.has(cue.id)) return;
+    if (activeCueRef.current?.id === cue.id) return;
     const v = videoRef.current;
     if (v) {
       v.pause();
@@ -559,7 +560,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
       iosVideoFsRef.current = false;
     }
 
-    firstTryRef.current = true;
+    activeCueRef.current = cue;
     setActiveCue(cue);
     setSelected(null);
     setFeedback(null);
@@ -568,7 +569,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const onTimeUpdate = () => {
     const v = videoRef.current;
-    if (!v || activeCue) return;
+    if (!v || activeCueRef.current) return;
     const t = v.currentTime;
     const prev = lastTimeRef.current;
     lastTimeRef.current = t;
@@ -583,7 +584,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const onSeeking = () => {
     const v = videoRef.current;
-    if (!v || activeCue) return;
+    if (!v || activeCueRef.current) return;
     const t = v.currentTime;
     const blocked = cues.find((c) => !answeredRef.current.has(c.id) && t > c.timeSec + 0.2);
     if (blocked) {
@@ -596,8 +597,15 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     if (!activeCue || selected === null || submitting) return;
 
     if (selected !== activeCue.correctIndex) {
-      firstTryRef.current = false;
       setFeedback('wrong');
+      if (lessonId && !isGuest) {
+        setSubmitting(true);
+        try {
+          await recordLessonQuizMiss(lessonId, activeCue.id);
+        } finally {
+          setSubmitting(false);
+        }
+      }
       return;
     }
 
@@ -607,12 +615,10 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     let claimOk = false;
     if (lessonId && !isGuest) {
       try {
-        const res = await claimLessonQuizCue(lessonId, activeCue.id, firstTryRef.current);
+        const res = await claimLessonQuizCue(lessonId, activeCue.id);
         claimOk = res.ok;
         xpGot = res.awarded ? res.xp : 0;
-        if (res.awarded || res.already) {
-          void refreshUser?.();
-        }
+        void refreshUser?.();
       } catch (e) {
         console.warn('[quiz] claim failed', e);
       }
@@ -620,7 +626,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
       claimOk = true;
     }
 
-    // Без успешного claim не закрываем cue — иначе XP потеряется навсегда
+    // Без успешного claim не закрываем cue — иначе XP/прогресс потеряется
     if (lessonId && !isGuest && !claimOk) {
       setFeedback('correct');
       setSubmitting(false);
@@ -631,6 +637,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     }
 
     answeredRef.current.add(activeCue.id);
+    activeCueRef.current = null;
     setFeedback('correct');
     if (xpGot > 0) {
       setAwardedXp(xpGot);
