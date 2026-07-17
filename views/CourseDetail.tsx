@@ -6,9 +6,10 @@ gsap.registerPlugin(useGSAP);
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { 
-    X, ArrowLeft, Send, Loader2, 
-    Maximize2, Minimize2, MonitorPlay, Zap, CheckCircle, Lock, Search, ImagePlus, Trash2, AlertCircle
+    X, ArrowLeft, Loader2, 
+    Maximize2, Minimize2, MonitorPlay, CheckCircle, Lock, Search
 } from 'lucide-react';
+import { HomeworkIsland } from '../components/HomeworkIsland';
 import { Course, CourseYearTier, COURSE_YEAR_LABELS, Lesson } from '../types';
 import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
@@ -651,167 +652,25 @@ export const CourseDetail: React.FC = () => {
             <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
                     <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-white/[0.08] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
                     {!isTheaterMode && (
-                        <div className="space-y-6">
-                            <Card className="bg-[#0a0a0a] border-white/[0.08] p-6 md:p-8 flex flex-col gap-6 h-fit shadow-premium">
-                                <div>
-                                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-                                        <Zap className="text-white" size={24} />
-                                    </div>
-                                    <h3 className="text-white font-bold text-lg mb-3">Практика</h3>
-                                    {activeLesson.homeworkTask ? (
-                                        <div className="mb-2">
-                                            <p className="text-kiddy-textSecondary text-xs font-bold uppercase tracking-widest mb-3">Задание:</p>
-                                            <div className="bg-black/50 border border-white/[0.08] rounded-xl p-4">
-                                                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{activeLesson.homeworkTask}</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-kiddy-textMuted text-sm leading-relaxed">Задание не задано для этого урока.</p>
-                                    )}
-                                </div>
-                                {activeLesson.homeworkTask && (
-                                    <>
-                                        {isHomeworkCompleted ? (
-                                            <div className="w-full py-4 bg-white/10 border border-white/20 text-white font-bold rounded-2xl flex items-center justify-center gap-2">
-                                                <CheckCircle size={18} /> Задание выполнено
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col gap-4 border-t border-white/[0.06] pt-6">
-                                                {homeworkStatus === 'rejected' && (
-                                                    <div
-                                                        role="status"
-                                                        className="rounded-2xl border border-amber-500/35 bg-amber-500/[0.08] p-4 text-left space-y-2"
-                                                    >
-                                                        <div className="flex items-start gap-3">
-                                                            <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={20} aria-hidden />
-                                                            <div className="min-w-0">
-                                                                <p className="text-amber-200/95 text-[11px] font-bold uppercase tracking-widest">
-                                                                    Задание не принято
-                                                                </p>
-                                                                {homeworkRejectionComment ? (
-                                                                    <p className="text-white text-sm mt-2 whitespace-pre-wrap leading-relaxed">
-                                                                        {homeworkRejectionComment}
-                                                                    </p>
-                                                                ) : (
-                                                                    <p className="text-kiddy-textSecondary text-sm mt-2 leading-relaxed">
-                                                                        Исправьте работу и отправьте снова — можно любое число попыток.
-                                                                    </p>
-                                                                )}
-                                                                <p className="text-kiddy-textMuted text-[11px] mt-2 leading-relaxed">
-                                                                    Обновите текст и файлы ниже и отправьте новую версию на проверку.
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <p className="text-[11px] font-medium text-kiddy-textMuted leading-relaxed">
-                                                  Отправьте ответ на проверку: можно только текст, только фото/видео или и то и другое.
-                                                </p>
-                                                <input
-                                                    ref={homeworkFileInputRef}
-                                                    type="file"
-                                                    accept="image/*,video/*"
-                                                    multiple
-                                                    className="hidden"
-                                                    onChange={(e) => {
-                                                        void addHomeworkFiles(e.target.files);
-                                                        e.target.value = '';
-                                                    }}
-                                                />
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => homeworkFileInputRef.current?.click()}
-                                                        disabled={isChecking || homeworkStatus === 'pending'}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/[0.08] text-xs font-bold text-kiddy-textSecondary hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
-                                                    >
-                                                        <ImagePlus size={16} />
-                                                        Фото или видео
-                                                    </button>
-                                                    <span className="text-[10px] text-kiddy-textMuted font-medium">
-                                                        До 6 файлов · фото до 4 МБ · одно видео до 12 МБ
-                                                    </span>
-                                                </div>
-                                                {homeworkMedia.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {homeworkMedia.map((m) => (
-                                                            <div key={m.id} className="relative group rounded-xl overflow-hidden border border-white/[0.1]">
-                                                                {m.mime.startsWith('video/') ? (
-                                                                    <video src={m.preview} className="h-20 w-28 object-cover bg-black" muted playsInline />
-                                                                ) : (
-                                                                    <img src={m.preview} alt="" className="h-20 w-28 object-cover" />
-                                                                )}
-                                                                <button
-                                                                    type="button"
-                                                                    aria-label="Убрать файл"
-                                                                    onClick={() => setHomeworkMedia((p) => p.filter((x) => x.id !== m.id))}
-                                                                    disabled={isChecking || homeworkStatus === 'pending'}
-                                                                    className="absolute top-1 right-1 p-1 rounded-lg bg-black/70 text-white opacity-90 hover:bg-red-600/90 disabled:opacity-40"
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <textarea
-                                                    value={homeworkAnswer}
-                                                    onChange={(e) => setHomeworkAnswer(e.target.value)}
-                                                    onFocus={(e) => {
-                                                        setTimeout(() => {
-                                                            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                        }, 300);
-                                                    }}
-                                                    disabled={isChecking || homeworkStatus === 'pending'}
-                                                    className="min-h-[140px] w-full bg-black border border-white/[0.08] p-4 rounded-xl text-white outline-none focus:border-kiddy-cherry transition-all font-mono text-sm resize-none disabled:opacity-60"
-                                                    placeholder={
-                                                        homeworkHasMedia
-                                                            ? 'Комментарий к файлам — по желанию…'
-                                                            : `Только текст — не короче ${HW_TEXT_ONLY_MIN_LEN} символов. Или прикрепите фото/видео без текста.`
-                                                    }
-                                                />
-                                                {securityError && (
-                                                    <div className="text-red-500 text-xs font-bold">{securityError}</div>
-                                                )}
-                                                {homeworkStatus === 'pending' && (
-                                                    <p className="text-xs font-bold text-amber-400/95 flex items-center gap-2">
-                                                        <Loader2 className="animate-spin shrink-0" size={14} />
-                                                        Работа на проверке у администратора
-                                                    </p>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={handleCheckHomework}
-                                                    disabled={
-                                                        isChecking ||
-                                                        !activeLesson?.homeworkTask ||
-                                                        isHomeworkCompleted ||
-                                                        homeworkStatus === 'pending' ||
-                                                        !homeworkCanSubmit
-                                                    }
-                                                    className="w-full py-3.5 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-200 transition-all"
-                                                >
-                                                    {isChecking ? (
-                                                        <Loader2 className="animate-spin" size={20} />
-                                                    ) : homeworkStatus === 'pending' ? (
-                                                        <>
-                                                            <Loader2 className="animate-spin" size={18} /> В обработке
-                                                        </>
-                                                    ) : homeworkStatus === 'rejected' ? (
-                                                        <>
-                                                            <Send size={18} /> Отправить снова
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Send size={18} /> Отправить на проверку
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </Card>
+                        <div className="flex flex-col justify-start pt-1 lg:pt-2">
+                            <HomeworkIsland
+                                task={activeLesson.homeworkTask}
+                                status={homeworkStatus}
+                                isCompleted={isHomeworkCompleted}
+                                rejectionComment={homeworkRejectionComment}
+                                answer={homeworkAnswer}
+                                onAnswerChange={setHomeworkAnswer}
+                                media={homeworkMedia}
+                                onPickFiles={() => homeworkFileInputRef.current?.click()}
+                                onRemoveMedia={(id) => setHomeworkMedia((p) => p.filter((x) => x.id !== id))}
+                                fileInputRef={homeworkFileInputRef}
+                                onFilesSelected={(files) => void addHomeworkFiles(files)}
+                                textOnlyMinLen={HW_TEXT_ONLY_MIN_LEN}
+                                canSubmit={homeworkCanSubmit}
+                                isChecking={isChecking}
+                                securityError={securityError}
+                                onSubmit={() => void handleCheckHomework()}
+                            />
                         </div>
                     )}
                 </div>
