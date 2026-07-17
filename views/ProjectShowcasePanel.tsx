@@ -126,12 +126,15 @@ export type ProjectShowcasePanelProps = {
   embed?: boolean;
   /** Сколько постов подгрузить (по умолчанию 40 на странице витрины вне «Учеников», меньше на главной). */
   postLimit?: number;
+  /** Открыть форму отправки (модалка на главной). */
+  onSuggestProject?: () => void;
 };
 
-/** Лента одобренных постов. Форма отправки — в профиле (или виджет на главной). */
+/** Лента одобренных постов. Отправка — модалка на главной. */
 export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
   embed = false,
   postLimit = 40,
+  onSuggestProject,
 }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -297,14 +300,19 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
 
           {!embed && posts.length > 0 && (
             <p className="mt-6 text-center text-xs text-kiddy-textMuted">
-              Показаны последние публикации. Чтобы выложить свой проект:{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/profile#showcase-submit')}
-                className="font-bold text-white underline decoration-white/40 underline-offset-2"
-              >
-                профиль
-              </button>
+              Показаны последние публикации.
+              {onSuggestProject ? (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={onSuggestProject}
+                    className="font-medium text-white/70 underline decoration-white/25 underline-offset-2 transition-colors hover:text-white"
+                  >
+                    Предложить проект
+                  </button>
+                </>
+              ) : null}
             </p>
           )}
         </div>

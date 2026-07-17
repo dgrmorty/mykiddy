@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useContent } from '../hooks/useContent';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
+import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -111,13 +112,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { courses, loading, loadError } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
+  const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
 
   const handleGoCourses = () => isGuest ? openAuthModal() : navigate('/courses');
   const handleGoSchedule = () => isGuest ? openAuthModal() : navigate('/schedule');
 
   const handleSuggestProject = () => {
     if (isGuest) return openAuthModal();
-    if (user.role === Role.STUDENT) return navigate('/profile#showcase-submit');
+    if (user.role === Role.STUDENT) {
+      setShowcaseModalOpen(true);
+      return;
+    }
     showToast('Предложить проект на витрину могут только ученики.', 'info');
   };
 
@@ -178,6 +183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   return (
     <div ref={rootRef} className="max-w-4xl mx-auto w-full pt-12 pb-24 px-4 md:px-8">
+      <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
       
       <DynamicIsland user={user} isGuest={isGuest} />
 
@@ -215,7 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </button>
         </div>
         
-        <ProjectShowcasePanel embed postLimit={6} />
+        <ProjectShowcasePanel embed postLimit={6} onSuggestProject={handleSuggestProject} />
         
         <div className="mt-8 sm:hidden">
           <button onClick={handleSuggestProject} className="w-full btn-secondary px-6 py-4 text-sm justify-center">

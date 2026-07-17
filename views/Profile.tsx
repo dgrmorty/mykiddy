@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
@@ -32,7 +32,6 @@ import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { clearAllOnboardingKeys } from '../data/onboardingTour';
-import { ShowcaseSubmitIsland } from '../components/ShowcaseSubmitIsland';
 import {
   AVATAR_BOY_PATH,
   AVATAR_GIRL_PATH,
@@ -56,7 +55,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [showcaseOpen, setShowcaseOpen] = useState(false);
   const [editName, setEditName] = useState(() => (user.id !== 'guest' ? user : initialUser).name);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
@@ -64,7 +62,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { showToast } = useToast();
   
   const currentUser = user.id !== 'guest' ? user : initialUser;
@@ -73,22 +70,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const { stats: badgeStats, equippedIds, setEquipped, refresh: refreshBadges } = useBadgeProgress(badgeUserId);
 
   useEffect(() => { refreshBadges(); }, [currentUser.xp, currentUser.level]);
-
-  useEffect(() => {
-    if (location.hash !== '#showcase-submit') return;
-    const t = window.setTimeout(() => {
-      const desktop = window.matchMedia('(min-width: 768px)').matches;
-      const el = document.getElementById(desktop ? 'showcase-submit-desktop' : 'showcase-submit-mobile');
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-    return () => window.clearTimeout(t);
-  }, [location.hash]);
-
-  useEffect(() => {
-    if (location.hash !== '#showcase-submit') return;
-    if (currentUser.role !== Role.STUDENT || currentUser.id === 'guest') return;
-    setShowcaseOpen(true);
-  }, [location.hash, currentUser.role, currentUser.id]);
 
   useEffect(() => {
     setEditName(currentUser.name);
@@ -539,16 +520,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
           )}
 
-          {/* Showcase Submit Island */}
-          {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-            <ShowcaseSubmitIsland
-              open={showcaseOpen}
-              onOpenChange={setShowcaseOpen}
-              anchorId="showcase-submit-mobile"
-              className="animate-slide-up"
-            />
-          )}
-
           {/* Settings Section */}
           {currentUser.id !== 'guest' && (
             <div className="pt-4 animate-slide-up" style={{ animationDelay: '0.45s' }}>
@@ -726,16 +697,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               })}
             </div>
           </section>
-        )}
-
-        {/* Showcase Submit Island */}
-        {currentUser.role === Role.STUDENT && currentUser.id !== 'guest' && (
-          <ShowcaseSubmitIsland
-            open={showcaseOpen}
-            onOpenChange={setShowcaseOpen}
-            anchorId="showcase-submit-desktop"
-            className="animate-slide-up"
-          />
         )}
 
         {/* Settings Section */}
