@@ -10,6 +10,7 @@ import type { LessonQuizCue } from '../types';
 import { normalizeQuizCues } from '../utils/quizCues';
 import {
   enterIosVideoFullscreen,
+  ensureVideoCanFullscreen,
   exitDocumentFullscreen,
   exitIosVideoFullscreen,
   getFullscreenElement,
@@ -512,17 +513,25 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
       return;
     }
 
-    setPageVideoFsClass(true);
+    // Пока ролик не играет / не готов — FS на телефоне ломается. Сначала play.
+    if (video) {
+      try {
+        await ensureVideoCanFullscreen(video);
+      } catch {
+        /* ignore */
+      }
+    }
 
-    // iPhone/iPad: системный видеоплеер — экран сам уходит в landscape
+    // iPhone/iPad: системный видеоплеер (без CSS-оверлея на страницу)
     if (isIosDevice() && video && enterIosVideoFullscreen(video)) {
       return;
     }
 
-    // Android / desktop
+    // Android / desktop: fullscreen контейнера + landscape
     try {
       const ok = await requestElementFullscreen(shell);
       if (ok) {
+        setPageVideoFsClass(true);
         setIsImmersive(true);
         setCssLandscape(false);
         await lockLandscapeOrientation();
@@ -533,6 +542,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     }
 
     // Fallback cinema + CSS rotate
+    setPageVideoFsClass(true);
     setIsImmersive(true);
     setCssLandscape(true);
   }, [isImmersive, exitAllFullscreen]);

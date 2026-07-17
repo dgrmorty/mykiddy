@@ -74,6 +74,20 @@ export function unlockOrientation(): void {
   }
 }
 
+/**
+ * Перед fullscreen нужно запустить ролик: на iOS webkitEnterFullscreen
+ * часто падает / ломает UI, если video ещё не play()'нули.
+ * Держим коротко, чтобы не потерять user gesture.
+ */
+export async function ensureVideoCanFullscreen(video: HTMLVideoElement): Promise<void> {
+  if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  try {
+    await video.play();
+  } catch {
+    /* жест всё равно может разрешить FS */
+  }
+}
+
 export function enterIosVideoFullscreen(video: HTMLVideoElement): boolean {
   const v = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
   if (typeof v.webkitEnterFullscreen !== 'function') return false;
