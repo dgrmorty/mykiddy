@@ -27,6 +27,15 @@ export interface User {
   streakLongest?: number;
 }
 
+export interface LessonQuizCue {
+  id: string;
+  /** Секунда видео, на которой ставим паузу */
+  timeSec: number;
+  question: string;
+  options: string[];
+  correctIndex: number;
+}
+
 export interface Lesson {
   id: string;
   moduleId: string;
@@ -39,6 +48,8 @@ export interface Lesson {
   locked: boolean;
   upcomingDate?: string;
   homeworkTask?: string;
+  /** Интерактивные вопросы по таймкодам (Bunny / свой плеер) */
+  quizCues?: LessonQuizCue[];
 }
 
 export interface Module {

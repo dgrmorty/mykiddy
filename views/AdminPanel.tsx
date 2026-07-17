@@ -7,7 +7,7 @@ import {
     CheckCircle, XCircle, ChevronLeft, FileText, Save
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { type User, Role, type ScheduleEvent, type CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier } from '../types';
+import { type User, Role, type ScheduleEvent, type CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier, type LessonQuizCue } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
@@ -15,6 +15,7 @@ import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data
 import { resolveBundledOrDefault } from '../data/defaultAvatars';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Modal } from '../components/ui/Modal';
+import { normalizeQuizCues, quizCuesToDb } from '../utils/quizCues';
 
 type AdminView = 'content' | 'users' | 'schedule' | 'showcase' | 'homework';
 
@@ -138,7 +139,15 @@ export const AdminPanel: React.FC = () => {
     const [courseForm, setCourseForm] = useState<{ title: string; description: string; cover_image: string; id: string; year_tier: CourseYearTier; }>({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
     
     const [lessonModalOpen, setLessonModalOpen] = useState(false);
-    const [lessonForm, setLessonForm] = useState({ title: '', description: '', video_url: '', homework_task: '', module_id: '', id: '' });
+    const [lessonForm, setLessonForm] = useState<{
+        title: string;
+        description: string;
+        video_url: string;
+        homework_task: string;
+        module_id: string;
+        id: string;
+        quizCues: LessonQuizCue[];
+    }>({ title: '', description: '', video_url: '', homework_task: '', module_id: '', id: '', quizCues: [] });
     
     const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
     const [moduleForm, setModuleForm] = useState({ title: '', course_id: '', id: '' });
@@ -364,17 +373,46 @@ export const AdminPanel: React.FC = () => {
         if (!lessonForm.title) return showToast('Введите название', 'error');
         setLoading(true);
         try {
+            const payload = {
+                title: lessonForm.title,
+                description: lessonForm.description,
+                video_url: lessonForm.video_url,
+                homework_task: lessonForm.homework_task,
+                quiz_cues: quizCuesToDb(lessonForm.quizCues),
+            };
             if (lessonForm.id) {
-                await supabase.from('lessons').update({ title: lessonForm.title, description: lessonForm.description, video_url: lessonForm.video_url, homework_task: lessonForm.homework_task }).eq('id', lessonForm.id);
+                await supabase.from('lessons').update(payload).eq('id', lessonForm.id);
                 showToast('Урок обновлен', 'success');
             } else {
-                await supabase.from('lessons').insert({ title: lessonForm.title, description: lessonForm.description, video_url: lessonForm.video_url, homework_task: lessonForm.homework_task, module_id: lessonForm.module_id });
+                await supabase.from('lessons').insert({ ...payload, module_id: lessonForm.module_id });
                 showToast('Урок создан', 'success');
             }
             setLessonModalOpen(false);
             fetchContent();
         } catch (e) { showToast('Ошибка', 'error'); }
         setLoading(false);
+    };
+
+    const addQuizCue = () => {
+        const cue: LessonQuizCue = {
+            id: `cue_${Date.now()}`,
+            timeSec: 30,
+            question: '',
+            options: ['', ''],
+            correctIndex: 0,
+        };
+        setLessonForm((prev) => ({ ...prev, quizCues: [...prev.quizCues, cue] }));
+    };
+
+    const updateQuizCue = (id: string, patch: Partial<LessonQuizCue>) => {
+        setLessonForm((prev) => ({
+            ...prev,
+            quizCues: prev.quizCues.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        }));
+    };
+
+    const removeQuizCue = (id: string) => {
+        setLessonForm((prev) => ({ ...prev, quizCues: prev.quizCues.filter((c) => c.id !== id) }));
     };
 
     const deleteLesson = async (id: string) => {
@@ -641,12 +679,12 @@ export const AdminPanel: React.FC = () => {
                                                                 <div key={l.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group">
                                                                     <span className="text-zinc-300 text-sm font-medium">{l.title}</span>
                                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title || '', description: l.description || '', video_url: l.video_url || '', homework_task: l.homework_task || '', module_id: l.module_id }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
+                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title || '', description: l.description || '', video_url: l.video_url || '', homework_task: l.homework_task || '', module_id: l.module_id, quizCues: normalizeQuizCues(l.quiz_cues) }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
                                                                         <button onClick={() => deleteLesson(l.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={14}/></button>
                                                                     </div>
                                                                 </div>
                                                             ))}
-                                                            <div onClick={() => { setLessonForm({ title: '', description: '', video_url: '', homework_task: '', module_id: m.id, id: '' }); setLessonModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
+                                                            <div onClick={() => { setLessonForm({ title: '', description: '', video_url: '', homework_task: '', module_id: m.id, id: '', quizCues: [] }); setLessonModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
                                                                 <span className="text-zinc-400 text-sm font-bold flex items-center gap-2"><Plus size={16}/> Добавить урок</span>
                                                             </div>
                                                         </div>
@@ -766,7 +804,7 @@ export const AdminPanel: React.FC = () => {
             )}
 
             {lessonModalOpen && (
-                <Modal isOpen={true} onClose={() => setLessonModalOpen(false)} maxWidth="max-w-lg" panelClassName="!rounded-t-[2.5rem] md:!rounded-[2.5rem] !bg-[#111] shadow-premium">
+                <Modal isOpen={true} onClose={() => setLessonModalOpen(false)} maxWidth="max-w-xl" panelClassName="!rounded-t-[2.5rem] md:!rounded-[2.5rem] !bg-[#111] shadow-premium">
                     <div className="p-6 space-y-4">
                         <h3 className="text-xl font-bold text-white mb-4">{lessonForm.id ? 'Редактировать урок' : 'Новый урок'}</h3>
                         <input value={lessonForm.title || ''} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
@@ -780,6 +818,91 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         {uploading && <p className="text-zinc-500 text-xs">Идёт загрузка на Bunny, не закрывайте окно…</p>}
                         <textarea value={lessonForm.homework_task || ''} onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})} placeholder="Домашнее задание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
+
+                        <div className="rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                                <div>
+                                    <p className="text-white text-sm font-bold">Квизы в видео</p>
+                                    <p className="text-zinc-500 text-[11px]">Работают с Bunny/MP4 (не YouTube). Пауза на секунде → ответ.</p>
+                                </div>
+                                <button type="button" onClick={addQuizCue} className="shrink-0 px-3 py-2 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/15">
+                                    + Вопрос
+                                </button>
+                            </div>
+                            {lessonForm.quizCues.length === 0 && (
+                                <p className="text-zinc-600 text-xs">Пока нет вопросов.</p>
+                            )}
+                            {lessonForm.quizCues.map((cue, cueIdx) => (
+                                <div key={cue.id} className="rounded-xl border border-white/10 bg-[#111] p-3 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-[10px] uppercase tracking-wider text-zinc-500 shrink-0">Сек.</label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={cue.timeSec}
+                                            onChange={(e) => updateQuizCue(cue.id, { timeSec: Math.max(0, parseInt(e.target.value || '0', 10) || 0) })}
+                                            className="w-20 bg-black border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm outline-none"
+                                        />
+                                        <span className="text-zinc-600 text-xs flex-1">вопрос {cueIdx + 1}</span>
+                                        <button type="button" onClick={() => removeQuizCue(cue.id)} className="p-1.5 text-zinc-500 hover:text-red-400">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                    <input
+                                        value={cue.question}
+                                        onChange={(e) => updateQuizCue(cue.id, { question: e.target.value })}
+                                        placeholder="Текст вопроса"
+                                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none"
+                                    />
+                                    {cue.options.map((opt, optIdx) => (
+                                        <div key={optIdx} className="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                name={`correct_${cue.id}`}
+                                                checked={cue.correctIndex === optIdx}
+                                                onChange={() => updateQuizCue(cue.id, { correctIndex: optIdx })}
+                                                title="Правильный ответ"
+                                            />
+                                            <input
+                                                value={opt}
+                                                onChange={(e) => {
+                                                    const options = [...cue.options];
+                                                    options[optIdx] = e.target.value;
+                                                    updateQuizCue(cue.id, { options });
+                                                }}
+                                                placeholder={`Вариант ${optIdx + 1}`}
+                                                className="flex-1 bg-black border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none"
+                                            />
+                                            {cue.options.length > 2 && (
+                                                <button
+                                                    type="button"
+                                                    className="text-zinc-500 hover:text-white text-xs"
+                                                    onClick={() => {
+                                                        const options = cue.options.filter((_, i) => i !== optIdx);
+                                                        updateQuizCue(cue.id, {
+                                                            options,
+                                                            correctIndex: Math.min(cue.correctIndex, options.length - 1),
+                                                        });
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {cue.options.length < 4 && (
+                                        <button
+                                            type="button"
+                                            className="text-xs text-zinc-400 hover:text-white"
+                                            onClick={() => updateQuizCue(cue.id, { options: [...cue.options, ''] })}
+                                        >
+                                            + вариант
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
                         <button type="button" onClick={saveLesson} disabled={uploading} className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 mt-4 disabled:opacity-50">Сохранить</button>
                     </div>
                 </Modal>

@@ -562,7 +562,13 @@ export const CourseDetail: React.FC = () => {
   const getVideoComponent = (url?: string) => {
     if (!url) return <div className="absolute inset-0 flex flex-col items-center justify-center bg-kiddy-surfaceElevated"><MonitorPlay size={48} className="text-zinc-800 mb-4" /><p className="text-kiddy-textMuted font-bold uppercase tracking-widest text-[10px]">Видео недоступно</p></div>;
     if (isBunnyLessonVideo(url)) {
-      return <LessonVideoPlayer videoUrl={url} />;
+      return (
+        <LessonVideoPlayer
+          videoUrl={url}
+          quizCues={activeLesson?.quizCues}
+          lessonId={activeLesson?.id}
+        />
+      );
     }
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
@@ -591,7 +597,13 @@ export const CourseDetail: React.FC = () => {
           </>
         );
     }
-    return <LessonVideoPlayer videoUrl={url} />;
+    return (
+      <LessonVideoPlayer
+        videoUrl={url}
+        quizCues={activeLesson?.quizCues}
+        lessonId={activeLesson?.id}
+      />
+    );
   };
 
   if (loading && courses.length === 0) {

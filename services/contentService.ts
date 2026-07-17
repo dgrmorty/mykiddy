@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { Course, normalizeCourseYearTier } from '../types';
 import { withTimeout } from '../utils/withTimeout';
+import { normalizeQuizCues } from '../utils/quizCues';
 
 const CACHE_TTL_MS = 90 * 1000;
 const FETCH_TIMEOUT_MS = 8000; // 8 с для медленного интернета
@@ -118,7 +119,8 @@ export const contentService = {
                     isCompleted,
                     locked,
                     videoUrl: l.video_url || 'https://www.youtube.com/watch?v=M576WGiDBdQ',
-                    homeworkTask: l.homework_task || l.homeworkTask || null
+                    homeworkTask: l.homework_task || l.homeworkTask || null,
+                    quizCues: normalizeQuizCues(l.quiz_cues),
                 };
             });
 
