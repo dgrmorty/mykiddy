@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { CheckCircle2, Loader2, Maximize2, Minimize2, MonitorPlay, Sparkles, XCircle } from 'lucide-react';
@@ -306,7 +306,6 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [authTick, setAuthTick] = useState(0);
-  const [isShellFs, setIsShellFs] = useState(false);
   const loadGen = useRef(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
@@ -356,24 +355,75 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const onFsChange = async () => {
-      const fs = document.fullscreenElement;
-      const video = videoRef.current;
-      const shell = shellRef.current;
-      setIsShellFs(fs === shell);
+  const [isImmersive, setIsImmersive] = useState(false);
+  const fsLockRef = useRef(false);
+  const nativeFsActiveRef = useRef(false);
 
-      if (fs && video && fs === video && shell) {
-        try {
-          await document.exitFullscreen();
-          await shell.requestFullscreen();
-        } catch {
-          /* ignore */
-        }
+  const getFsElement = () =>
+    document.fullscreenElement ||
+    (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+    null;
+
+  const requestElFullscreen = async (el: HTMLElement) => {
+    const anyEl = el as HTMLElement & {
+      requestFullscreen?: () => Promise<void>;
+      webkitRequestFullscreen?: () => void;
+      webkitRequestFullScreen?: () => void;
+    };
+    if (typeof anyEl.requestFullscreen === 'function') {
+      await anyEl.requestFullscreen();
+      return true;
+    }
+    if (typeof anyEl.webkitRequestFullscreen === 'function') {
+      anyEl.webkitRequestFullscreen();
+      return true;
+    }
+    if (typeof anyEl.webkitRequestFullScreen === 'function') {
+      anyEl.webkitRequestFullScreen();
+      return true;
+    }
+    return false;
+  };
+
+  const exitElFullscreen = async () => {
+    const doc = document as Document & {
+      exitFullscreen?: () => Promise<void>;
+      webkitExitFullscreen?: () => void;
+      webkitCancelFullScreen?: () => void;
+    };
+    if (!getFsElement()) return;
+    try {
+      if (typeof doc.exitFullscreen === 'function') await doc.exitFullscreen();
+      else if (typeof doc.webkitExitFullscreen === 'function') doc.webkitExitFullscreen();
+      else if (typeof doc.webkitCancelFullScreen === 'function') doc.webkitCancelFullScreen();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Esc / жест «свернуть» нативный FS — не трогаем CSS-only immersive на iOS
+  useEffect(() => {
+    const sync = () => {
+      const fs = getFsElement();
+      const shell = shellRef.current;
+      if (fs && shell && fs === shell) {
+        nativeFsActiveRef.current = true;
+        setIsImmersive(true);
+        return;
+      }
+      if (!fs && nativeFsActiveRef.current) {
+        nativeFsActiveRef.current = false;
+        setIsImmersive(false);
+        document.body.style.overflow = '';
       }
     };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync as EventListener);
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync as EventListener);
+      document.body.style.overflow = '';
+    };
   }, []);
 
   useEffect(() => {
@@ -430,67 +480,60 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     };
   }, [videoUrl, authTick]);
 
-  const exitNativeVideoFullscreen = useCallback(async () => {
-    const v = videoRef.current as HTMLVideoElement & {
-      webkitDisplayingFullscreen?: boolean;
-      webkitExitFullscreen?: () => void;
-    };
-    if (!v) return;
-    try {
-      if (document.fullscreenElement === v) await document.exitFullscreen();
-    } catch {
-      /* ignore */
-    }
-    if (v.webkitDisplayingFullscreen && typeof v.webkitExitFullscreen === 'function') {
-      v.webkitExitFullscreen();
-    }
-  }, []);
+  const toggleShellFullscreen = useCallback(async (e?: SyntheticEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (fsLockRef.current) return;
+    fsLockRef.current = true;
+    window.setTimeout(() => {
+      fsLockRef.current = false;
+    }, 500);
 
-  const toggleShellFullscreen = useCallback(async () => {
     const shell = shellRef.current;
     if (!shell) return;
-    try {
-      if (document.fullscreenElement === shell) {
-        await document.exitFullscreen();
-      } else {
-        await exitNativeVideoFullscreen();
-        await shell.requestFullscreen();
-      }
-    } catch {
-      /* ignore */
+
+    // Уже в режиме «на весь экран» → выходим
+    if (isImmersive || getFsElement() === shell) {
+      setIsImmersive(false);
+      document.body.style.overflow = '';
+      await exitElFullscreen();
+      return;
     }
-  }, [exitNativeVideoFullscreen]);
 
-  const openCue = useCallback(
-    async (cue: LessonQuizCue) => {
-      if (answeredRef.current.has(cue.id)) return;
-      const v = videoRef.current;
-      if (v) {
-        v.pause();
-        if (Math.abs(v.currentTime - cue.timeSec) > 0.35) {
-          v.currentTime = cue.timeSec;
-        }
+    // Входим: CSS immersive всегда (работает на iOS), плюс native FS где доступен
+    setIsImmersive(true);
+    document.body.style.overflow = 'hidden';
+    try {
+      await requestElFullscreen(shell);
+    } catch {
+      // iOS / запрет API — остаёмся на CSS fixed overlay
+    }
+  }, [isImmersive]);
+
+  const openCue = useCallback(async (cue: LessonQuizCue) => {
+    if (answeredRef.current.has(cue.id)) return;
+    const v = videoRef.current;
+    if (v) {
+      v.pause();
+      if (Math.abs(v.currentTime - cue.timeSec) > 0.35) {
+        v.currentTime = cue.timeSec;
       }
-      await exitNativeVideoFullscreen();
-
-      const shell = shellRef.current;
-      if (shell && document.fullscreenElement && document.fullscreenElement !== shell) {
-        try {
-          await document.exitFullscreen();
-          await shell.requestFullscreen();
-        } catch {
-          /* ignore */
-        }
+      // Только выходим из нативного FS самого <video> (iOS video FS), оболочку не трогаем
+      const wv = v as HTMLVideoElement & {
+        webkitDisplayingFullscreen?: boolean;
+        webkitExitFullscreen?: () => void;
+      };
+      if (wv.webkitDisplayingFullscreen && typeof wv.webkitExitFullscreen === 'function') {
+        wv.webkitExitFullscreen();
       }
+    }
 
-      firstTryRef.current = true;
-      setActiveCue(cue);
-      setSelected(null);
-      setFeedback(null);
-      setAwardedXp(0);
-    },
-    [exitNativeVideoFullscreen],
-  );
+    firstTryRef.current = true;
+    setActiveCue(cue);
+    setSelected(null);
+    setFeedback(null);
+    setAwardedXp(0);
+  }, []);
 
   const onTimeUpdate = () => {
     const v = videoRef.current;
@@ -568,7 +611,21 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   return (
     <div
       ref={shellRef}
-      className={`absolute inset-0 bg-black [:fullscreen]:fixed [:fullscreen]:inset-0 [:fullscreen]:z-[9999] ${isShellFs ? 'flex items-center justify-center' : ''}`}
+      className={
+        isImmersive
+          ? 'fixed inset-0 z-[9999] flex items-center justify-center bg-black'
+          : 'absolute inset-0 bg-black'
+      }
+      style={
+        isImmersive
+          ? {
+              width: '100vw',
+              height: '100dvh',
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }
+          : undefined
+      }
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
@@ -615,14 +672,18 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
       <button
         type="button"
-        onClick={() => void toggleShellFullscreen()}
-        className={`absolute bottom-14 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white border border-white/15 backdrop-blur-md hover:bg-black/80 ${
+        onPointerUp={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void toggleShellFullscreen(e);
+        }}
+        className={`absolute bottom-14 right-3 z-20 flex h-10 w-10 touch-manipulation items-center justify-center rounded-full bg-black/70 text-white border border-white/20 backdrop-blur-md hover:bg-black/85 ${
           activeCue ? 'pointer-events-none opacity-0' : ''
         }`}
-        title={isShellFs ? 'Выйти из полного экрана' : 'Полный экран'}
-        aria-label={isShellFs ? 'Выйти из полного экрана' : 'Полный экран'}
+        title={isImmersive ? 'Выйти из полного экрана' : 'Полный экран'}
+        aria-label={isImmersive ? 'Выйти из полного экрана' : 'Полный экран'}
       >
-        {isShellFs ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        {isImmersive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
       </button>
 
       {activeCue && (
