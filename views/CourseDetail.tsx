@@ -29,7 +29,8 @@ const HW_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const HW_MAX_VIDEO_BYTES = 12 * 1024 * 1024;
 const HW_MAX_FILES = 6;
 /** Минимум символов, если сдаёте только текстом (без фото/видео). */
-const HW_TEXT_ONLY_MIN_LEN = 12;
+/** Минимум символов для текстовой сдачи (без файлов). */
+const HW_TEXT_ONLY_MIN_LEN = 1;
 
 type HomeworkLocalMedia = {
   id: string;
@@ -665,7 +666,6 @@ export const CourseDetail: React.FC = () => {
                                 onRemoveMedia={(id) => setHomeworkMedia((p) => p.filter((x) => x.id !== id))}
                                 fileInputRef={homeworkFileInputRef}
                                 onFilesSelected={(files) => void addHomeworkFiles(files)}
-                                textOnlyMinLen={HW_TEXT_ONLY_MIN_LEN}
                                 canSubmit={homeworkCanSubmit}
                                 isChecking={isChecking}
                                 securityError={securityError}
