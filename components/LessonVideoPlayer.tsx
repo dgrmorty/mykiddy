@@ -32,8 +32,8 @@ function quizShellMetrics(root: HTMLElement | null) {
   const shellW = shell?.clientWidth || window.innerWidth;
   const shellH = shell?.clientHeight || window.innerHeight;
   const pad = shellW < 420 ? 12 : 20;
-  const targetW = Math.min(400, Math.max(260, shellW - pad * 2));
-  const maxH = Math.min(shellH - pad * 2, shellH * 0.92, 520);
+  const targetW = Math.min(420, Math.max(260, shellW - pad * 2));
+  const maxH = Math.min(shellH - pad * 2, shellH * 0.92, 480);
   return { targetW, maxH, pad, short: shellH < 380 || shellW < 420 };
 }
 
@@ -186,8 +186,8 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" />
       <div
         ref={cardRef}
-        className="relative z-10 flex w-full max-w-[400px] flex-col overflow-hidden border border-white/12 bg-black/95 shadow-island backdrop-blur-2xl will-change-[width,height,border-radius,transform]"
-        style={{ maxHeight: 'min(92%, 520px)' }}
+        className="relative z-10 flex w-full max-w-[420px] flex-col overflow-hidden border border-white/12 bg-black/95 shadow-island backdrop-blur-2xl will-change-[width,height,border-radius,transform]"
+        style={{ maxHeight: 'min(92%, 480px)' }}
       >
         <div
           ref={compactRef}
@@ -199,19 +199,28 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
 
         <div
           ref={bodyRef}
-          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 sm:px-5 sm:pt-5"
+          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pt-3.5 sm:px-4 sm:pt-4"
         >
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
             {Math.floor(cue.timeSec / 60)}:{String(cue.timeSec % 60).padStart(2, '0')}
           </p>
-          <h3 className="mb-3 text-[15px] font-bold leading-snug text-white sm:mb-4 sm:text-lg">
+          <h3 className="mb-2.5 text-sm font-bold leading-snug text-white sm:mb-3 sm:text-base">
             {cue.question}
           </h3>
-          <div className="space-y-2">
+
+          {/* 2+ вариантов — сетка 2×N, компактные кнопки */}
+          <div
+            className={
+              cue.options.length >= 2
+                ? 'grid grid-cols-2 gap-1.5 sm:gap-2'
+                : 'flex flex-col gap-1.5'
+            }
+          >
             {cue.options.map((opt, idx) => {
               const isSel = selected === idx;
               const showCorrect = feedback === 'correct' && idx === cue.correctIndex;
               const showWrong = feedback === 'wrong' && isSel;
+              const letter = String.fromCharCode(65 + idx); // A B C D
               return (
                 <button
                   key={`${cue.id}_${idx}`}
@@ -219,7 +228,7 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
                   data-quiz-opt
                   disabled={feedback === 'correct'}
                   onClick={() => onSelect(idx)}
-                  className={`w-full rounded-2xl border px-3.5 py-2.5 text-left text-[13px] font-medium transition-colors sm:px-4 sm:py-3 sm:text-sm ${
+                  className={`flex min-h-[3rem] items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors sm:min-h-[3.25rem] sm:rounded-2xl sm:px-3 sm:py-2.5 ${
                     showCorrect
                       ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100'
                       : showWrong
@@ -229,38 +238,48 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
                           : 'border-white/10 bg-white/[0.03] text-zinc-200 active:bg-white/[0.08] hover:bg-white/[0.06]'
                   }`}
                 >
-                  <span className="inline-flex items-start gap-2">
-                    {showCorrect && <CheckCircle2 size={16} className="mt-0.5 shrink-0" />}
-                    {showWrong && <XCircle size={16} className="mt-0.5 shrink-0" />}
-                    <span className="min-w-0 break-words">{opt}</span>
+                  <span
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold sm:h-6 sm:w-6 sm:text-[11px] ${
+                      showCorrect
+                        ? 'bg-emerald-400/25 text-emerald-100'
+                        : showWrong
+                          ? 'bg-red-400/25 text-red-100'
+                          : isSel
+                            ? 'bg-white/20 text-white'
+                            : 'bg-white/10 text-zinc-400'
+                    }`}
+                  >
+                    {showCorrect ? <CheckCircle2 size={12} /> : showWrong ? <XCircle size={12} /> : letter}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[12px] font-medium leading-snug break-words sm:text-[13px]">
+                    {opt}
                   </span>
                 </button>
               );
             })}
           </div>
-          {/* Резерв места под ошибку — без скачка и без обрезания футера */}
-          <div className="mt-2 min-h-[1.25rem]" aria-live="polite">
-            {feedback === 'wrong' && (
-              <p className="text-xs text-red-300/90">Неверно — попробуй ещё раз.</p>
-            )}
-          </div>
         </div>
 
         <div
           ref={footerRef}
-          className="relative z-20 shrink-0 border-t border-white/[0.06] bg-black px-4 py-3 sm:px-5 sm:py-3.5"
+          className="relative z-20 shrink-0 border-t border-white/[0.06] bg-black px-3.5 py-2.5 sm:px-4 sm:py-3"
         >
+          <div className="mb-2 min-h-[1rem]" aria-live="polite">
+            {feedback === 'wrong' && (
+              <p className="text-center text-[11px] text-red-300/90">Неверно — попробуй ещё раз.</p>
+            )}
+          </div>
           {feedback !== 'correct' ? (
             <button
               type="button"
               disabled={selected === null}
               onClick={onSubmit}
-              className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-black transition-colors hover:bg-zinc-200 disabled:opacity-40 sm:py-3.5"
+              className="w-full rounded-xl bg-white py-2.5 text-sm font-bold text-black transition-colors hover:bg-zinc-200 disabled:opacity-40 sm:rounded-2xl sm:py-3"
             >
               Ответить
             </button>
           ) : (
-            <div ref={successRef} className="flex flex-col items-center gap-2 py-0.5">
+            <div ref={successRef} className="flex flex-col items-center gap-1.5 py-0.5">
               <p className="flex items-center justify-center gap-2 text-center text-sm font-semibold text-emerald-300">
                 <CheckCircle2 size={16} className="shrink-0" /> Верно! Продолжаем
               </p>
