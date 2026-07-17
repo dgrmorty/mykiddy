@@ -21,6 +21,8 @@ import { useToast } from '../contexts/ToastContext';
 
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { AnimatedLearningScene } from '../components/ui/AnimatedLearningScene';
+import { LessonVideoPlayer } from '../components/LessonVideoPlayer';
+import { isBunnyLessonVideo } from '../services/bunnyVideoService';
 
 const HW_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const HW_MAX_VIDEO_BYTES = 12 * 1024 * 1024;
@@ -559,6 +561,9 @@ export const CourseDetail: React.FC = () => {
 
   const getVideoComponent = (url?: string) => {
     if (!url) return <div className="absolute inset-0 flex flex-col items-center justify-center bg-kiddy-surfaceElevated"><MonitorPlay size={48} className="text-zinc-800 mb-4" /><p className="text-kiddy-textMuted font-bold uppercase tracking-widest text-[10px]">Видео недоступно</p></div>;
+    if (isBunnyLessonVideo(url)) {
+      return <LessonVideoPlayer videoUrl={url} />;
+    }
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
         let id = '';
@@ -586,24 +591,7 @@ export const CourseDetail: React.FC = () => {
           </>
         );
     }
-    return (
-      <>
-        {videoLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-            <div className="w-10 h-10 border-2 border-white/20 border-t-kiddy-cherry rounded-full animate-spin" />
-          </div>
-        )}
-        <video
-          controls
-          className="w-full h-full absolute inset-0 bg-black"
-          preload="metadata"
-          onCanPlay={() => setVideoLoading(false)}
-          onLoadedData={() => setVideoLoading(false)}
-        >
-          <source src={url} type="video/mp4" />
-        </video>
-      </>
-    );
+    return <LessonVideoPlayer videoUrl={url} />;
   };
 
   if (loading && courses.length === 0) {

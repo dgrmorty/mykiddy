@@ -4,6 +4,7 @@ import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
@@ -734,6 +735,96 @@ ${CHILD_SAFE_LANGUAGE_RULES}
         }
         res.status(500).json({ error: "Не удалось проверить задание. Попробуйте позже.", code: "SERVER_ERROR" });
     }
+});
+
+// --- Bunny lesson videos (private CDN + token URL) ---
+const BUNNY_STORAGE_ZONE = process.env.BUNNY_STORAGE_ZONE_NAME || '';
+const BUNNY_STORAGE_PASSWORD = process.env.BUNNY_STORAGE_PASSWORD || '';
+const BUNNY_STORAGE_HOST = process.env.BUNNY_STORAGE_HOSTNAME || 'storage.bunnycdn.com';
+const BUNNY_CDN_HOST = process.env.BUNNY_CDN_HOSTNAME || '';
+const BUNNY_TOKEN_KEY = process.env.BUNNY_TOKEN_KEY || '';
+const ADMIN_EMAILS_SERVER = (process.env.ADMIN_EMAILS || process.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+const hasBunnyVideo = !!(BUNNY_STORAGE_ZONE && BUNNY_STORAGE_PASSWORD && BUNNY_CDN_HOST && BUNNY_TOKEN_KEY);
+
+/** Bunny CDN Basic token auth (MD5). */
+function signBunnyCdnUrl(filePath, ttlSec = 7200) {
+    const normalized = '/' + String(filePath || '').replace(/^\/+/, '');
+    const expires = Math.floor(Date.now() / 1000) + ttlSec;
+    const hashable = BUNNY_TOKEN_KEY + normalized + String(expires);
+    const token = crypto
+        .createHash('md5')
+        .update(hashable)
+        .digest('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '');
+    return {
+        url: `https://${BUNNY_CDN_HOST}${normalized}?token=${token}&expires=${expires}`,
+        expires,
+    };
+}
+
+async function requireAuthedUser(req) {
+    const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (!hasSupabase || !accessToken) return { error: 'auth', status: 401 };
+    const supabase = supabaseForUser(accessToken);
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    if (error || !user) return { error: 'auth', status: 401 };
+    return { user, accessToken };
+}
+
+function isServerAdmin(user) {
+    const email = (user?.email || '').toLowerCase();
+    return !!(email && ADMIN_EMAILS_SERVER.includes(email));
+}
+
+/** Временный URL для <video> — только залогиненные. */
+app.get('/api/lesson-video/play', async (req, res) => {
+    if (!hasBunnyVideo) {
+        return res.status(503).json({ error: 'Видеохостинг не настроен (Bunny).', code: 'BUNNY_NOT_CONFIGURED' });
+    }
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Войдите в аккаунт, чтобы смотреть урок.', code: 'AUTH_REQUIRED' });
+    }
+    const rawPath = typeof req.query.path === 'string' ? req.query.path : '';
+    const filePath = rawPath.replace(/^bunny:/, '').replace(/^\/+/, '');
+    if (!filePath || filePath.includes('..') || filePath.includes('\\')) {
+        return res.status(400).json({ error: 'Некорректный путь к видео.', code: 'VALIDATION_ERROR' });
+    }
+    if (!filePath.startsWith('lessons/')) {
+        return res.status(400).json({ error: 'Разрешены только пути lessons/.', code: 'VALIDATION_ERROR' });
+    }
+    try {
+        const signed = signBunnyCdnUrl(filePath, 7200);
+        return res.json(signed);
+    } catch (e) {
+        console.error('[bunny] sign error', e);
+        return res.status(500).json({ error: 'Не удалось подписать URL.', code: 'SERVER_ERROR' });
+    }
+});
+
+/** Креды для прямой загрузки в Bunny — только админ. */
+app.get('/api/lesson-video/upload-auth', async (req, res) => {
+    if (!hasBunnyVideo) {
+        return res.status(503).json({ error: 'Видеохостинг не настроен (Bunny).', code: 'BUNNY_NOT_CONFIGURED' });
+    }
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (!isServerAdmin(auth.user)) {
+        return res.status(403).json({ error: 'Только администратор может загружать уроки.', code: 'FORBIDDEN' });
+    }
+    return res.json({
+        storageZone: BUNNY_STORAGE_ZONE,
+        storagePassword: BUNNY_STORAGE_PASSWORD,
+        storageHost: BUNNY_STORAGE_HOST,
+        pathPrefix: 'lessons/',
+    });
 });
 
 // Любой другой запрос отправляем на index.html в папке dist (SPA Routing)

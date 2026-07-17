@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, uploadFile } from '../services/supabase';
+import { uploadLessonVideoToBunny } from '../services/bunnyVideoService';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
     Edit2, X, Search, Calendar, Sparkles, Users, BookOpen, 
@@ -258,17 +259,32 @@ export const AdminPanel: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploading(true);
-        showToast('Загрузка файла...', 'info');
+        showToast(target === 'lesson' ? 'Загрузка видео в Bunny...' : 'Загрузка файла...', 'info');
         try {
-            const folder = target === 'course' ? 'covers' : 'videos';
-            const url = await uploadFile(file, folder);
-            if (url) {
-                if (target === 'course') setCourseForm(prev => ({ ...prev, cover_image: url }));
-                else setLessonForm(prev => ({ ...prev, video_url: url }));
-                showToast('Файл загружен', 'success');
+            if (target === 'lesson') {
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                if (!token) {
+                    showToast('Нужна авторизация', 'error');
+                    return;
+                }
+                const bunnyUrl = await uploadLessonVideoToBunny(file, token, (pct) => {
+                    if (pct === 25 || pct === 50 || pct === 75 || pct === 100) {
+                        showToast(`Загрузка… ${pct}%`, 'info');
+                    }
+                });
+                setLessonForm(prev => ({ ...prev, video_url: bunnyUrl }));
+                showToast('Видео загружено (Bunny)', 'success');
+            } else {
+                const url = await uploadFile(file, 'covers');
+                if (url) {
+                    setCourseForm(prev => ({ ...prev, cover_image: url }));
+                    showToast('Файл загружен', 'success');
+                }
             }
         } catch (error) {
-            showToast('Ошибка загрузки', 'error');
+            console.error('[Admin] upload', error);
+            showToast(error instanceof Error ? error.message : 'Ошибка загрузки', 'error');
         } finally {
             setUploading(false);
             e.target.value = '';
@@ -748,7 +764,7 @@ export const AdminPanel: React.FC = () => {
                         <input value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
                         <textarea value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} placeholder="Описание" rows={2} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
                         <div className="flex gap-2">
-                            <input value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="URL видео" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                            <input value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="bunny:lessons/... или YouTube URL" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
                             <button onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white"><Video size={18}/></button>
                             <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={e => handleUpload(e, 'lesson')} />
                         </div>
