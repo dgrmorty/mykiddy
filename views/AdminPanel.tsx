@@ -3,7 +3,7 @@ import { supabase, uploadFile } from '../services/supabase';
 import { uploadLessonVideoToBunny } from '../services/bunnyVideoService';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
-    Edit2, X, Search, Calendar, Sparkles, Users, BookOpen, User as UserIcon,
+    Edit2, X, Search, Calendar, Sparkles, Users, BookOpen,
     CheckCircle, XCircle, ChevronLeft, FileText, Save
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -62,6 +62,16 @@ function homeworkLessonContext(s: HomeworkSubmissionRow): { path: string; homewo
     const path = `${courseTitle} → ${moduleTitle} → ${lessonTitle}`;
     const homeworkTask = typeof lesson.homework_task === 'string' ? lesson.homework_task.trim() : null;
     return { path, homeworkTask: homeworkTask && homeworkTask.length > 0 ? homeworkTask : null };
+}
+
+function safeShowcaseBody(sel: unknown): string {
+    try {
+        if (!sel || typeof sel !== 'object') return 'Без описания';
+        return showcasePostBody(sel as PhraseSelections) || 'Без описания';
+    } catch (e) {
+        console.warn('[Admin] showcase body', e);
+        return 'Без описания';
+    }
 }
 
 // --- Components ---
@@ -259,27 +269,31 @@ export const AdminPanel: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploading(true);
-        showToast(target === 'lesson' ? 'Загрузка видео в Bunny...' : 'Загрузка файла...', 'info');
         try {
             if (target === 'lesson') {
+                showToast('Загрузка видео в Bunny...', 'info');
                 const { data: { session } } = await supabase.auth.getSession();
                 const token = session?.access_token;
                 if (!token) {
                     showToast('Нужна авторизация', 'error');
                     return;
                 }
-                const bunnyUrl = await uploadLessonVideoToBunny(file, token, (pct) => {
-                    if (pct === 25 || pct === 50 || pct === 75 || pct === 100) {
-                        showToast(`Загрузка… ${pct}%`, 'info');
-                    }
-                });
+                // Лимит ~1.5 GB — предупреждение для очень больших файлов
+                if (file.size > 1500 * 1024 * 1024) {
+                    showToast('Файл слишком большой (макс. ~1.5 GB)', 'error');
+                    return;
+                }
+                const bunnyUrl = await uploadLessonVideoToBunny(file, token);
                 setLessonForm(prev => ({ ...prev, video_url: bunnyUrl }));
                 showToast('Видео загружено (Bunny)', 'success');
             } else {
+                showToast('Загрузка файла...', 'info');
                 const url = await uploadFile(file, 'covers');
                 if (url) {
                     setCourseForm(prev => ({ ...prev, cover_image: url }));
                     showToast('Файл загружен', 'success');
+                } else {
+                    showToast('Не удалось загрузить обложку', 'error');
                 }
             }
         } catch (error) {
@@ -287,7 +301,7 @@ export const AdminPanel: React.FC = () => {
             showToast(error instanceof Error ? error.message : 'Ошибка загрузки', 'error');
         } finally {
             setUploading(false);
-            e.target.value = '';
+            if (e.target) e.target.value = '';
         }
     };
 
@@ -509,13 +523,13 @@ export const AdminPanel: React.FC = () => {
                                     <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-[2.5rem] p-6 shadow-premium relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-full h-1 bg-white/10"><div className="h-full bg-white" style={{width: '100%'}}/></div>
                                         <div className="mb-6 flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center"><UserIcon size={20} className="text-zinc-400"/></div>
+                                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center"><Users size={20} className="text-zinc-400"/></div>
                                             <div>
-                                                <p className="text-white font-bold">{showcaseAuthors[showcasePosts[0].author_id]}</p>
+                                                <p className="text-white font-bold">{showcaseAuthors[showcasePosts[0].author_id] || 'Ученик'}</p>
                                                 <p className="text-zinc-500 text-xs">Ожидает проверки</p>
                                             </div>
                                         </div>
-                                        <p className="text-zinc-300 text-sm mb-6 whitespace-pre-wrap">{showcasePostBody(showcasePosts[0].phrase_selections as PhraseSelections)}</p>
+                                        <p className="text-zinc-300 text-sm mb-6 whitespace-pre-wrap">{safeShowcaseBody(showcasePosts[0].phrase_selections)}</p>
                                         
                                         <textarea 
                                             value={rejectReason} onChange={e => setRejectReason(e.target.value)}

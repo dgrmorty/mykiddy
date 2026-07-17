@@ -82,7 +82,8 @@ export const SHOWCASE_FREE_TEXT_KEY = '__free_text';
 export const SHOWCASE_MIN_CUSTOM_LEN = 10;
 export const SHOWCASE_MAX_CUSTOM_LEN = 2500;
 
-export function showcasePostBody(sel: PhraseSelections): string {
+export function showcasePostBody(sel: PhraseSelections | null | undefined): string {
+  if (!sel || typeof sel !== 'object') return '';
   const raw = sel[SHOWCASE_FREE_TEXT_KEY];
   if (typeof raw === 'string') {
     const t = raw.trim();
