@@ -810,6 +810,34 @@ app.get('/api/lesson-video/play', async (req, res) => {
 /** Креды для прямой загрузки в Bunny — только админ. */
 app.get('/api/lesson-video/upload-auth', async (req, res) => {
     if (!hasBunnyVideo) {
+        console.warn('[bunny] upload-auth: not configured');
+        return res.status(503).json({ error: 'Видеохостинг не настроен (Bunny).', code: 'BUNNY_NOT_CONFIGURED' });
+    }
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        console.warn('[bunny] upload-auth: unauthorized');
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (!isServerAdmin(auth.user)) {
+        console.warn('[bunny] upload-auth: forbidden', auth.user?.email);
+        return res.status(403).json({ error: 'Только администратор может загружать уроки.', code: 'FORBIDDEN' });
+    }
+    console.log('[bunny] upload-auth ok', auth.user.email);
+    return res.json({
+        storageZone: BUNNY_STORAGE_ZONE,
+        storagePassword: BUNNY_STORAGE_PASSWORD,
+        storageHost: BUNNY_STORAGE_HOST,
+        pathPrefix: 'lessons/',
+    });
+});
+
+/**
+ * Загрузка видео через сервер → Bunny (до ~95 MB).
+ * Content-Type: video/* ; query: ?filename=lesson.mp4
+ * Для больших файлов клиент льёт напрямую в Bunny (upload-auth).
+ */
+app.post('/api/lesson-video/upload', async (req, res) => {
+    if (!hasBunnyVideo) {
         return res.status(503).json({ error: 'Видеохостинг не настроен (Bunny).', code: 'BUNNY_NOT_CONFIGURED' });
     }
     const auth = await requireAuthedUser(req);
@@ -819,12 +847,60 @@ app.get('/api/lesson-video/upload-auth', async (req, res) => {
     if (!isServerAdmin(auth.user)) {
         return res.status(403).json({ error: 'Только администратор может загружать уроки.', code: 'FORBIDDEN' });
     }
-    return res.json({
-        storageZone: BUNNY_STORAGE_ZONE,
-        storagePassword: BUNNY_STORAGE_PASSWORD,
-        storageHost: BUNNY_STORAGE_HOST,
-        pathPrefix: 'lessons/',
-    });
+
+    const rawName = typeof req.query.filename === 'string' ? req.query.filename : `lesson-${Date.now()}.mp4`;
+    const safe = String(rawName)
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 80) || `lesson-${Date.now()}.mp4`;
+    const filePath = `lessons/${Date.now()}_${safe}`;
+    const contentType = req.headers['content-type'] || 'video/mp4';
+
+    try {
+        const chunks = [];
+        let total = 0;
+        const maxBytes = 95 * 1024 * 1024;
+        for await (const chunk of req) {
+            total += chunk.length;
+            if (total > maxBytes) {
+                console.warn('[bunny] upload too large', total);
+                return res.status(413).json({
+                    error: 'Файл слишком большой для загрузки через сервер (макс. 95 MB).',
+                    code: 'FILE_TOO_LARGE',
+                });
+            }
+            chunks.push(chunk);
+        }
+        const body = Buffer.concat(chunks);
+        if (body.length === 0) {
+            return res.status(400).json({ error: 'Пустое тело запроса.', code: 'VALIDATION_ERROR' });
+        }
+
+        const putUrl = `https://${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${filePath}`;
+        console.log('[bunny] uploading', { email: auth.user.email, filePath, bytes: body.length });
+        const putRes = await fetch(putUrl, {
+            method: 'PUT',
+            headers: {
+                AccessKey: BUNNY_STORAGE_PASSWORD,
+                'Content-Type': contentType,
+            },
+            body,
+        });
+        const putText = await putRes.text().catch(() => '');
+        if (!putRes.ok) {
+            console.error('[bunny] put failed', putRes.status, putText.slice(0, 300));
+            return res.status(502).json({
+                error: `Bunny отклонил файл (${putRes.status})`,
+                code: 'BUNNY_PUT_FAILED',
+            });
+        }
+        console.log('[bunny] upload ok', filePath);
+        return res.json({ path: filePath, video_url: `bunny:${filePath}` });
+    } catch (e) {
+        console.error('[bunny] upload error', e);
+        return res.status(500).json({ error: 'Не удалось загрузить видео.', code: 'SERVER_ERROR' });
+    }
 });
 
 // Любой другой запрос отправляем на index.html в папке dist (SPA Routing)

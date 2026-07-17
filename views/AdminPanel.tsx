@@ -257,18 +257,18 @@ export const AdminPanel: React.FC = () => {
         setUploading(true);
         try {
             if (target === 'lesson') {
-                showToast('Загрузка видео в Bunny...', 'info');
                 const { data: { session } } = await supabase.auth.getSession();
                 const token = session?.access_token;
                 if (!token) {
                     showToast('Нужна авторизация', 'error');
                     return;
                 }
-                // Лимит ~1.5 GB — предупреждение для очень больших файлов
                 if (file.size > 1500 * 1024 * 1024) {
                     showToast('Файл слишком большой (макс. ~1.5 GB)', 'error');
                     return;
                 }
+                // Не вызываем showToast до конца — GSAP-toast ронял админку.
+                // Прогресс виден по спиннеру на кнопке (uploading).
                 const bunnyUrl = await uploadLessonVideoToBunny(file, token);
                 setLessonForm(prev => ({ ...prev, video_url: bunnyUrl }));
                 showToast('Видео загружено (Bunny)', 'success');
