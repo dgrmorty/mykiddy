@@ -27,61 +27,121 @@ type QuizIslandProps = {
   onSubmit: () => void;
 };
 
-/** Dynamic Island по центру экрана с роликом. */
+function quizShellMetrics(root: HTMLElement | null) {
+  const shell = root?.parentElement;
+  const shellW = shell?.clientWidth || window.innerWidth;
+  const shellH = shell?.clientHeight || window.innerHeight;
+  const pad = shellW < 420 ? 12 : 20;
+  const targetW = Math.min(400, Math.max(260, shellW - pad * 2));
+  const maxH = Math.min(shellH - pad * 2, shellH * 0.92, 520);
+  return { targetW, maxH, pad, short: shellH < 380 || shellW < 420 };
+}
+
+/** Dynamic Island по центру ролика — адаптив под телефон / landscape / desktop. */
 function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: QuizIslandProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const compactRef = useRef<HTMLDivElement>(null);
-  const expandedRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
+      const root = rootRef.current;
       const card = cardRef.current;
       const compact = compactRef.current;
-      const expanded = expandedRef.current;
-      if (!card || !compact || !expanded) return;
+      const body = bodyRef.current;
+      const footer = footerRef.current;
+      if (!root || !card || !compact || !body) return;
 
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      gsap.killTweensOf([card, compact, expanded]);
+      gsap.killTweensOf([card, compact, body, footer].filter(Boolean));
 
-      const targetH = Math.max(expanded.scrollHeight, 220);
-      const targetW = Math.min(380, window.innerWidth - 32);
+      const { targetW, maxH, short } = quizShellMetrics(root);
+      // Контент измеряем после того как он в DOM (может быть выше maxH → скролл внутри)
+      gsap.set(card, { clearProps: 'height' });
+      gsap.set(body, { visibility: 'hidden', opacity: 0 });
+      if (footer) gsap.set(footer, { opacity: 0 });
+
+      const contentH = body.scrollHeight + (footer?.scrollHeight || 0) + 8;
+      const targetH = Math.min(Math.max(contentH, short ? 200 : 240), maxH);
 
       if (reduced) {
-        gsap.set(card, { width: targetW, height: targetH, borderRadius: 28, opacity: 1, scale: 1, y: 0 });
+        gsap.set(card, {
+          width: targetW,
+          height: targetH,
+          maxHeight: maxH,
+          borderRadius: short ? 22 : 28,
+          opacity: 1,
+          scale: 1,
+          x: 0,
+          y: 0,
+        });
         gsap.set(compact, { opacity: 0, visibility: 'hidden' });
-        gsap.set(expanded, { opacity: 1, visibility: 'visible' });
+        gsap.set(body, { opacity: 1, visibility: 'visible' });
+        if (footer) gsap.set(footer, { opacity: 1 });
         return;
       }
 
+      const pillW = short ? 118 : 132;
       gsap.set(card, {
-        width: 132,
+        width: pillW,
         height: 40,
+        maxHeight: maxH,
         borderRadius: 22,
         opacity: 1,
-        scale: 0.88,
-        y: 18,
+        scale: 0.92,
+        x: 0,
+        y: short ? 8 : 16,
       });
       gsap.set(compact, { opacity: 1, visibility: 'visible' });
-      gsap.set(expanded, { opacity: 0, visibility: 'hidden' });
+      gsap.set(body, { opacity: 0, visibility: 'hidden' });
+      if (footer) gsap.set(footer, { opacity: 0 });
 
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      tl.to(card, { scale: 1, y: 0, duration: 0.34 }, 0)
-        .to(card, { width: targetW, duration: 0.44 }, 0.08)
-        .to(compact, { opacity: 0, duration: 0.12 }, 0.36)
+      tl.to(card, { scale: 1, y: 0, duration: 0.3 }, 0)
+        .to(card, { width: targetW, duration: short ? 0.36 : 0.44 }, 0.06)
+        .to(compact, { opacity: 0, duration: 0.1 }, short ? 0.28 : 0.34)
         .set(compact, { visibility: 'hidden' })
-        .set(expanded, { visibility: 'visible' })
-        .to(card, { height: targetH, borderRadius: 28, duration: 0.48, ease: 'power3.inOut' }, 0.38)
-        .fromTo(expanded, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.34 }, 0.5)
+        .set(body, { visibility: 'visible' })
+        .to(
+          card,
+          {
+            height: targetH,
+            borderRadius: short ? 22 : 28,
+            duration: short ? 0.4 : 0.48,
+            ease: 'power3.inOut',
+          },
+          short ? 0.3 : 0.36,
+        )
+        .fromTo(body, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 }, short ? 0.42 : 0.5)
         .from(
-          expanded.querySelectorAll('[data-quiz-opt]'),
-          { opacity: 0, y: 10, stagger: 0.055, duration: 0.28 },
-          0.56,
+          body.querySelectorAll('[data-quiz-opt]'),
+          { opacity: 0, y: 8, stagger: 0.045, duration: 0.24 },
+          short ? 0.48 : 0.56,
         );
+
+      if (footer) {
+        tl.fromTo(footer, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.28 }, short ? 0.52 : 0.62);
+      }
     },
     { dependencies: [cue.id], scope: rootRef },
   );
+
+  // Подстроить высоту при смене feedback (ошибка / успех), не обрезая кнопку
+  useEffect(() => {
+    if (feedback === null) return;
+    const root = rootRef.current;
+    const card = cardRef.current;
+    const body = bodyRef.current;
+    const footer = footerRef.current;
+    if (!root || !card || !body) return;
+    const { maxH } = quizShellMetrics(root);
+    const contentH = body.scrollHeight + (footer?.scrollHeight || 0) + 8;
+    const targetH = Math.min(Math.max(contentH, 200), maxH);
+    gsap.to(card, { height: targetH, maxHeight: maxH, duration: 0.28, ease: 'power2.out' });
+  }, [feedback, awardedXp]);
 
   useGSAP(
     () => {
@@ -89,16 +149,14 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
       if (!card || feedback !== 'wrong') return;
       gsap.fromTo(
         card,
-        { x: -7 },
+        { x: -6 },
         {
-          x: 7,
-          duration: 0.07,
+          x: 6,
+          duration: 0.06,
           yoyo: true,
           repeat: 5,
           ease: 'power1.inOut',
-          onComplete: () => {
-            gsap.set(card, { x: 0 });
-          },
+          onComplete: () => gsap.set(card, { x: 0 }),
         },
       );
     },
@@ -111,15 +169,15 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
       if (!el || feedback !== 'correct') return;
       gsap.fromTo(
         el,
-        { opacity: 0, y: 12, scale: 0.92 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power3.out' },
+        { opacity: 0, y: 10, scale: 0.94 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power3.out' },
       );
       const xp = el.querySelector('[data-xp-badge]');
       if (xp) {
         gsap.fromTo(
           xp,
-          { opacity: 0, scale: 0.6, y: 8 },
-          { opacity: 1, scale: 1, y: 0, duration: 0.4, delay: 0.12, ease: 'back.out(1.6)' },
+          { opacity: 0, scale: 0.7, y: 6 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.35, delay: 0.1, ease: 'back.out(1.4)' },
         );
       }
     },
@@ -129,27 +187,35 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
   return (
     <div
       ref={rootRef}
-      className="absolute inset-0 z-30 flex items-center justify-center px-4"
+      className="absolute inset-0 z-30 flex items-center justify-center p-3 sm:p-5"
+      style={{ paddingLeft: 'max(0.75rem, env(safe-area-inset-left))', paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}
     >
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" />
       <div
         ref={cardRef}
-        className="relative z-10 overflow-hidden border border-white/12 bg-black/95 shadow-island backdrop-blur-2xl will-change-[width,height,border-radius,transform]"
+        className="relative z-10 flex w-full max-w-[400px] flex-col overflow-hidden border border-white/12 bg-black/95 shadow-island backdrop-blur-2xl will-change-[width,height,border-radius,transform]"
+        style={{ maxHeight: '92%' }}
       >
         <div
           ref={compactRef}
           className="absolute inset-x-0 top-0 z-10 flex h-10 items-center justify-center gap-2 px-4"
         >
-          <span className="h-2 w-2 rounded-full bg-kiddy-cherry animate-pulse" />
+          <span className="h-2 w-2 shrink-0 rounded-full bg-kiddy-cherry animate-pulse" />
           <span className="text-xs font-bold tracking-wide text-white">Вопрос</span>
         </div>
 
-        <div ref={expandedRef} className="box-border p-5 sm:p-6" style={{ width: 'min(380px, calc(100vw - 2rem))' }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">
+        {/* Скроллируемая часть — кнопка всегда снизу снаружи скролла */}
+        <div
+          ref={bodyRef}
+          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 sm:px-5 sm:pt-5"
+        >
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
             {Math.floor(cue.timeSec / 60)}:{String(cue.timeSec % 60).padStart(2, '0')}
           </p>
-          <h3 className="text-white text-base sm:text-lg font-bold leading-snug mb-4">{cue.question}</h3>
-          <div className="space-y-2 mb-4">
+          <h3 className="mb-3 text-[15px] font-bold leading-snug text-white sm:mb-4 sm:text-lg">
+            {cue.question}
+          </h3>
+          <div className="space-y-2 pb-1">
             {cue.options.map((opt, idx) => {
               const isSel = selected === idx;
               const showCorrect = feedback === 'correct' && idx === cue.correctIndex;
@@ -161,43 +227,47 @@ function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: 
                   data-quiz-opt
                   disabled={feedback === 'correct'}
                   onClick={() => onSelect(idx)}
-                  className={`w-full text-left rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`w-full rounded-2xl border px-3.5 py-2.5 text-left text-[13px] font-medium transition-colors sm:px-4 sm:py-3 sm:text-sm ${
                     showCorrect
                       ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100'
                       : showWrong
                         ? 'border-red-400/50 bg-red-500/15 text-red-100'
                         : isSel
                           ? 'border-white/40 bg-white/10 text-white'
-                          : 'border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.06]'
+                          : 'border-white/10 bg-white/[0.03] text-zinc-200 active:bg-white/[0.08] hover:bg-white/[0.06]'
                   }`}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    {showCorrect && <CheckCircle2 size={16} />}
-                    {showWrong && <XCircle size={16} />}
-                    {opt}
+                  <span className="inline-flex items-start gap-2">
+                    {showCorrect && <CheckCircle2 size={16} className="mt-0.5 shrink-0" />}
+                    {showWrong && <XCircle size={16} className="mt-0.5 shrink-0" />}
+                    <span className="min-w-0 break-words">{opt}</span>
                   </span>
                 </button>
               );
             })}
           </div>
           {feedback === 'wrong' && (
-            <p className="text-red-300/90 text-xs mb-3" data-quiz-wrong>
-              Неверно — попробуй ещё раз.
-            </p>
+            <p className="mt-2 text-xs text-red-300/90">Неверно — попробуй ещё раз.</p>
           )}
+        </div>
+
+        <div
+          ref={footerRef}
+          className="shrink-0 border-t border-white/[0.06] bg-black/90 px-4 py-3 sm:px-5 sm:py-3.5"
+        >
           {feedback !== 'correct' ? (
             <button
               type="button"
               disabled={selected === null}
               onClick={onSubmit}
-              className="w-full py-3.5 rounded-2xl bg-white text-black font-bold disabled:opacity-40 hover:bg-zinc-200 transition-colors"
+              className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-black transition-colors hover:bg-zinc-200 disabled:opacity-40 sm:py-3.5"
             >
               Ответить
             </button>
           ) : (
-            <div ref={successRef} className="flex flex-col items-center gap-2 py-1">
-              <p className="text-emerald-300 text-sm font-semibold text-center flex items-center justify-center gap-2">
-                <CheckCircle2 size={16} /> Верно! Продолжаем
+            <div ref={successRef} className="flex flex-col items-center gap-2 py-0.5">
+              <p className="flex items-center justify-center gap-2 text-center text-sm font-semibold text-emerald-300">
+                <CheckCircle2 size={16} className="shrink-0" /> Верно! Продолжаем
               </p>
               {awardedXp > 0 && (
                 <span
@@ -532,7 +602,9 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
       <button
         type="button"
         onClick={() => void toggleShellFullscreen()}
-        className="absolute bottom-14 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white border border-white/15 backdrop-blur-md hover:bg-black/80"
+        className={`absolute bottom-14 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white border border-white/15 backdrop-blur-md hover:bg-black/80 ${
+          activeCue ? 'pointer-events-none opacity-0' : ''
+        }`}
         title={isShellFs ? 'Выйти из полного экрана' : 'Полный экран'}
         aria-label={isShellFs ? 'Выйти из полного экрана' : 'Полный экран'}
       >
