@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { CheckCircle2, Loader2, Maximize2, Minimize2, MonitorPlay, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Maximize2, Minimize2, MonitorPlay, Sparkles, XCircle } from 'lucide-react';
 import { fetchLessonVideoPlayUrl, isBunnyLessonVideo } from '../services/bunnyVideoService';
+import { claimLessonQuizCue, fetchAnsweredQuizCueIds } from '../services/lessonQuizService';
 import { supabase } from '../services/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import type { LessonQuizCue } from '../types';
 import { normalizeQuizCues } from '../utils/quizCues';
 
@@ -20,16 +22,18 @@ type QuizIslandProps = {
   cue: LessonQuizCue;
   selected: number | null;
   feedback: 'correct' | 'wrong' | null;
+  awardedXp: number;
   onSelect: (idx: number) => void;
   onSubmit: () => void;
 };
 
-/** Dynamic Island: пилюля сверху → раскрытие в карточку вопроса. */
-function QuizIsland({ cue, selected, feedback, onSelect, onSubmit }: QuizIslandProps) {
+/** Dynamic Island по центру экрана с роликом. */
+function QuizIsland({ cue, selected, feedback, awardedXp, onSelect, onSubmit }: QuizIslandProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const compactRef = useRef<HTMLDivElement>(null);
   const expandedRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
@@ -45,7 +49,7 @@ function QuizIsland({ cue, selected, feedback, onSelect, onSubmit }: QuizIslandP
       const targetW = Math.min(380, window.innerWidth - 32);
 
       if (reduced) {
-        gsap.set(card, { width: targetW, height: targetH, borderRadius: 28, opacity: 1 });
+        gsap.set(card, { width: targetW, height: targetH, borderRadius: 28, opacity: 1, scale: 1, y: 0 });
         gsap.set(compact, { opacity: 0, visibility: 'hidden' });
         gsap.set(expanded, { opacity: 1, visibility: 'visible' });
         return;
@@ -56,33 +60,76 @@ function QuizIsland({ cue, selected, feedback, onSelect, onSubmit }: QuizIslandP
         height: 40,
         borderRadius: 22,
         opacity: 1,
-        scale: 0.92,
-        y: -14,
+        scale: 0.88,
+        y: 18,
       });
       gsap.set(compact, { opacity: 1, visibility: 'visible' });
       gsap.set(expanded, { opacity: 0, visibility: 'hidden' });
 
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      tl.to(card, { scale: 1, y: 0, duration: 0.32 }, 0)
-        .to(card, { width: targetW, duration: 0.42 }, 0.1)
-        .to(compact, { opacity: 0, duration: 0.12 }, 0.38)
+      tl.to(card, { scale: 1, y: 0, duration: 0.34 }, 0)
+        .to(card, { width: targetW, duration: 0.44 }, 0.08)
+        .to(compact, { opacity: 0, duration: 0.12 }, 0.36)
         .set(compact, { visibility: 'hidden' })
         .set(expanded, { visibility: 'visible' })
-        .to(card, { height: targetH, borderRadius: 28, duration: 0.48, ease: 'power3.inOut' }, 0.4)
-        .fromTo(expanded, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.32 }, 0.52)
+        .to(card, { height: targetH, borderRadius: 28, duration: 0.48, ease: 'power3.inOut' }, 0.38)
+        .fromTo(expanded, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.34 }, 0.5)
         .from(
           expanded.querySelectorAll('[data-quiz-opt]'),
-          { opacity: 0, y: 8, stagger: 0.055, duration: 0.26 },
-          0.58,
+          { opacity: 0, y: 10, stagger: 0.055, duration: 0.28 },
+          0.56,
         );
     },
     { dependencies: [cue.id], scope: rootRef },
   );
 
+  useGSAP(
+    () => {
+      const card = cardRef.current;
+      if (!card || feedback !== 'wrong') return;
+      gsap.fromTo(
+        card,
+        { x: -7 },
+        {
+          x: 7,
+          duration: 0.07,
+          yoyo: true,
+          repeat: 5,
+          ease: 'power1.inOut',
+          onComplete: () => {
+            gsap.set(card, { x: 0 });
+          },
+        },
+      );
+    },
+    { dependencies: [feedback], scope: rootRef },
+  );
+
+  useGSAP(
+    () => {
+      const el = successRef.current;
+      if (!el || feedback !== 'correct') return;
+      gsap.fromTo(
+        el,
+        { opacity: 0, y: 12, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power3.out' },
+      );
+      const xp = el.querySelector('[data-xp-badge]');
+      if (xp) {
+        gsap.fromTo(
+          xp,
+          { opacity: 0, scale: 0.6, y: 8 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.4, delay: 0.12, ease: 'back.out(1.6)' },
+        );
+      }
+    },
+    { dependencies: [feedback, awardedXp], scope: rootRef },
+  );
+
   return (
     <div
       ref={rootRef}
-      className="absolute inset-0 z-30 flex items-start justify-center pt-5 sm:pt-8 px-4"
+      className="absolute inset-0 z-30 flex items-center justify-center px-4"
     >
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
       <div
@@ -134,7 +181,9 @@ function QuizIsland({ cue, selected, feedback, onSelect, onSubmit }: QuizIslandP
             })}
           </div>
           {feedback === 'wrong' && (
-            <p className="text-red-300/90 text-xs mb-3">Неверно — попробуй ещё раз.</p>
+            <p className="text-red-300/90 text-xs mb-3" data-quiz-wrong>
+              Неверно — попробуй ещё раз.
+            </p>
           )}
           {feedback !== 'correct' ? (
             <button
@@ -146,9 +195,19 @@ function QuizIsland({ cue, selected, feedback, onSelect, onSubmit }: QuizIslandP
               Ответить
             </button>
           ) : (
-            <p className="text-emerald-300 text-sm font-semibold text-center flex items-center justify-center gap-2">
-              <CheckCircle2 size={16} /> Верно! Продолжаем…
-            </p>
+            <div ref={successRef} className="flex flex-col items-center gap-2 py-1">
+              <p className="text-emerald-300 text-sm font-semibold text-center flex items-center justify-center gap-2">
+                <CheckCircle2 size={16} /> Верно! Продолжаем
+              </p>
+              {awardedXp > 0 && (
+                <span
+                  data-xp-badge
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200"
+                >
+                  <Sparkles size={12} /> +{awardedXp} XP
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -156,12 +215,9 @@ function QuizIsland({ cue, selected, feedback, onSelect, onSubmit }: QuizIslandP
   );
 }
 
-/**
- * Плеер + квизы. Оболочка уходит в fullscreen (не сам <video>),
- * иначе оверлей квиза в нативном fullscreen не виден.
- */
 export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId }: Props) {
   const cues = normalizeQuizCues(quizCues);
+  const { refreshUser, isGuest } = useAuth();
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,16 +230,38 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   const [activeCue, setActiveCue] = useState<LessonQuizCue | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [awardedXp, setAwardedXp] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
   const answeredRef = useRef<Set<string>>(new Set());
+  const firstTryRef = useRef(true);
   const lastTimeRef = useRef(0);
+  const [, setAnsweredTick] = useState(0);
 
+  // Загрузить уже отвеченные квизы — больше не показывать
   useEffect(() => {
     answeredRef.current = new Set();
     lastTimeRef.current = 0;
+    firstTryRef.current = true;
     setActiveCue(null);
     setSelected(null);
     setFeedback(null);
-  }, [lessonId, videoUrl]);
+    setAwardedXp(0);
+
+    if (!lessonId || isGuest) {
+      setAnsweredTick((n) => n + 1);
+      return;
+    }
+
+    let cancelled = false;
+    void fetchAnsweredQuizCueIds(lessonId).then((ids) => {
+      if (cancelled) return;
+      answeredRef.current = new Set(ids);
+      setAnsweredTick((n) => n + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId, videoUrl, isGuest]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -194,7 +272,6 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     return () => subscription.unsubscribe();
   }, []);
 
-  /** Если браузер увёл в fullscreen сам video — переносим fullscreen на оболочку. */
   useEffect(() => {
     const onFsChange = async () => {
       const fs = document.fullscreenElement;
@@ -276,9 +353,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     };
     if (!v) return;
     try {
-      if (document.fullscreenElement === v) {
-        await document.exitFullscreen();
-      }
+      if (document.fullscreenElement === v) await document.exitFullscreen();
     } catch {
       /* ignore */
     }
@@ -304,6 +379,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const openCue = useCallback(
     async (cue: LessonQuizCue) => {
+      if (answeredRef.current.has(cue.id)) return;
       const v = videoRef.current;
       if (v) {
         v.pause();
@@ -311,10 +387,8 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
           v.currentTime = cue.timeSec;
         }
       }
-      // iOS / native video FS — выходим, иначе квиз не виден
       await exitNativeVideoFullscreen();
 
-      // Если уже fullscreen на video — переносим на shell
       const shell = shellRef.current;
       if (shell && document.fullscreenElement && document.fullscreenElement !== shell) {
         try {
@@ -325,9 +399,11 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
         }
       }
 
+      firstTryRef.current = true;
       setActiveCue(cue);
       setSelected(null);
       setFeedback(null);
+      setAwardedXp(0);
     },
     [exitNativeVideoFullscreen],
   );
@@ -358,20 +434,42 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     }
   };
 
-  const submitAnswer = () => {
-    if (!activeCue || selected === null) return;
-    if (selected === activeCue.correctIndex) {
-      setFeedback('correct');
-      answeredRef.current.add(activeCue.id);
-      window.setTimeout(() => {
-        setActiveCue(null);
-        setSelected(null);
-        setFeedback(null);
-        void videoRef.current?.play().catch(() => undefined);
-      }, 700);
-    } else {
+  const submitAnswer = async () => {
+    if (!activeCue || selected === null || submitting) return;
+
+    if (selected !== activeCue.correctIndex) {
+      firstTryRef.current = false;
       setFeedback('wrong');
+      return;
     }
+
+    setSubmitting(true);
+
+    let xpGot = 0;
+    if (lessonId && !isGuest) {
+      try {
+        const res = await claimLessonQuizCue(lessonId, activeCue.id, firstTryRef.current);
+        xpGot = res.awarded ? res.xp : 0;
+      } catch (e) {
+        console.warn('[quiz] claim failed', e);
+      }
+    }
+
+    answeredRef.current.add(activeCue.id);
+    setFeedback('correct');
+    if (xpGot > 0) {
+      setAwardedXp(xpGot);
+      void refreshUser?.();
+    }
+    setSubmitting(false);
+
+    window.setTimeout(() => {
+      setActiveCue(null);
+      setSelected(null);
+      setFeedback(null);
+      setAwardedXp(0);
+      void videoRef.current?.play().catch(() => undefined);
+    }, xpGot > 0 ? 1400 : 900);
   };
 
   if (error) {
@@ -431,7 +529,6 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
         />
       )}
 
-      {/* Свой fullscreen — на оболочку, чтобы квиз был внутри FS */}
       <button
         type="button"
         onClick={() => void toggleShellFullscreen()}
@@ -447,11 +544,13 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
           cue={activeCue}
           selected={selected}
           feedback={feedback}
+          awardedXp={awardedXp}
           onSelect={(idx) => {
+            if (feedback === 'correct') return;
             setSelected(idx);
             setFeedback(null);
           }}
-          onSubmit={submitAnswer}
+          onSubmit={() => void submitAnswer()}
         />
       )}
     </div>
