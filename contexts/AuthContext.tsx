@@ -131,7 +131,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const email = authUser.email?.toLowerCase() || '';
     // Проверяем email только если он точно совпадает
     const isAdminEmail = email && ADMIN_EMAILS.includes(email);
-    const role = normalizeRole(metadata.role, isAdminEmail ? email : undefined);
+    // Never trust signup metadata for role — only the allowlisted admin email.
+    const role = isAdminEmail ? Role.ADMIN : Role.STUDENT;
     
     const metaAvatar = bundledAvatarCanonical(metadata.avatar as string | undefined);
     return {
@@ -206,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               avatar: resolvedAvatar,
               level: calculatedLevel,
               xp: userXp,
-              isApproved: true,
+              isApproved: profile.is_approved !== false,
               streakCurrent: profile.streak_current ?? 0,
               streakLongest: profile.streak_longest ?? 0,
             });
@@ -297,7 +298,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     // После OAuth редиректа разбор URL может занять сотни мс — даём до 25 с на инициализацию
-    const globalSafetyMs = isLikelyOAuthReturn() ? 25000 : 12000;
+    const globalSafetyMs = isLikelyOAuthReturn() ? 25000 : 6000;
     const globalSafetyTimer = setTimeout(() => {
       if (mounted && loadingRef.current) {
         console.warn("[Auth] Global initialization timeout reached. Releasing UI...");

@@ -5,7 +5,6 @@ import { UserAvatar } from '../components/UserAvatar';
 import { AvatarImage } from '../components/AvatarImage';
 import { Modal } from '../components/ui/Modal';
 import {
-  Crown,
   ChevronRight,
   Edit2,
   Check,
@@ -18,13 +17,10 @@ import {
   ChevronDown,
   Settings2,
 } from 'lucide-react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useContentContext } from '../contexts/ContentContext';
-import { useContent } from '../hooks/useContent';
-import { useSkillData } from '../hooks/useSkillData';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { BadgeOrb } from '../components/BadgeOrb';
 import { BADGE_CATALOG } from '../data/badgeCatalog';
@@ -50,8 +46,6 @@ interface ProfileProps {
 export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
   const { user, refreshUser, signOut } = useAuth();
   const { resetNavigation } = useContentContext();
-  const { courses } = useContent(user?.id !== 'guest' ? user?.id : undefined);
-  const skillData = useSkillData(courses);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -155,11 +149,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
     setLoadingLeaderboard(true);
     setMyRank(null);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, avatar, xp, level, role')
-        .order('xp', { ascending: false })
-        .limit(50);
+      const { data, error } = await supabase.rpc('list_leaderboard', { p_limit: 50 });
       if (error) throw error;
       if (data) {
         const mapRole = (r: string | null | undefined): Role => {
@@ -205,11 +195,10 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
   useEffect(() => {
     if (currentUser.id && currentUser.id !== 'guest' && myRank === null) {
-      supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .gt('xp', currentUser.xp)
-        .then(({ count }) => { if (count != null) setMyRank(count + 1); });
+      supabase.rpc('profile_xp_rank', { target: currentUser.id }).then(({ data }) => {
+        const r = typeof data === 'number' ? data : typeof data === 'string' ? Number(data) : NaN;
+        if (Number.isFinite(r) && r >= 1) setMyRank(Math.floor(r));
+      });
     }
   }, [currentUser.id, currentUser.xp]);
 
@@ -307,10 +296,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               )}
               
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <Crown className="text-white shrink-0" size={12} />
-                  <span className="text-zinc-400 text-[9px] font-bold uppercase tracking-[0.2em] truncate">Верифицирован</span>
-                </div>
                 {isEditing ? (
                   <input 
                     value={editName}
@@ -447,19 +432,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                   </button>
                 </div>
               </div>
-              
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-4 text-center">Матрица компетенций</p>
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
-                      <PolarGrid stroke="#333" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
-                      <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -567,16 +539,9 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             </div>
             
             <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                <Crown className="text-white shrink-0" size={14} />
-                <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.3em]">Верифицирован</span>
-              </div>
               <h1 className="text-3xl md:text-5xl font-display font-bold text-white tracking-tight mb-2">
                 {currentUser.name}
               </h1>
-              <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
-                ID: {currentUser.id.substring(0, 8)}
-              </p>
             </div>
 
             <div className="shrink-0 w-full md:w-auto mt-4 md:mt-0">
@@ -593,7 +558,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
 
         {/* Stats Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex flex-col gap-6">
             <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
@@ -633,22 +597,6 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                 <ChevronRight size={16} className="text-zinc-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </button>
             </div>
-          </div>
-
-          <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500">Матрица компетенций</p>
-            </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
-                  <PolarGrid stroke="#333" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
-                  <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
         </section>
 
         {/* Achievements Section */}

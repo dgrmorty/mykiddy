@@ -16,12 +16,16 @@ import { BrandingProvider } from './contexts/BrandingContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
 import { Role } from './types';
+import { AccessGate } from './components/AccessGate';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isGuest, isLoading } = useAuth();
+    const { isGuest, isLoading, user } = useAuth();
     if (isLoading) return null;
     if (isGuest) {
         return <Navigate to="/" replace />;
+    }
+    if (user.role !== Role.ADMIN && user.isApproved === false) {
+        return <AccessGate />;
     }
     return <>{children}</>;
 };
@@ -36,7 +40,8 @@ const StaffRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const AppContent: React.FC = () => {
-  const { isLoading, user } = useAuth();
+  const { isLoading, user, isGuest } = useAuth();
+  const blocked = !isGuest && user.role !== Role.ADMIN && user.isApproved === false;
 
   if (isLoading) {
     return (
@@ -61,7 +66,7 @@ const AppContent: React.FC = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout user={user} />}>
-          <Route index element={<Dashboard user={user} />} />
+          <Route index element={blocked ? <AccessGate /> : <Dashboard user={user} />} />
 
           {/* Возврат по ссылке подтверждения email */}
           <Route path="auth/confirmed" element={<AuthConfirmed />} />

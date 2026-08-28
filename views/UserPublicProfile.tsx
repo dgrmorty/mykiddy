@@ -6,10 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../services/supabase';
 import { Role, COURSE_YEAR_LABELS } from '../types';
-import { useFriendships, friendshipStateForPair } from '../hooks/useFriendships';
+import { useFriendships, friendshipStateForPair, type FriendshipRow } from '../hooks/useFriendships';
 import { useBadgeProgress } from '../hooks/useBadgeProgress';
 import { useContent } from '../hooks/useContent';
-import { useSkillData } from '../hooks/useSkillData';
 import { BADGE_CATALOG } from '../data/badgeCatalog';
 import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
@@ -30,7 +29,6 @@ import {
 import { fetchUserShowcasePosts, mediaPublicUrl, deleteShowcasePost, type ShowcasePostRow } from '../services/projectShowcaseService';
 import { showcasePostBody, type PhraseSelections, type MediaItem } from '../data/projectShowcaseCatalog';
 import { resolveBundledOrDefault } from '../data/defaultAvatars';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -66,7 +64,6 @@ export const UserPublicProfile: React.FC = () => {
   const { rows, loading: loadingFriends, sendRequest, accept, remove } = useFriendships(myId);
   const { stats: badgeStats, loading: loadingBadges } = useBadgeProgress(userId, { publicView: true });
   const { courses, loading: loadingCourses } = useContent(userId);
-  const skillData = useSkillData(courses);
 
   useEffect(() => {
     if (!userId) {
@@ -78,17 +75,14 @@ export const UserPublicProfile: React.FC = () => {
     (async () => {
       setLoadingProfile(true);
       setLoadError(false);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, avatar, xp, level, role')
-        .eq('id', userId)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_public_student_profile', { p_id: userId });
+      const row = Array.isArray(data) ? data[0] : data;
       if (cancelled) return;
-      if (error || !data || !isStudentRole(data.role)) {
+      if (error || !row || !isStudentRole(row.role)) {
         setProfile(null);
         setLoadError(true);
       } else {
-        setProfile(data as PublicProfileRow);
+        setProfile(row as PublicProfileRow);
       }
       setLoadingProfile(false);
     })();
@@ -470,21 +464,6 @@ export const UserPublicProfile: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
-              {showProgressSection && courses.length > 0 && (
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-4 text-center">Матрица компетенций</p>
-                  <div className="h-56 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
-                        <PolarGrid stroke="#333" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
-                        <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -720,9 +699,6 @@ export const UserPublicProfile: React.FC = () => {
               <h1 className="text-3xl md:text-5xl font-display font-bold text-white tracking-tight mb-2">
                 {profile.name}
               </h1>
-              <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
-                ID: {profile.id.substring(0, 8)}
-              </p>
             </div>
 
             <div className="shrink-0 w-full md:w-auto mt-4 md:mt-0">
@@ -733,7 +709,6 @@ export const UserPublicProfile: React.FC = () => {
 
         {/* Stats Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex flex-col gap-6">
             <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white">
@@ -766,24 +741,6 @@ export const UserPublicProfile: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-
-          {showProgressSection && courses.length > 0 && (
-            <div className="rounded-[2rem] bg-white/5 border border-white/10 shadow-premium p-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Матрица компетенций</p>
-              </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
-                    <PolarGrid stroke="#333" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }} />
-                    <Radar name="Уровень" dataKey="A" stroke="#fff" fill="#fff" fillOpacity={0.3} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
         </section>
 
         {/* Achievements Section */}

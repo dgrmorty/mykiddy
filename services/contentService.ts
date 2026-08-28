@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import { Course, normalizeCourseYearTier } from '../types';
+import { supabase, withAuthRecovery } from './supabase';
+import { Course, normalizeCourseLevelTier, normalizeCourseYearTier } from '../types';
 import { withTimeout } from '../utils/withTimeout';
 import { normalizeQuizCues } from '../utils/quizCues';
 
@@ -37,21 +37,22 @@ export const contentService = {
     const cached = getCachedCourses(userId);
     if (cached) return cached;
 
-    const dbRequest = supabase
-      .from('courses')
-      .select(`
+    const fetchCourses = () =>
+      supabase
+        .from('courses')
+        .select(`
         *,
         modules (
           *,
           lessons (*)
         )
       `)
-      .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true });
 
     const result: any = await withTimeout(
-      dbRequest as unknown as Promise<unknown>,
+      withAuthRecovery(() => fetchCourses(), 'courses') as unknown as Promise<unknown>,
       FETCH_TIMEOUT_MS,
-      'Courses fetch'
+      'Courses fetch',
     ).catch((e) => {
       console.error('[ContentService] Timeout or network error:', e);
       throw new CoursesLoadError();
@@ -143,6 +144,7 @@ export const contentService = {
             nextLessonId: globalNextLessonId,
             coverImage: c.cover_image,
             yearTier: normalizeCourseYearTier(c.year_tier),
+            levelTier: normalizeCourseLevelTier(c.level_tier),
         };
       });
 
@@ -150,17 +152,10 @@ export const contentService = {
     return courses;
   },
 
-  async markLessonComplete(userId: string, lessonId: string): Promise<boolean> {
+  async markLessonComplete(_userId: string, lessonId: string): Promise<boolean> {
       try {
-          const { error } = await supabase.from('user_progress').insert({
-              user_id: userId,
-              lesson_id: lessonId
-          });
-          if (error) {
-              if (error.code === '23505') return true;
-              throw error;
-          }
-          await supabase.rpc('increment_xp', { x_val: 50 });
+          const { error } = await supabase.rpc('complete_lesson_award', { p_lesson_id: lessonId });
+          if (error) throw error;
           return true;
       } catch (e) {
           console.error("Failed to mark lesson:", e);

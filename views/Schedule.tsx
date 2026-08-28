@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
+import { LearningSectionNav } from '../components/LearningSectionNav';
 import { ChevronLeft, ChevronRight, MapPin, Users } from 'lucide-react';
 import type { ScheduleEvent } from '../types';
 import {
@@ -212,16 +213,21 @@ export const Schedule: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
-        <AnimatedEmptyState message="Загружаем расписание" />
+      <div className="animate-fade-in">
+        <LearningSectionNav />
+        <div className="flex min-h-[60vh] flex-col items-center justify-center">
+          <AnimatedEmptyState message="Загружаем расписание" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="animate-slide-up w-full max-w-none pb-24">
+      <LearningSectionNav />
+
       {/* ─── Week nav ─── */}
-      <div className="mb-10">
+      <div className="mb-10 mt-10">
         <p className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-[0.3em] mb-2">
           Расписание
         </p>

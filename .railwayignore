@@ -1,0 +1,20 @@
+# Shrink `railway up` tarball — Nixpacks still installs deps and builds dist on the server.
+android/
+node_modules/
+.git/
+.railway/
+*.log
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+dist/
+build/
+admin_crud.txt
+admin_upload.txt
+update_admin.py
+views/AdminPanel.old.tsx
+views/AdminPanel.tsx.tmp
+mykiddy.zip

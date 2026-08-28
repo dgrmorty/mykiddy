@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
@@ -42,32 +42,11 @@ import {
   type ShowcasePostRow,
 } from '../services/projectShowcaseService';
 import { Heart, Sparkles, Trash2 } from 'lucide-react';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-gsap.registerPlugin(useGSAP);
 
 const PostIsland = ({ p, au, name, body, media, liked, cnt, lvl, when, handleLike, handleDeleteAsAdmin, user, isAdmin, navigate, index }: any) => {
-  const [expanded, setExpanded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    if (!ref.current) return;
-    gsap.to(ref.current.querySelector('.action-bar'), {
-      height: expanded ? 48 : 0,
-      opacity: expanded ? 1 : 0,
-      marginTop: expanded ? 12 : 0,
-      duration: 0.5,
-      ease: 'elastic.out(1, 0.8)'
-    });
-  }, [expanded]);
-
   return (
     <article 
-      ref={ref}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
       className="relative overflow-hidden border border-white/10 shadow-island bg-black rounded-[2.5rem] p-4 sm:p-5 transition-colors hover:border-white/20"
-      style={{ animation: `fade-in-up 0.5s ease both`, animationDelay: `${Math.min(index, 14) * 0.035}s` }}
     >
       <div className="flex items-start gap-3 mb-4">
         <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="shrink-0">
@@ -95,12 +74,12 @@ const PostIsland = ({ p, au, name, body, media, liked, cnt, lvl, when, handleLik
         </div>
       )}
 
-      <div className="action-bar h-0 opacity-0 overflow-hidden flex items-center justify-between px-1">
+      <div className="mt-3 flex min-h-12 items-center justify-between px-1">
         <button
           type="button"
           onClick={() => p.id && void handleLike(p.id, p.author_id)}
           disabled={!p.id || p.author_id === user.id}
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${liked ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} disabled:opacity-50`}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-[transform,background-color,color] duration-160 ease-out active:scale-[0.97] ${liked ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} disabled:opacity-50`}
         >
           <Heart size={16} strokeWidth={2.5} className={liked ? 'fill-current' : ''} />
           {cnt} {cnt === 1 ? 'лайк' : cnt > 1 && cnt < 5 ? 'лайка' : 'лайков'}
@@ -147,11 +126,13 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
     Record<string, { name: string | null; avatar: string | null; xp: number | null }>
   >({});
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [likeMap, setLikeMap] = useState<Record<string, boolean>>({});
   const [countMap, setCountMap] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadFailed(false);
     try {
       const list = (await fetchApprovedShowcasePosts(postLimit)).filter((row) => row.id && row.author_id);
       setPosts(list);
@@ -195,6 +176,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
         console.error('[Showcase] retry after corrupt session failed', retryErr);
       }
       setPosts([]);
+      setLoadFailed(true);
       showToast('Не удалось загрузить ленту', 'error');
     } finally {
       setLoading(false);
@@ -265,6 +247,17 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
         <div className="py-10">
           <AnimatedEmptyState message="Загружаем витрину" />
         </div>
+      ) : loadFailed ? (
+        <EmptyState
+          title="Лента недоступна"
+          description="Не удалось загрузить проекты. Часто помогает обновление страницы или выход и повторный вход."
+          icon={<Sparkles size={40} strokeWidth={1} />}
+          action={
+            <button type="button" onClick={() => void load()} className="btn-secondary px-6 py-3 text-sm">
+              Попробовать снова
+            </button>
+          }
+        />
       ) : posts.length === 0 ? (
         <EmptyState 
           title="Нет проектов" 

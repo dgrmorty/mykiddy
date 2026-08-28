@@ -67,14 +67,12 @@ export const Modal: React.FC<ModalProps> = ({
   const modalTree = (
     <div
       className={`fixed inset-0 z-[200] flex justify-center p-0 ${
-        mobileCentered ? 'items-center px-4 py-4' : 'items-end md:items-center md:p-5'
+        mobileCentered ? 'items-center px-3 py-2 md:px-4 md:py-4' : 'items-end md:items-center md:p-5'
       }`}
       style={{
-        paddingTop: mobileCentered
-          ? 'max(1rem, env(safe-area-inset-top, 0px))'
-          : 'max(0.5rem, env(safe-area-inset-top, 0px))',
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
         paddingBottom: mobileCentered
-          ? 'max(1rem, env(safe-area-inset-bottom, 0px))'
+          ? 'max(0.5rem, env(safe-area-inset-bottom, 0px))'
           : 'max(0px, env(safe-area-inset-bottom, 0px))',
       }}
     >
@@ -98,7 +96,7 @@ export const Modal: React.FC<ModalProps> = ({
         style={{ maxHeight: maxPanelHeight }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-safe md:pb-0">
+        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden pb-safe md:pb-0">
           {!mobileCentered && (
             <div className="flex w-full justify-center pb-1 pt-3 md:hidden">
               <div className="h-1.5 w-12 rounded-full bg-white/20" />

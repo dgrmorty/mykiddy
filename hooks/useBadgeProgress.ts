@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
-import { BADGE_CATALOG, BadgeStats, RING_SLOT_COUNT, getBadgeById } from '../data/badgeCatalog';
+import {
+  fetchProfileBadgeIds,
+  PROFILE_BADGE_SLOT_COUNT,
+  saveOwnProfileBadgeIds,
+} from '../services/profileBadgeService';
+import { BADGE_CATALOG, BadgeStats, getBadgeById } from '../data/badgeCatalog';
 import { levelFromXp } from '../progression';
 import { badgeEquipStorageKey, purgeLegacyEquippedBadgeKeys } from '../utils/badgeStorage';
 
-function loadEquipped(userId: string): string[] {
+function loadLegacyEquipped(userId: string): string[] {
   try {
     const raw = localStorage.getItem(badgeEquipStorageKey(userId));
     if (!raw) return [];
@@ -15,8 +20,12 @@ function loadEquipped(userId: string): string[] {
   }
 }
 
-function saveEquipped(userId: string, ids: string[]) {
-  localStorage.setItem(badgeEquipStorageKey(userId), JSON.stringify(ids.slice(0, RING_SLOT_COUNT)));
+function clearLegacyEquipped(userId: string): void {
+  try {
+    localStorage.removeItem(badgeEquipStorageKey(userId));
+  } catch {
+    /* ignore */
+  }
 }
 
 async function resolveLeaderboardRank(userId: string, xp: number): Promise<number | null> {
@@ -33,14 +42,21 @@ async function resolveLeaderboardRank(userId: string, xp: number): Promise<numbe
   return (count ?? 0) + 1;
 }
 
-function defaultEquippedFromUnlocked(unlocked: Set<string>): string[] {
-  return BADGE_CATALOG.filter((b) => unlocked.has(b.id))
-    .map((b) => b.id)
-    .slice(0, RING_SLOT_COUNT);
+function filterEquippedForDisplay(ids: string[], stats: BadgeStats): string[] {
+  const unlocked = new Set(BADGE_CATALOG.filter((b) => b.isUnlocked(stats)).map((b) => b.id));
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (seen.has(id) || !unlocked.has(id) || !getBadgeById(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (out.length >= PROFILE_BADGE_SLOT_COUNT) break;
+  }
+  return out;
 }
 
 export interface UseBadgeProgressOptions {
-  /** Чужой профиль: не пишем localStorage, «кольцо» — первые разблокированные из каталога */
+  /** Чужой профиль: не пишем localStorage, слоты — значения с сервера */
   publicView?: boolean;
 }
 
@@ -50,6 +66,23 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
   const [equippedIds, setEquippedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const didPurgeLegacy = useRef(false);
+  const equippedIdsRef = useRef<string[]>([]);
+  const saveInFlightRef = useRef(0);
+  const saveEpochRef = useRef(0);
+
+  equippedIdsRef.current = equippedIds;
+
+  const snapshotIsStale = (epochAtFetch: number) =>
+    saveInFlightRef.current > 0 || saveEpochRef.current !== epochAtFetch;
+
+  const beginGuardedWrite = () => {
+    saveEpochRef.current += 1;
+    saveInFlightRef.current += 1;
+  };
+
+  const endGuardedWrite = () => {
+    saveInFlightRef.current = Math.max(0, saveInFlightRef.current - 1);
+  };
 
   const refresh = useCallback(async () => {
     if (!userId) {
@@ -60,7 +93,7 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
     }
     setLoading(true);
     try {
-      if (!didPurgeLegacy.current) {
+      if (!publicView && !didPurgeLegacy.current) {
         didPurgeLegacy.current = true;
         purgeLegacyEquippedBadgeKeys();
       }
@@ -68,10 +101,15 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
       const [lpRes, hwRes, profRes] = await Promise.all([
         supabase.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('homework_submissions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('profiles').select('xp, level').eq('id', userId).single(),
+        supabase.from('profiles').select('xp, level').eq('id', userId).maybeSingle(),
       ]);
 
-      const xp = profRes.data?.xp ?? 0;
+      let xp = profRes.data?.xp ?? 0;
+      if (profRes.error || !profRes.data) {
+        const { data: pub } = await supabase.rpc('get_public_student_profile', { p_id: userId });
+        const row = Array.isArray(pub) ? pub[0] : pub;
+        xp = row?.xp ?? 0;
+      }
 
       let aiTotal = 0;
       try {
@@ -96,22 +134,56 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
       };
       setStats(next);
 
-      const unlocked = new Set(BADGE_CATALOG.filter((b) => b.isUnlocked(next)).map((b) => b.id));
-      let nextEquipped: string[];
+      const epochAtFetch = saveEpochRef.current;
+      let serverIds: string[] | null = null;
+      try {
+        serverIds = await fetchProfileBadgeIds(userId);
+      } catch {
+        serverIds = null;
+      }
+
+      if (snapshotIsStale(epochAtFetch)) {
+        return;
+      }
+
+      if (serverIds === null) {
+        return;
+      }
 
       if (publicView) {
-        nextEquipped = defaultEquippedFromUnlocked(unlocked);
-      } else {
-        const equipped = loadEquipped(userId);
-        nextEquipped = equipped.filter((id) => unlocked.has(id)).slice(0, RING_SLOT_COUNT);
-        if (nextEquipped.length === 0 && unlocked.size > 0) {
-          nextEquipped = defaultEquippedFromUnlocked(unlocked);
-        }
-        if (JSON.stringify(equipped) !== JSON.stringify(nextEquipped)) {
-          saveEquipped(userId, nextEquipped);
-        }
+        setEquippedIds(filterEquippedForDisplay(serverIds, next));
+        return;
       }
-      setEquippedIds(nextEquipped);
+
+      if (serverIds.length > 0) {
+        setEquippedIds(filterEquippedForDisplay(serverIds, next));
+        clearLegacyEquipped(userId);
+        return;
+      }
+
+      const legacy = filterEquippedForDisplay(loadLegacyEquipped(userId), next);
+      if (legacy.length === 0) {
+        if (snapshotIsStale(epochAtFetch)) {
+          return;
+        }
+        setEquippedIds([]);
+        return;
+      }
+
+      if (snapshotIsStale(epochAtFetch)) {
+        return;
+      }
+
+      beginGuardedWrite();
+      setEquippedIds(legacy);
+      try {
+        await saveOwnProfileBadgeIds(legacy);
+        clearLegacyEquipped(userId);
+      } catch {
+        /* keep legacy key for a later retry; successful or optimistic seed stays displayed */
+      } finally {
+        endGuardedWrite();
+      }
     } catch {
       setStats({
         lessonsCompleted: 0,
@@ -121,7 +193,6 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
         xp: 0,
         leaderboardRank: null,
       });
-      setEquippedIds(publicView ? [] : loadEquipped(userId));
     } finally {
       setLoading(false);
     }
@@ -130,12 +201,20 @@ export function useBadgeProgress(userId: string | undefined, options?: UseBadgeP
   useEffect(() => { refresh(); }, [refresh]);
 
   const setEquipped = useCallback(
-    (ids: string[]) => {
+    async (ids: string[]): Promise<void> => {
       if (!userId || !stats || publicView) return;
-      const unlocked = new Set(BADGE_CATALOG.filter((b) => b.isUnlocked(stats)).map((b) => b.id));
-      const clean = ids.filter((id) => unlocked.has(id) && getBadgeById(id)).slice(0, RING_SLOT_COUNT);
+      const previous = equippedIdsRef.current;
+      const clean = filterEquippedForDisplay(ids, stats);
+      beginGuardedWrite();
       setEquippedIds(clean);
-      saveEquipped(userId, clean);
+      try {
+        await saveOwnProfileBadgeIds(clean);
+      } catch (err) {
+        setEquippedIds(previous);
+        throw err;
+      } finally {
+        endGuardedWrite();
+      }
     },
     [userId, stats, publicView],
   );

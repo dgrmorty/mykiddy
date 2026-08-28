@@ -41,14 +41,12 @@ export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ childr
 
     tl.to(el, {
       autoAlpha: 0,
-      y: 8,
-      duration: 0.16,
-      ease: 'power2.in',
+      duration: 0.1,
+      ease: 'power3.out',
       onComplete: () => setDisplayChildren(children),
     }).to(el, {
       autoAlpha: 1,
-      y: 0,
-      duration: 0.38,
+      duration: 0.18,
       ease: 'power3.out',
     });
 

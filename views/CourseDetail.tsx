@@ -10,7 +10,7 @@ import {
     Maximize2, Minimize2, MonitorPlay, CheckCircle, Lock, Search
 } from 'lucide-react';
 import { HomeworkIsland } from '../components/HomeworkIsland';
-import { Course, CourseYearTier, COURSE_YEAR_LABELS, Lesson } from '../types';
+import { Course, CourseLevelTier, COURSE_LEVEL_LABELS, COURSE_LEVEL_TIERS, Lesson } from '../types';
 import { contentService, invalidateCoursesCache, CoursesLoadError } from '../services/contentService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -21,8 +21,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { useToast } from '../contexts/ToastContext';
 
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
-import { AnimatedLearningScene } from '../components/ui/AnimatedLearningScene';
+import { ThemedLoader } from '../components/ui/ThemedLoader';
 import { LessonVideoPlayer } from '../components/LessonVideoPlayer';
+import { LearningSectionNav } from '../components/LearningSectionNav';
 import { isBunnyLessonVideo } from '../services/bunnyVideoService';
 
 const HW_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -156,9 +157,9 @@ const CourseIsland = ({ course, onClick, index }: any) => {
       
       <div className="absolute inset-x-3 bottom-3 flex items-end">
         <div className="course-pill w-full bg-black/50 backdrop-blur-md border border-white/10 overflow-hidden flex flex-col justify-end" style={{ height: 56, borderRadius: 28, padding: 8 }}>
-          <div className="flex items-center justify-between px-3 shrink-0">
-            <span className="text-white font-bold truncate text-sm">{course.title}</span>
-            <span className="text-black font-bold text-[10px] bg-white px-2.5 py-1 rounded-full">{course.progress}%</span>
+          <div className="flex h-[40px] shrink-0 items-center justify-between gap-3 px-3">
+            <span className="course-pill-label truncate text-sm font-bold text-white">{course.title}</span>
+            <span className="course-pill-progress inline-flex h-6 shrink-0 items-center justify-center rounded-full bg-white px-2.5 text-[10px] font-bold tabular-nums text-black">{course.progress}%</span>
           </div>
           <div className="course-details hidden opacity-0 flex-col gap-4 mt-4 min-h-0">
             <p className="text-zinc-300 text-xs leading-relaxed line-clamp-3">{course.description}</p>
@@ -202,14 +203,14 @@ export const CourseDetail: React.FC = () => {
   const playerRef = useRef<HTMLDivElement>(null);
   const courseForModal = activeCourse || closingCourse;
 
-  const [libraryYear, setLibraryYear] = useState<CourseYearTier>(() => {
+  const [libraryLevel, setLibraryLevel] = useState<CourseLevelTier>(() => {
     try {
-      const s = sessionStorage.getItem('kiddy_library_year');
-      if (s === 'year_2_plus' || s === 'year_1') return s;
+      const s = sessionStorage.getItem('kiddy_library_level');
+      if (s === 'junior' || s === 'middle' || s === 'senior' || s === 'senior_plus') return s;
     } catch {
       /* ignore */
     }
-    return 'year_1';
+    return 'junior';
   });
 
   const [librarySearch, setLibrarySearch] = useState('');
@@ -217,27 +218,29 @@ export const CourseDetail: React.FC = () => {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem('kiddy_library_year', libraryYear);
+      sessionStorage.setItem('kiddy_library_level', libraryLevel);
     } catch {
       /* ignore */
     }
-  }, [libraryYear]);
+  }, [libraryLevel]);
 
-  const coursesInYear = useMemo(
-    () => courses.filter((c) => c.yearTier === libraryYear),
-    [courses, libraryYear],
+  const libraryLevelIndex = Math.max(0, COURSE_LEVEL_TIERS.indexOf(libraryLevel));
+
+  const coursesInLevel = useMemo(
+    () => courses.filter((c) => c.levelTier === libraryLevel),
+    [courses, libraryLevel],
   );
 
   const filteredCourses = useMemo(() => {
     const q = librarySearch.trim().toLowerCase();
-    if (!q) return coursesInYear;
-    return coursesInYear.filter(
+    if (!q) return coursesInLevel;
+    return coursesInLevel.filter(
       (c) =>
         c.title.toLowerCase().includes(q) ||
         (c.description || '').toLowerCase().includes(q) ||
         String(c.type || '').toLowerCase().includes(q),
     );
-  }, [coursesInYear, librarySearch]);
+  }, [coursesInLevel, librarySearch]);
 
   const handleOpenLesson = (lesson: Lesson) => {
     if (lesson.locked) return;
@@ -680,6 +683,7 @@ export const CourseDetail: React.FC = () => {
 
   return (
     <div className="animate-slide-up space-y-12">
+      <LearningSectionNav />
       <header className="space-y-6">
         <div>
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">
@@ -687,27 +691,28 @@ export const CourseDetail: React.FC = () => {
           </h1>
           <p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p>
         </div>
-        <div
-          className="inline-flex rounded-2xl border border-white/[0.08] bg-black/40 p-1 backdrop-blur-sm"
-          role="tablist"
-          aria-label="Год занятий"
-        >
-          {(['year_1', 'year_2_plus'] as const).map((tier) => (
-            <button
-              key={tier}
-              type="button"
-              role="tab"
-              aria-selected={libraryYear === tier}
-              onClick={() => setLibraryYear(tier)}
-              className={`rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all md:px-8 md:py-3 md:text-sm ${
-                libraryYear === tier
-                  ? 'bg-white text-black shadow-premium'
-                  : 'text-kiddy-textMuted hover:text-white'
-              }`}
-            >
-              {tier === 'year_1' ? '1-й год' : '2+ год занятий'}
-            </button>
-          ))}
+        <div className="course-level-switch-wrap">
+          <div
+            className="course-level-switch"
+            role="tablist"
+            aria-label="Уровень курса"
+            data-index={String(libraryLevelIndex)}
+            style={{ '--active-index': String(libraryLevelIndex) } as React.CSSProperties}
+          >
+            <span className="course-level-switch__pill" aria-hidden />
+            {COURSE_LEVEL_TIERS.map((tier) => (
+              <button
+                key={tier}
+                type="button"
+                role="tab"
+                aria-selected={libraryLevel === tier}
+                onClick={() => setLibraryLevel(tier)}
+                className={`course-level-switch__item ${libraryLevel === tier ? 'is-active' : ''}`}
+              >
+                {COURSE_LEVEL_LABELS[tier]}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="relative max-w-xl isolate">
           <span
@@ -747,16 +752,18 @@ export const CourseDetail: React.FC = () => {
               Повторить
             </button>
           </div>
-      ) : coursesInYear.length === 0 ? (
+      ) : coursesInLevel.length === 0 ? (
           <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
             <p className="text-kiddy-textSecondary font-medium">
-              В разделе «{COURSE_YEAR_LABELS[libraryYear]}» пока нет курсов.
+              В уровне «{COURSE_LEVEL_LABELS[libraryLevel]}» пока нет курсов.
             </p>
-            <p className="text-kiddy-textMuted mt-2 text-sm">Выберите другой год или добавьте курс в админ-панели.</p>
+            <p className="text-kiddy-textMuted mt-2 text-sm">Выберите другой уровень или добавьте курс в админ-панели.</p>
           </div>
       ) : filteredCourses.length === 0 ? (
           <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
-            <p className="text-kiddy-textSecondary font-medium">Ничего не найдено</p>
+            <p className="text-kiddy-textSecondary font-medium">
+              Ничего не найдено в уровне «{COURSE_LEVEL_LABELS[libraryLevel]}»
+            </p>
             <p className="text-kiddy-textMuted mt-2 text-sm">Попробуйте другой запрос или сбросьте поиск.</p>
             <button
               type="button"
@@ -780,15 +787,15 @@ export const CourseDetail: React.FC = () => {
           onClosed={() => setClosingCourse(null)}
           maxWidth="max-w-5xl"
           mobileCentered
-          maxPanelHeight="min(88dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem))"
-          panelClassName="ring-1 ring-white/10 shadow-premium"
+          maxPanelHeight="min(96dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 0.75rem))"
+          panelClassName="ring-1 ring-white/10 shadow-premium max-md:min-h-[min(92dvh,calc(100dvh-1rem))]"
         >
-            <div className="flex flex-col bg-[#0a0a0a]">
-              <div className="relative h-44 shrink-0 overflow-hidden sm:h-60 md:h-72 lg:h-80">
+            <div className="flex min-h-full flex-col bg-[#0a0a0a]">
+              <div className="relative isolate min-h-[13.75rem] shrink-0 overflow-hidden sm:min-h-[15rem] md:min-h-[18rem] lg:min-h-[20rem]">
                 <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-b from-black/50 via-transparent to-transparent" />
                 <img
                   src={courseForModal.coverImage}
-                  className="h-full w-full scale-105 object-cover opacity-[0.55]"
+                  className="absolute inset-0 h-full w-full scale-105 object-cover opacity-[0.55]"
                   alt=""
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
@@ -801,11 +808,11 @@ export const CourseDetail: React.FC = () => {
                 >
                   <X size={20} />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 z-[2] p-4 pb-5 sm:p-7 sm:pb-7 md:p-9 md:pb-8">
-                  <h2 className="font-display text-balance text-xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                <div className="relative z-[2] px-4 pb-5 pt-[4.25rem] sm:px-7 sm:pb-7 sm:pt-16 md:px-9 md:pb-8 md:pt-20">
+                  <h2 className="max-w-[66ch] font-display text-balance text-xl font-bold italic leading-[1.15] text-white break-words sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-tight">
                     {courseForModal.title}
                   </h2>
-                  <p className="mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400 line-clamp-2 sm:line-clamp-3 md:text-base md:leading-relaxed lg:line-clamp-none">
+                  <p className="mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400 md:text-base md:leading-relaxed">
                     {courseForModal.description}
                   </p>
                   <div className="mt-4 w-full max-w-sm">
@@ -886,7 +893,7 @@ export const CourseDetail: React.FC = () => {
           style={{ animation: 'lessonTransition 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
           aria-busy="true"
         >
-          <AnimatedLearningScene />
+          <ThemedLoader variant="section" message="Загружаем урок" />
           <style>{`
             @keyframes lessonTransition {
               0% { opacity: 0; }

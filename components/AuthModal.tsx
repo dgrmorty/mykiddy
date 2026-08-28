@@ -73,8 +73,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     // Animate container height
     gsap.to(containerRef.current, {
       height: currentView.offsetHeight,
-      duration: 0.6,
-      ease: 'elastic.out(1, 0.75)'
+      duration: 0.24,
+      ease: 'power3.out'
     });
 
     // Animate sliding views
@@ -88,10 +88,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       const viewIndex = modes.indexOf(key);
       
       if (key === mode) {
-        gsap.to(view, { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out', pointerEvents: 'auto' });
+        gsap.to(view, { x: 0, opacity: 1, duration: 0.2, ease: 'power3.out', pointerEvents: 'auto' });
       } else {
-        const dir = viewIndex < currentIndex ? -40 : 40;
-        gsap.to(view, { x: dir, opacity: 0, duration: 0.4, ease: 'power2.inOut', pointerEvents: 'none' });
+        const dir = viewIndex < currentIndex ? -16 : 16;
+        gsap.to(view, { x: dir, opacity: 0, duration: 0.16, ease: 'power3.out', pointerEvents: 'none' });
       }
     });
   }, [mode, error, success, pendingConfirm]);
@@ -152,7 +152,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         const { data, error: err } = await supabase.auth.signUp({
           email: emailNormalized, password,
           options: {
-            data: { name: name.trim(), role: 'Student', is_approved: true },
+            data: { name: name.trim() },
             emailRedirectTo: `${getAuthRedirectOrigin()}/auth/confirmed`,
           },
         });

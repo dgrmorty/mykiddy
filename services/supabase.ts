@@ -7,11 +7,53 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY должны быть заданы в .env');
 }
 
+const SUPABASE_FETCH_TIMEOUT_MS = 8000;
+
+/** Удаляем протухшую сессию до инициализации клиента — иначе refresh зависает и лента не грузится. */
+export function purgeStaleLocalSession(): void {
+  if (typeof localStorage === 'undefined') return;
+  const now = Date.now();
+  for (const key of Object.keys(localStorage)) {
+    if (!key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as { expires_at?: number };
+      const expiresAt = Number(parsed?.expires_at);
+      if (!Number.isFinite(expiresAt) || expiresAt * 1000 < now - 5000) {
+        localStorage.removeItem(key);
+      }
+    } catch {
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), SUPABASE_FETCH_TIMEOUT_MS);
+  const ext = init?.signal;
+  if (ext) {
+    if (ext.aborted) controller.abort();
+    else ext.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    window.clearTimeout(timer);
+  });
+}
+
+if (typeof window !== 'undefined') {
+  purgeStaleLocalSession();
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+  },
+  global: {
+    fetch: fetchWithTimeout,
   },
   realtime: {
     params: {
@@ -31,7 +73,9 @@ export function isCorruptAuthError(err: unknown): boolean {
   const code = String((err as { code?: string })?.code || '').toLowerCase();
   return (
     code === 'pgrst301' ||
+    code === '401' ||
     msg.includes('jwt') ||
+    msg.includes('no suitable key') ||
     msg.includes('refresh token') ||
     msg.includes('invalid claim') ||
     msg.includes('session from session_id claim') ||
@@ -40,6 +84,22 @@ export function isCorruptAuthError(err: unknown): boolean {
 }
 
 let clearingCorruptSession: Promise<void> | null = null;
+
+type SupabaseResult<T> = { data: T | null; error: { message?: string; code?: string } | null };
+
+/** Повтор запроса после сброса битого JWT в localStorage (PGRST301 / expired session). */
+export async function withAuthRecovery<T>(
+  run: () => Promise<SupabaseResult<T>>,
+  label = 'supabase query',
+): Promise<SupabaseResult<T>> {
+  let result = await run();
+  if (result.error && isCorruptAuthError(result.error)) {
+    console.warn(`[Supabase] ${label}: corrupt session, retrying as anon`);
+    await clearCorruptAuthSession(result.error.message);
+    result = await run();
+  }
+  return result;
+}
 
 /** Сбрасывает локальную сессию, чтобы клиент снова ходил как anon. */
 export async function clearCorruptAuthSession(reason?: string): Promise<void> {
@@ -50,6 +110,17 @@ export async function clearCorruptAuthSession(reason?: string): Promise<void> {
       await supabase.auth.signOut({ scope: 'local' });
     } catch (e) {
       console.warn('[Supabase] local signOut failed', e);
+    }
+    try {
+      if (typeof localStorage !== 'undefined') {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] localStorage purge failed', e);
     }
   })().finally(() => {
     clearingCorruptSession = null;

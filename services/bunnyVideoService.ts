@@ -2,12 +2,13 @@
  * Клиент для защищённых видеоуроков (Bunny Storage + CDN token URL).
  * В БД храним: bunny:path/to/file.mp4
  *
- * Загрузка всегда напрямую в Bunny (Railway не проксирует большие тела).
+ * Загрузка только через наш API — ключ Bunny не попадает в браузер.
  */
 
 import { getApiUrl } from '../config';
 
 export const BUNNY_VIDEO_PREFIX = 'bunny:';
+const MAX_UPLOAD_BYTES = 95 * 1024 * 1024;
 
 export function isBunnyLessonVideo(url?: string | null): boolean {
   return !!url && url.startsWith(BUNNY_VIDEO_PREFIX);
@@ -45,24 +46,6 @@ export async function fetchLessonVideoPlayUrl(
   return { url: data.url as string, expires: data.expires as number };
 }
 
-type UploadAuth = {
-  storageZone: string;
-  storagePassword: string;
-  storageHost: string;
-  pathPrefix: string;
-};
-
-async function fetchUploadAuth(accessToken: string): Promise<UploadAuth> {
-  const response = await fetch(getApiUrl('api/lesson-video/upload-auth'), {
-    headers: await authHeaders(accessToken),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || 'Нет прав на загрузку видео');
-  }
-  return data as UploadAuth;
-}
-
 function sanitizeFileName(name: string): string {
   const base = name.replace(/\.[^.]+$/, '');
   const ext = (name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
@@ -76,23 +59,24 @@ function sanitizeFileName(name: string): string {
 }
 
 /**
- * Загрузка урока напрямую в Bunny Storage (с прогрессом).
- * Перед PUT берём креды с нашего API (только админ).
+ * Загрузка урока через сервер (с прогрессом). Ключ Bunny на клиент не уходит.
  */
 export async function uploadLessonVideoToBunny(
   file: File,
   accessToken: string,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  const auth = await fetchUploadAuth(accessToken);
-  const fileName = `${Date.now()}_${sanitizeFileName(file.name)}`;
-  const path = `${auth.pathPrefix}${fileName}`;
-  const putUrl = `https://${auth.storageHost}/${auth.storageZone}/${path}`;
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error('Файл слишком большой для загрузки через сервер (макс. 95 MB).');
+  }
 
-  await new Promise<void>((resolve, reject) => {
+  const filename = sanitizeFileName(file.name);
+  const url = getApiUrl(`api/lesson-video/upload?filename=${encodeURIComponent(filename)}`);
+
+  const data = await new Promise<{ path?: string; video_url?: string; error?: string }>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('PUT', putUrl);
-    xhr.setRequestHeader('AccessKey', auth.storagePassword);
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {
@@ -100,16 +84,22 @@ export async function uploadLessonVideoToBunny(
       }
     };
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else {
-        const detail = (xhr.responseText || '').slice(0, 160);
-        reject(new Error(`Ошибка загрузки в Bunny (${xhr.status})${detail ? `: ${detail}` : ''}`));
-      }
+      const parsed = (() => {
+        try {
+          return JSON.parse(xhr.responseText || '{}');
+        } catch {
+          return {};
+        }
+      })();
+      if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
+      else reject(new Error(parsed.error || `Ошибка загрузки (${xhr.status})`));
     };
-    xhr.onerror = () => reject(new Error('Сеть: не удалось загрузить видео в Bunny'));
+    xhr.onerror = () => reject(new Error('Сеть: не удалось загрузить видео'));
     xhr.onabort = () => reject(new Error('Загрузка отменена'));
     xhr.send(file);
   });
 
-  return toBunnyStoredUrl(path);
+  const stored = data.video_url || (data.path ? toBunnyStoredUrl(data.path) : '');
+  if (!stored) throw new Error('Сервер не вернул путь видео');
+  return stored;
 }

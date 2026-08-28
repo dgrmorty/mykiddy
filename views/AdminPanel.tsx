@@ -7,7 +7,7 @@ import {
     CheckCircle, XCircle, ChevronLeft, FileText, Save
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { type User, Role, type ScheduleEvent, type CourseYearTier, COURSE_YEAR_LABELS, normalizeCourseYearTier, type LessonQuizCue } from '../types';
+import { type User, Role, type ScheduleEvent, type CourseYearTier, type CourseLevelTier, COURSE_LEVEL_LABELS, COURSE_LEVEL_TIERS, normalizeCourseYearTier, normalizeCourseLevelTier, type LessonQuizCue } from '../types';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
@@ -136,7 +136,7 @@ export const AdminPanel: React.FC = () => {
 
     // Form States
     const [courseModalOpen, setCourseModalOpen] = useState(false);
-    const [courseForm, setCourseForm] = useState<{ title: string; description: string; cover_image: string; id: string; year_tier: CourseYearTier; }>({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' });
+    const [courseForm, setCourseForm] = useState<{ title: string; description: string; cover_image: string; id: string; year_tier: CourseYearTier; level_tier: CourseLevelTier; }>({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1', level_tier: 'junior' });
     
     const [lessonModalOpen, setLessonModalOpen] = useState(false);
     const [lessonForm, setLessonForm] = useState<{
@@ -272,8 +272,8 @@ export const AdminPanel: React.FC = () => {
                     showToast('Нужна авторизация', 'error');
                     return;
                 }
-                if (file.size > 1500 * 1024 * 1024) {
-                    showToast('Файл слишком большой (макс. ~1.5 GB)', 'error');
+                if (file.size > 95 * 1024 * 1024) {
+                    showToast('Файл слишком большой (макс. 95 MB)', 'error');
                     return;
                 }
                 const lower = file.name.toLowerCase();
@@ -314,10 +314,10 @@ export const AdminPanel: React.FC = () => {
         setLoading(true);
         try {
             if (courseForm.id) {
-                await supabase.from('courses').update({ title: courseForm.title, description: courseForm.description, cover_image: courseForm.cover_image, year_tier: courseForm.year_tier }).eq('id', courseForm.id);
+                await supabase.from('courses').update({ title: courseForm.title, description: courseForm.description, cover_image: courseForm.cover_image, year_tier: courseForm.year_tier, level_tier: courseForm.level_tier }).eq('id', courseForm.id);
                 showToast('Курс обновлен', 'success');
             } else {
-                await supabase.from('courses').insert({ title: courseForm.title, description: courseForm.description, cover_image: courseForm.cover_image, type: 'Course', year_tier: courseForm.year_tier });
+                await supabase.from('courses').insert({ title: courseForm.title, description: courseForm.description, cover_image: courseForm.cover_image, type: 'Course', year_tier: courseForm.year_tier, level_tier: courseForm.level_tier });
                 showToast('Курс создан', 'success');
             }
             setCourseModalOpen(false);
@@ -452,9 +452,14 @@ export const AdminPanel: React.FC = () => {
     // --- User Actions ---
     const toggleUserApproval = async (u: User) => {
         try {
-            await supabase.from('profiles').update({ is_approved: !u.isApproved }).eq('id', u.id);
+            const next = !u.isApproved;
+            const { error } = await supabase.rpc('admin_set_user_approved', {
+                p_user_id: u.id,
+                p_approved: next,
+            });
+            if (error) throw error;
             showToast(u.isApproved ? 'Пользователь заблокирован' : 'Доступ разрешен', 'success');
-            setUsersList(prev => prev.map(x => x.id === u.id ? { ...x, isApproved: !u.isApproved } : x));
+            setUsersList(prev => prev.map(x => x.id === u.id ? { ...x, isApproved: next } : x));
             setActiveUser(null);
         } catch (e) { showToast('Ошибка', 'error'); }
     };
@@ -622,7 +627,7 @@ export const AdminPanel: React.FC = () => {
                             <div className="space-y-8">
                                 {!activeCourse ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        <div onClick={() => { setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1' }); setCourseModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-[2rem] p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors min-h-[200px]">
+                                        <div onClick={() => { setCourseForm({ title: '', description: '', cover_image: '', id: '', year_tier: 'year_1', level_tier: 'junior' }); setCourseModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-[2rem] p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors min-h-[200px]">
                                             <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-4"><Plus className="text-white" /></div>
                                             <span className="text-white font-bold">Создать курс</span>
                                         </div>
@@ -647,7 +652,7 @@ export const AdminPanel: React.FC = () => {
                                                 <ChevronLeft size={20} /> Назад к курсам
                                             </button>
                                             <div className="flex gap-2">
-                                                <button onClick={() => { setCourseForm({ id: activeCourse.id, title: activeCourse.title, description: activeCourse.description, cover_image: activeCourse.cover_image, year_tier: normalizeCourseYearTier(activeCourse.year_tier) }); setCourseModalOpen(true); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"><Edit2 size={16}/></button>
+                                                <button onClick={() => { setCourseForm({ id: activeCourse.id, title: activeCourse.title, description: activeCourse.description, cover_image: activeCourse.cover_image, year_tier: normalizeCourseYearTier(activeCourse.year_tier), level_tier: normalizeCourseLevelTier(activeCourse.level_tier) }); setCourseModalOpen(true); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"><Edit2 size={16}/></button>
                                                 <button onClick={() => deleteCourse(activeCourse.id)} className="p-2 bg-kiddy-cherry/10 hover:bg-kiddy-cherry/20 text-kiddy-cherry rounded-xl transition-colors"><Trash2 size={16}/></button>
                                             </div>
                                         </div>
@@ -786,12 +791,32 @@ export const AdminPanel: React.FC = () => {
                         <h3 className="text-xl font-bold text-white mb-4">{courseForm.id ? 'Редактировать курс' : 'Новый курс'}</h3>
                         <input value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
                         <textarea value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} placeholder="Описание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
-                        <div className="flex gap-2">
-                            {(['year_1', 'year_2_plus'] as const).map((tier) => (
-                                <button key={tier} onClick={() => setCourseForm({ ...courseForm, year_tier: tier })} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${courseForm.year_tier === tier ? 'bg-white text-black' : 'bg-white/5 text-zinc-400'}`}>
-                                    {COURSE_YEAR_LABELS[tier]}
+                        <div className="course-level-switch-wrap">
+                        <div
+                            className="course-level-switch"
+                            role="radiogroup"
+                            aria-label="Уровень курса"
+                            data-index={String(Math.max(0, COURSE_LEVEL_TIERS.indexOf(courseForm.level_tier)))}
+                            style={{ '--active-index': String(Math.max(0, COURSE_LEVEL_TIERS.indexOf(courseForm.level_tier))) } as React.CSSProperties}
+                        >
+                            <span className="course-level-switch__pill" aria-hidden />
+                            {COURSE_LEVEL_TIERS.map((tier) => (
+                                <button
+                                    key={tier}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={courseForm.level_tier === tier}
+                                    onClick={() => setCourseForm({
+                                        ...courseForm,
+                                        level_tier: tier,
+                                        year_tier: tier === 'junior' ? 'year_1' : 'year_2_plus',
+                                    })}
+                                    className={`course-level-switch__item ${courseForm.level_tier === tier ? 'is-active' : ''}`}
+                                >
+                                    {COURSE_LEVEL_LABELS[tier]}
                                 </button>
                             ))}
+                        </div>
                         </div>
                         <div className="flex gap-2">
                             <input value={courseForm.cover_image} onChange={e => setCourseForm({...courseForm, cover_image: e.target.value})} placeholder="URL обложки" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />

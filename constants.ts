@@ -43,6 +43,7 @@ export const MOCK_COURSES: Course[] = [
     nextLessonId: 'l3-1',
     coverImage: 'https://picsum.photos/800/402?grayscale',
     yearTier: 'year_1',
+    levelTier: 'junior',
     modules: [
         {
             id: 'm3-1',
@@ -85,6 +86,7 @@ export const MOCK_COURSES: Course[] = [
     nextLessonId: 'l1-3',
     coverImage: 'https://picsum.photos/800/400?grayscale',
     yearTier: 'year_2_plus',
+    levelTier: 'middle',
     modules: [
       {
         id: 'm1',

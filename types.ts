@@ -25,6 +25,8 @@ export interface User {
   /** Серия дней активности (UTC), из profiles */
   streakCurrent?: number;
   streakLongest?: number;
+  /** Owner-selected public medal IDs (max 3), from profiles.equipped_badges */
+  equippedBadges?: string[];
 }
 
 export interface LessonQuizCue {
@@ -72,6 +74,23 @@ export function normalizeCourseYearTier(value: unknown): CourseYearTier {
   return value === 'year_2_plus' ? 'year_2_plus' : 'year_1';
 }
 
+/** Уровень курса в библиотеке (колонка courses.level_tier) */
+export const COURSE_LEVEL_TIERS = ['junior', 'middle', 'senior', 'senior_plus'] as const;
+export type CourseLevelTier = (typeof COURSE_LEVEL_TIERS)[number];
+
+export const COURSE_LEVEL_LABELS: Record<CourseLevelTier, string> = {
+  junior: 'Junior',
+  middle: 'Middle',
+  senior: 'Senior',
+  senior_plus: 'Senior+',
+};
+
+export function normalizeCourseLevelTier(value: unknown): CourseLevelTier {
+  return value === 'middle' || value === 'senior' || value === 'senior_plus' || value === 'junior'
+    ? value
+    : 'junior';
+}
+
 export interface Course {
   id: string;
   type: CourseType;
@@ -83,6 +102,8 @@ export interface Course {
   coverImage: string;
   /** Из колонки courses.year_tier в Supabase */
   yearTier: CourseYearTier;
+  /** Из колонки courses.level_tier в Supabase */
+  levelTier: CourseLevelTier;
   created_at?: string;
 }
 

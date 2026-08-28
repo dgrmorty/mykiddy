@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+import { supabase, withAuthRecovery, isCorruptAuthError } from './supabase';
+import { getApiUrl } from '../config';
+import { withTimeout } from '../utils/withTimeout';
 import type { MediaItem, PhraseSelections } from '../data/projectShowcaseCatalog';
 
 export type { MediaItem };
@@ -64,22 +66,60 @@ export async function createProjectPost(
   return data?.id as string;
 }
 
-export async function fetchApprovedShowcasePosts(limit = 40): Promise<ShowcasePostRow[]> {
-  const cap = Math.min(Math.max(limit, 1), 100);
+async function loadApprovedShowcasePostsFromApi(limit: number): Promise<ShowcasePostRow[]> {
+  const url = getApiUrl(`showcase/feed?limit=${limit}`);
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`showcase API ${res.status}`);
+  const json = (await res.json()) as { posts?: ShowcasePostRow[] };
+  return json.posts || [];
+}
+
+async function loadShowcaseAuthorsFromApi(
+  authorIds: string[],
+): Promise<Record<string, { name: string | null; avatar: string | null; xp: number | null }>> {
+  if (!authorIds.length) return {};
+  const url = getApiUrl(`showcase/authors?ids=${encodeURIComponent(authorIds.join(','))}`);
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`showcase authors API ${res.status}`);
+  const json = (await res.json()) as {
+    authors?: { id: string; name: string | null; avatar: string | null; xp: number | null }[];
+  };
+  return mapProfilesToAuthorMap(json.authors);
+}
+
+async function loadApprovedShowcasePosts(limit: number): Promise<ShowcasePostRow[]> {
+  const { data: rpcRows, error: rpcErr } = await supabase.rpc('list_approved_showcase_posts', {
+    p_limit: limit,
+  });
+  if (!rpcErr) return (rpcRows || []) as ShowcasePostRow[];
+  if (isCorruptAuthError(rpcErr)) throw rpcErr;
+
+  console.warn('[showcase] RPC failed, trying direct select', rpcErr.message, rpcErr.code);
   const { data, error } = await supabase
     .from('project_posts')
     .select('id, author_id, status, phrase_selections, media, reject_reason, created_at')
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
-    .limit(cap);
+    .limit(limit);
   if (!error) return (data || []) as ShowcasePostRow[];
+  if (isCorruptAuthError(error)) throw error;
+  throw error;
+}
 
-  console.warn('[showcase] project_posts select failed, trying list_approved_showcase_posts', error.message, error.code);
-  const { data: rpcRows, error: rpcErr } = await supabase.rpc('list_approved_showcase_posts', {
-    p_limit: cap,
-  });
-  if (rpcErr) throw rpcErr;
-  return (rpcRows || []) as ShowcasePostRow[];
+export async function fetchApprovedShowcasePosts(limit = 40): Promise<ShowcasePostRow[]> {
+  const cap = Math.min(Math.max(limit, 1), 100);
+  const run = async () => {
+    try {
+      const rows = await withTimeout(loadApprovedShowcasePosts(cap), 9000, 'showcase feed');
+      return { data: rows, error: null };
+    } catch (err) {
+      return { data: null, error: err as { message?: string; code?: string } };
+    }
+  };
+  const { data, error } = await withAuthRecovery(run, 'showcase feed');
+  if (!error && data) return data;
+  console.warn('[showcase] Supabase feed failed, using API fallback', error);
+  return loadApprovedShowcasePostsFromApi(cap);
 }
 
 function mapProfilesToAuthorMap(
@@ -97,15 +137,21 @@ export async function fetchShowcaseAuthorsForFeed(
   authorIds: string[],
 ): Promise<Record<string, { name: string | null; avatar: string | null; xp: number | null }>> {
   if (!authorIds.length) return {};
-  const { data, error } = await supabase.rpc('list_showcase_authors', { author_ids: authorIds });
+  const runAuthors = () => supabase.rpc('list_showcase_authors', { author_ids: authorIds });
+  const { data, error } = await withAuthRecovery(runAuthors, 'showcase authors');
   if (!error) {
     return mapProfilesToAuthorMap(data as { id: string; name: string | null; avatar: string | null; xp: number | null }[]);
   }
   console.warn('[showcase] list_showcase_authors', error);
-  const { data: profs, error: profErr } = await supabase
-    .from('profiles')
-    .select('id, name, avatar, xp')
-    .in('id', authorIds);
+  try {
+    return await loadShowcaseAuthorsFromApi(authorIds);
+  } catch (apiErr) {
+    console.warn('[showcase] authors API fallback failed', apiErr);
+  }
+  const { data: profs, error: profErr } = await withAuthRecovery(
+    () => supabase.from('profiles').select('id, name, avatar, xp').in('id', authorIds),
+    'showcase authors fallback',
+  );
   if (profErr) {
     console.warn('[showcase] profiles fallback', profErr);
     return {};
@@ -175,7 +221,10 @@ export async function fetchLikeState(postIds: string[], userId: string): Promise
 
 export async function fetchLikeCounts(postIds: string[]): Promise<Record<string, number>> {
   if (postIds.length === 0) return {};
-  const { data, error } = await supabase.rpc('showcase_like_counts', { target_ids: postIds });
+  const { data, error } = await withAuthRecovery(
+    () => supabase.rpc('showcase_like_counts', { target_ids: postIds }),
+    'showcase like counts',
+  );
   if (error || !data) return {};
   const counts: Record<string, number> = {};
   (data as { post_id: string; cnt: number }[]).forEach((r) => {

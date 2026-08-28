@@ -55,7 +55,7 @@ async function checkTutorLimit(accessToken) {
 
     if (fetchError) {
         console.error('AI usage fetch error:', fetchError);
-        return { allowed: true, remaining: DAILY_TUTOR_LIMIT };
+        return { allowed: false, remaining: 0, error: 'quota_unavailable' };
     }
 
     const current = row?.tutor_count ?? 0;
@@ -101,7 +101,7 @@ async function checkHomeworkLimit(accessToken) {
 
     if (fetchError) {
         console.error('AI usage fetch error:', fetchError);
-        return { allowed: true, remaining: DAILY_HOMEWORK_LIMIT };
+        return { allowed: false, remaining: 0, error: 'quota_unavailable' };
     }
 
     const current = row?.homework_count ?? 0;
@@ -191,6 +191,12 @@ const aiLimiter = rateLimit({
     max: 40,
     message: { error: 'Слишком много запросов к ИИ. Попробуйте позже.', code: 'AI_RATE_LIMIT' },
     standardHeaders: true
+});
+
+// index.html — без кэша, чтобы клиенты быстрее получали новый JS-бандл
+app.get('/', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
 });
 
 // ВАЖНО: В продакшене мы отдаем файлы из папки dist (сборка Vite)
@@ -465,6 +471,49 @@ app.get('/api/health', (req, res) => {
         ai_active: !!ai,
         timestamp: new Date().toISOString()
     });
+});
+
+/** Публичная лента витрины через anon-ключ сервера — обход битого JWT в браузере. */
+app.get('/api/showcase/feed', async (req, res) => {
+    if (!hasSupabase) {
+        return res.status(503).json({ error: 'db_unavailable', posts: [] });
+    }
+    try {
+        const limit = Math.min(Math.max(parseInt(String(req.query.limit || '40'), 10) || 40, 1), 100);
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data, error } = await sb.rpc('list_approved_showcase_posts', { p_limit: limit });
+        if (error) {
+            console.warn('[Showcase API] feed rpc error', error.message);
+            return res.status(500).json({ error: error.message, posts: [] });
+        }
+        return res.json({ posts: data || [] });
+    } catch (e) {
+        console.error('[Showcase API] feed failed', e);
+        return res.status(500).json({ error: 'feed_failed', posts: [] });
+    }
+});
+
+app.get('/api/showcase/authors', async (req, res) => {
+    if (!hasSupabase) {
+        return res.status(503).json({ error: 'db_unavailable', authors: [] });
+    }
+    try {
+        const ids = String(req.query.ids || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        if (!ids.length) return res.json({ authors: [] });
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data, error } = await sb.rpc('list_showcase_authors', { author_ids: ids });
+        if (error) {
+            console.warn('[Showcase API] authors rpc error', error.message);
+            return res.status(500).json({ error: error.message, authors: [] });
+        }
+        return res.json({ authors: data || [] });
+    } catch (e) {
+        console.error('[Showcase API] authors failed', e);
+        return res.status(500).json({ error: 'authors_failed', authors: [] });
+    }
 });
 
 // Квота ИИ на сегодня (тьютор + проверка ДЗ) — для отображения в UI
@@ -823,34 +872,18 @@ app.get('/api/lesson-video/play', async (req, res) => {
     }
 });
 
-/** Креды для прямой загрузки в Bunny — только админ. */
-app.get('/api/lesson-video/upload-auth', async (req, res) => {
-    if (!hasBunnyVideo) {
-        console.warn('[bunny] upload-auth: not configured');
-        return res.status(503).json({ error: 'Видеохостинг не настроен (Bunny).', code: 'BUNNY_NOT_CONFIGURED' });
-    }
-    const auth = await requireAuthedUser(req);
-    if (auth.error) {
-        console.warn('[bunny] upload-auth: unauthorized');
-        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
-    }
-    if (!isServerAdmin(auth.user)) {
-        console.warn('[bunny] upload-auth: forbidden', auth.user?.email);
-        return res.status(403).json({ error: 'Только администратор может загружать уроки.', code: 'FORBIDDEN' });
-    }
-    console.log('[bunny] upload-auth ok', auth.user.email);
-    return res.json({
-        storageZone: BUNNY_STORAGE_ZONE,
-        storagePassword: BUNNY_STORAGE_PASSWORD,
-        storageHost: BUNNY_STORAGE_HOST,
-        pathPrefix: 'lessons/',
+/** Прямые креды Bunny больше не выдаём в браузер. Используйте POST /api/lesson-video/upload. */
+app.get('/api/lesson-video/upload-auth', async (_req, res) => {
+    return res.status(410).json({
+        error: 'Прямая загрузка в Bunny отключена. Используйте POST /api/lesson-video/upload.',
+        code: 'UPLOAD_AUTH_DISABLED',
     });
 });
 
 /**
  * Загрузка видео через сервер → Bunny (до ~95 MB).
  * Content-Type: video/* ; query: ?filename=lesson.mp4
- * Для больших файлов клиент льёт напрямую в Bunny (upload-auth).
+ * Видео до ~95 MB. Storage password не отдаём клиенту.
  */
 app.post('/api/lesson-video/upload', async (req, res) => {
     if (!hasBunnyVideo) {
