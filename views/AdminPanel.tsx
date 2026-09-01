@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase, uploadFile } from '../services/supabase';
 import { uploadLessonVideoToBunny } from '../services/bunnyVideoService';
 import { uploadLessonMaterial, syncAdminProfileRole } from '../services/lessonMaterialService';
+import { createScheduleGroup, deleteScheduleGroup as deleteScheduleGroupApi } from '../services/scheduleGroupService';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
     Edit2, X, Search, Calendar, Sparkles, Users, BookOpen,
@@ -491,34 +492,41 @@ export const AdminPanel: React.FC = () => {
         if (!/^\d{2}:\d{2}$/.test(timeStart) || !/^\d{2}:\d{2}$/.test(timeEnd)) {
             return showToast('Время в формате ЧЧ:ММ', 'error');
         }
-        const sortOrder =
-            scheduleGroups.filter((g) => g.day_of_week === scheduleForm.day_of_week).length + 1;
         try {
-            const { error } = await supabase.from('schedule_groups').insert({
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) {
+                showToast('Нужна авторизация', 'error');
+                return;
+            }
+            await createScheduleGroup(token, {
                 day_of_week: scheduleForm.day_of_week,
                 time_start: timeStart,
                 time_end: timeEnd,
                 title,
-                sort_order: sortOrder,
             });
-            if (error) throw error;
             showToast('Группа добавлена до конца учебного года', 'success');
             setScheduleForm({ day_of_week: 1, time_start: '10:00', time_end: '11:30', title: '' });
             fetchSchedule();
         } catch (e) {
-            showToast('Ошибка сохранения', 'error');
+            showToast(e instanceof Error ? e.message : 'Ошибка сохранения', 'error');
         }
     };
 
     const deleteScheduleGroup = async (id: string) => {
         if (!window.confirm('Удалить группу из расписания?')) return;
         try {
-            const { error } = await supabase.from('schedule_groups').delete().eq('id', id);
-            if (error) throw error;
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) {
+                showToast('Нужна авторизация', 'error');
+                return;
+            }
+            await deleteScheduleGroupApi(token, id);
             showToast('Группа удалена', 'success');
             fetchSchedule();
         } catch (e) {
-            showToast('Ошибка удаления', 'error');
+            showToast(e instanceof Error ? e.message : 'Ошибка удаления', 'error');
         }
     };
 

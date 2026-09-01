@@ -157,7 +157,7 @@ export const Schedule: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [{ data: config }, { data: groups }] = await Promise.all([
+        const [{ data: config, error: configError }, { data: groups, error: groupsError }] = await Promise.all([
           supabase.from('schedule_config').select('academic_year_start, academic_year_end').eq('id', 1).maybeSingle(),
           supabase
             .from('schedule_groups')
@@ -166,14 +166,24 @@ export const Schedule: React.FC = () => {
             .order('sort_order')
             .order('time_start'),
         ]);
+        if (configError) console.warn('[Schedule] config load failed', configError.message);
+        if (groupsError) console.warn('[Schedule] groups load failed', groupsError.message);
         if (config?.academic_year_start && config?.academic_year_end) {
           setScheduleAcademicBounds(config.academic_year_start, config.academic_year_end);
         }
         setScheduleGroups(groups || []);
-      } catch (_) { /* ignore */ }
+      } catch (e) {
+        console.warn('[Schedule] load failed', e);
+      }
       setLoading(false);
     };
     load();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   const monday = useMemo(() => addDays(getMonday(today), weekOffset * 7), [today, weekOffset]);

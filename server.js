@@ -1060,6 +1060,99 @@ app.post('/api/lesson-material/upload', async (req, res) => {
     }
 });
 
+function normalizeScheduleTime(value: unknown): string | null {
+    const raw = String(value || '').trim().replace(/\s+/g, '');
+    const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const h = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+    const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/** Создать еженедельную группу расписания — только админ. */
+app.post('/api/schedule-groups', async (req, res) => {
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (!isServerAdmin(auth.user)) {
+        return res.status(403).json({ error: 'Только администратор.', code: 'FORBIDDEN' });
+    }
+    if (!supabaseAdmin) {
+        return res.status(503).json({
+            error: 'SUPABASE_SERVICE_ROLE_KEY не задан на сервере.',
+            code: 'STORAGE_NOT_CONFIGURED',
+        });
+    }
+
+    const day = Number(req.body?.day_of_week);
+    const timeStart = normalizeScheduleTime(req.body?.time_start);
+    const timeEnd = normalizeScheduleTime(req.body?.time_end);
+    const title = String(req.body?.title || '').trim();
+    if (!Number.isInteger(day) || day < 1 || day > 7) {
+        return res.status(400).json({ error: 'Некорректный день недели.', code: 'VALIDATION_ERROR' });
+    }
+    if (!timeStart || !timeEnd) {
+        return res.status(400).json({ error: 'Время в формате ЧЧ:ММ.', code: 'VALIDATION_ERROR' });
+    }
+    if (!title) {
+        return res.status(400).json({ error: 'Укажите название группы.', code: 'VALIDATION_ERROR' });
+    }
+
+    const { count, error: countError } = await supabaseAdmin
+        .from('schedule_groups')
+        .select('id', { count: 'exact', head: true })
+        .eq('day_of_week', day);
+    if (countError) {
+        console.error('[schedule-groups] count failed', countError);
+        return res.status(502).json({ error: 'Не удалось сохранить группу.', code: 'SERVER_ERROR' });
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from('schedule_groups')
+        .insert({
+            day_of_week: day,
+            time_start: timeStart,
+            time_end: timeEnd,
+            title,
+            sort_order: (count || 0) + 1,
+        })
+        .select('*')
+        .single();
+    if (error) {
+        console.error('[schedule-groups] insert failed', error);
+        return res.status(502).json({ error: error.message || 'Не удалось сохранить группу.', code: 'SERVER_ERROR' });
+    }
+    return res.json({ ok: true, group: data });
+});
+
+/** Удалить группу расписания — только админ. */
+app.delete('/api/schedule-groups/:id', async (req, res) => {
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (!isServerAdmin(auth.user)) {
+        return res.status(403).json({ error: 'Только администратор.', code: 'FORBIDDEN' });
+    }
+    if (!supabaseAdmin) {
+        return res.status(503).json({
+            error: 'SUPABASE_SERVICE_ROLE_KEY не задан на сервере.',
+            code: 'STORAGE_NOT_CONFIGURED',
+        });
+    }
+    const id = String(req.params.id || '').trim();
+    if (!id) {
+        return res.status(400).json({ error: 'Некорректный id.', code: 'VALIDATION_ERROR' });
+    }
+    const { error } = await supabaseAdmin.from('schedule_groups').delete().eq('id', id);
+    if (error) {
+        console.error('[schedule-groups] delete failed', error);
+        return res.status(502).json({ error: error.message || 'Не удалось удалить группу.', code: 'SERVER_ERROR' });
+    }
+    return res.json({ ok: true });
+});
+
 // Любой другой запрос отправляем на index.html в папке dist (SPA Routing)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));

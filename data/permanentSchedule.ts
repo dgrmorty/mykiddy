@@ -17,9 +17,20 @@ const DEFAULT_END = '2027-05-27';
 
 let bounds: { start: Date; end: Date } | null = null;
 
+function parseIsoDateLocal(iso: string): Date {
+  const [y, m, d] = iso.split('-').map((part) => parseInt(part, 10));
+  if (!y || !m || !d) return new Date(NaN);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
+function dateKey(d: Date): number {
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
 export function setScheduleAcademicBounds(startIso: string, endIso: string): void {
-  const start = new Date(`${startIso}T00:00:00`);
-  const end = new Date(`${endIso}T23:59:59`);
+  const start = parseIsoDateLocal(startIso);
+  const end = parseIsoDateLocal(endIso);
+  end.setHours(23, 59, 59, 999);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
   bounds = { start, end };
 }
@@ -30,12 +41,14 @@ export function resetScheduleAcademicBounds(): void {
 
 /** Show recurring groups between academic year start and end (inclusive). */
 export function isInAcademicYear(date: Date): boolean {
+  const key = dateKey(date);
   if (bounds) {
-    return date >= bounds.start && date <= bounds.end;
+    return key >= dateKey(bounds.start) && key <= dateKey(bounds.end);
   }
-  const start = new Date(`${DEFAULT_START}T00:00:00`);
-  const end = new Date(`${DEFAULT_END}T23:59:59`);
-  return date >= start && date <= end;
+  const start = parseIsoDateLocal(DEFAULT_START);
+  const end = parseIsoDateLocal(DEFAULT_END);
+  end.setHours(23, 59, 59, 999);
+  return key >= dateKey(start) && key <= dateKey(end);
 }
 
 export function getMonday(d: Date): Date {
