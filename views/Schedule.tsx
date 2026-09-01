@@ -3,15 +3,15 @@ import { supabase } from '../services/supabase';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { LearningSectionNav } from '../components/LearningSectionNav';
 import { ChevronLeft, ChevronRight, MapPin, Users } from 'lucide-react';
-import type { ScheduleEvent } from '../types';
+import type { ScheduleGroup } from '../types';
 import {
-  PERMANENT_GROUPS,
   isInAcademicYear,
   getMonday,
   addDays,
   isSameDay,
   dayOfWeek,
   formatWeekRange,
+  setScheduleAcademicBounds,
 } from '../data/permanentSchedule';
 
 import gsap from 'gsap';
@@ -130,7 +130,7 @@ function isEventLive(ev: MergedEvent, now: Date, isToday: boolean): boolean {
 export const Schedule: React.FC = () => {
   const today = useMemo(() => new Date(), []);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [dbEvents, setDbEvents] = useState<ScheduleEvent[]>([]);
+  const [scheduleGroups, setScheduleGroups] = useState<ScheduleGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [slideDir, setSlideDir] = useState<SlideDir>(null);
   const [animKey, setAnimKey] = useState(0);
@@ -157,13 +157,19 @@ export const Schedule: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await supabase
-          .from('schedule_events')
-          .select('*')
-          .order('day_of_week')
-          .order('sort_order')
-          .order('time_start');
-        setDbEvents(data || []);
+        const [{ data: config }, { data: groups }] = await Promise.all([
+          supabase.from('schedule_config').select('academic_year_start, academic_year_end').eq('id', 1).maybeSingle(),
+          supabase
+            .from('schedule_groups')
+            .select('*')
+            .order('day_of_week')
+            .order('sort_order')
+            .order('time_start'),
+        ]);
+        if (config?.academic_year_start && config?.academic_year_end) {
+          setScheduleAcademicBounds(config.academic_year_start, config.academic_year_end);
+        }
+        setScheduleGroups(groups || []);
       } catch (_) { /* ignore */ }
       setLoading(false);
     };
@@ -180,32 +186,18 @@ export const Schedule: React.FC = () => {
     const events: MergedEvent[] = [];
 
     if (isInAcademicYear(date)) {
-      PERMANENT_GROUPS
-        .filter((g) => g.day === dow)
-        .forEach((g, i) => {
+      scheduleGroups
+        .filter((g) => g.day_of_week === dow)
+        .forEach((g) => {
           events.push({
-            id: `perm-${g.day}-${i}`,
-            time_start: g.time,
-            time_end: g.end,
+            id: g.id,
+            time_start: g.time_start,
+            time_end: g.time_end,
             title: g.title,
             isPermanent: true,
           });
         });
     }
-
-    dbEvents
-      .filter((e) => e.day_of_week === dow)
-      .forEach((e) => {
-        events.push({
-          id: e.id,
-          time_start: e.time_start,
-          time_end: e.time_end,
-          title: e.title,
-          description: e.description,
-          location: e.location,
-          isPermanent: false,
-        });
-      });
 
     events.sort((a, b) => a.time_start.localeCompare(b.time_start));
     return events;

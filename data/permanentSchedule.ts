@@ -1,37 +1,41 @@
-export interface PermanentGroup {
-  day: number;
-  time: string;
-  end: string;
+export interface ScheduleGroup {
+  id: string;
+  day_of_week: number;
+  time_start: string;
+  time_end: string;
   title: string;
+  sort_order?: number;
 }
 
-export const PERMANENT_GROUPS: PermanentGroup[] = [
-  // Среда
-  { day: 3, time: '16:30', end: '18:00', title: 'Занятие' },
-  { day: 3, time: '18:20', end: '19:50', title: 'Занятие' },
-  // Четверг
-  { day: 4, time: '16:10', end: '17:40', title: 'Занятие' },
-  { day: 4, time: '18:20', end: '19:50', title: 'Занятие' },
-  // Пятница
-  { day: 5, time: '14:40', end: '16:10', title: 'Занятие' },
-  { day: 5, time: '16:30', end: '18:00', title: 'Занятие' },
-  { day: 5, time: '18:20', end: '19:50', title: 'Занятие' },
-  // Суббота
-  { day: 6, time: '10:00', end: '11:30', title: 'Занятие' },
-  { day: 6, time: '11:40', end: '13:10', title: 'Занятие' },
-  { day: 6, time: '13:20', end: '14:50', title: 'Занятие' },
-  { day: 6, time: '15:00', end: '16:30', title: 'Занятие' },
-  // Воскресенье
-  { day: 7, time: '10:00', end: '11:30', title: 'Отработка' },
-  { day: 7, time: '11:40', end: '13:10', title: 'Занятие' },
-  { day: 7, time: '13:20', end: '14:50', title: 'Занятие' },
-  { day: 7, time: '15:00', end: '16:30', title: 'Занятие' },
-];
+export interface ScheduleConfig {
+  academic_year_start: string;
+  academic_year_end: string;
+}
 
-/** Academic year: September 1 – May 31 */
+const DEFAULT_START = '2026-09-01';
+const DEFAULT_END = '2027-05-27';
+
+let bounds: { start: Date; end: Date } | null = null;
+
+export function setScheduleAcademicBounds(startIso: string, endIso: string): void {
+  const start = new Date(`${startIso}T00:00:00`);
+  const end = new Date(`${endIso}T23:59:59`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+  bounds = { start, end };
+}
+
+export function resetScheduleAcademicBounds(): void {
+  bounds = null;
+}
+
+/** Show recurring groups between academic year start and end (inclusive). */
 export function isInAcademicYear(date: Date): boolean {
-  const m = date.getMonth();
-  return m >= 8 || m <= 4;
+  if (bounds) {
+    return date >= bounds.start && date <= bounds.end;
+  }
+  const start = new Date(`${DEFAULT_START}T00:00:00`);
+  const end = new Date(`${DEFAULT_END}T23:59:59`);
+  return date >= start && date <= end;
 }
 
 export function getMonday(d: Date): Date {
@@ -77,4 +81,22 @@ export function formatWeekRange(start: Date, end: Date): string {
     return `${start.getDate()} – ${end.getDate()} ${MONTHS_GEN[end.getMonth()]}`;
   }
   return `${start.getDate()} ${MONTHS_GEN[start.getMonth()]} – ${end.getDate()} ${MONTHS_GEN[end.getMonth()]}`;
+}
+
+export function formatAcademicYearEndLabel(endIso?: string): string {
+  const iso = endIso || DEFAULT_END;
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return '27 мая 2027';
+  return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+export const DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const;
+
+export function normalizeTimeInput(value: string): string {
+  const trimmed = value.trim().replace(/\s+/g, '');
+  const m = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return trimmed;
+  const h = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+  const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }

@@ -132,3 +132,17 @@ export interface ScheduleEvent {
   location?: string;
   sort_order?: number;
 }
+
+export interface ScheduleGroup {
+  id: string;
+  day_of_week: number;
+  time_start: string;
+  time_end: string;
+  title: string;
+  sort_order?: number;
+}
+
+export interface ScheduleConfigRow {
+  academic_year_start: string;
+  academic_year_end: string;
+}

@@ -8,7 +8,8 @@ import {
     CheckCircle, XCircle, ChevronLeft, FileText, Save
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { type User, Role, type ScheduleEvent, type CourseYearTier, type CourseLevelTier, COURSE_LEVEL_LABELS, COURSE_LEVEL_TIERS, normalizeCourseYearTier, normalizeCourseLevelTier, type LessonQuizCue } from '../types';
+import { type User, Role, type ScheduleGroup, type ScheduleConfigRow, type CourseYearTier, type CourseLevelTier, COURSE_LEVEL_LABELS, COURSE_LEVEL_TIERS, normalizeCourseYearTier, normalizeCourseLevelTier, type LessonQuizCue } from '../types';
+import { DAY_SHORT, formatAcademicYearEndLabel, normalizeTimeInput } from '../data/permanentSchedule';
 import { AccessGate } from '../components/AccessGate';
 import { useToast } from '../contexts/ToastContext';
 import { fetchPendingShowcasePosts, moderatePost, deleteShowcasePost, mediaPublicUrl, type ShowcasePostRow } from '../services/projectShowcaseService';
@@ -129,7 +130,8 @@ export const AdminPanel: React.FC = () => {
     const [showcaseAuthors, setShowcaseAuthors] = useState<Record<string, string>>({});
     const [homeworkQueue, setHomeworkQueue] = useState<HomeworkSubmissionRow[]>([]);
     const [homeworkAuthors, setHomeworkAuthors] = useState<Record<string, { name: string; avatar?: string | null }>>({});
-    const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
+    const [scheduleGroups, setScheduleGroups] = useState<ScheduleGroup[]>([]);
+    const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfigRow | null>(null);
 
     const [activeUser, setActiveUser] = useState<User | null>(null);
     const [activeCourse, setActiveCourse] = useState<any | null>(null);
@@ -155,7 +157,7 @@ export const AdminPanel: React.FC = () => {
     const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
     const [moduleForm, setModuleForm] = useState({ title: '', course_id: '', id: '' });
 
-    const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
+    const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, time_start: '10:00', time_end: '11:30', title: '' });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lessonVideoInputRef = useRef<HTMLInputElement>(null);
@@ -266,8 +268,15 @@ export const AdminPanel: React.FC = () => {
     const fetchSchedule = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('schedule_events').select('*').order('day_of_week').order('time_start');
-            if (!error) setScheduleEvents(data || []);
+            const [{ data: config }, { data: groups, error }] = await Promise.all([
+                supabase.from('schedule_config').select('academic_year_start, academic_year_end').eq('id', 1).maybeSingle(),
+                supabase.from('schedule_groups').select('*').order('day_of_week').order('sort_order').order('time_start'),
+            ]);
+            if (error) throw error;
+            setScheduleConfig(config || null);
+            setScheduleGroups(groups || []);
+        } catch (e) {
+            showToast('Ошибка загрузки расписания', 'error');
         } finally { setLoading(false); }
     };
 
@@ -473,27 +482,44 @@ export const AdminPanel: React.FC = () => {
         setLoading(false);
     };
 
-    // --- Schedule CRUD ---
-    const saveScheduleEvent = async () => {
-        if (!scheduleForm.title.trim()) return showToast('Введите название', 'error');
+    // --- Schedule groups CRUD ---
+    const saveScheduleGroup = async () => {
+        const title = scheduleForm.title.trim();
+        const timeStart = normalizeTimeInput(scheduleForm.time_start);
+        const timeEnd = normalizeTimeInput(scheduleForm.time_end);
+        if (!title) return showToast('Введите название группы', 'error');
+        if (!/^\d{2}:\d{2}$/.test(timeStart) || !/^\d{2}:\d{2}$/.test(timeEnd)) {
+            return showToast('Время в формате ЧЧ:ММ', 'error');
+        }
+        const sortOrder =
+            scheduleGroups.filter((g) => g.day_of_week === scheduleForm.day_of_week).length + 1;
         try {
-            await supabase.from('schedule_events').insert({
-                day_of_week: scheduleForm.day_of_week, time_start: scheduleForm.time_start, time_end: scheduleForm.time_end || null,
-                title: scheduleForm.title.trim(), description: scheduleForm.description.trim() || null, location: scheduleForm.location.trim() || null
+            const { error } = await supabase.from('schedule_groups').insert({
+                day_of_week: scheduleForm.day_of_week,
+                time_start: timeStart,
+                time_end: timeEnd,
+                title,
+                sort_order: sortOrder,
             });
-            showToast('Событие добавлено', 'success');
-            setScheduleForm({ day_of_week: 1, time_start: '10:00', time_end: '11:00', title: '', description: '', location: '' });
+            if (error) throw error;
+            showToast('Группа добавлена до конца учебного года', 'success');
+            setScheduleForm({ day_of_week: 1, time_start: '10:00', time_end: '11:30', title: '' });
             fetchSchedule();
-        } catch (e) { showToast('Ошибка', 'error'); }
+        } catch (e) {
+            showToast('Ошибка сохранения', 'error');
+        }
     };
 
-    const deleteScheduleEvent = async (id: string) => {
-        if (!window.confirm('Удалить событие?')) return;
+    const deleteScheduleGroup = async (id: string) => {
+        if (!window.confirm('Удалить группу из расписания?')) return;
         try {
-            await supabase.from('schedule_events').delete().eq('id', id);
-            showToast('Удалено', 'success');
+            const { error } = await supabase.from('schedule_groups').delete().eq('id', id);
+            if (error) throw error;
+            showToast('Группа удалена', 'success');
             fetchSchedule();
-        } catch (e) { showToast('Ошибка', 'error'); }
+        } catch (e) {
+            showToast('Ошибка удаления', 'error');
+        }
     };
 
     // --- User Actions ---
@@ -764,13 +790,20 @@ export const AdminPanel: React.FC = () => {
                         {/* SCHEDULE VIEW */}
                         {currentView === 'schedule' && (
                             <div className="space-y-6">
+                                <p className="text-zinc-500 text-sm text-center max-w-2xl mx-auto">
+                                    Еженедельные группы показываются в расписании до{' '}
+                                    <span className="text-white font-bold">
+                                        {formatAcademicYearEndLabel(scheduleConfig?.academic_year_end)}
+                                    </span>
+                                    {' '}(учебный год 26/27).
+                                </p>
                                 <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 max-w-2xl mx-auto">
-                                    <h3 className="text-white font-bold mb-4">Добавить событие</h3>
+                                    <h3 className="text-white font-bold mb-4">Добавить группу</h3>
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label className="text-zinc-500 text-xs font-bold uppercase mb-1 block">День</label>
                                             <select value={scheduleForm.day_of_week} onChange={e => setScheduleForm({...scheduleForm, day_of_week: +e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none">
-                                                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
+                                                {DAY_SHORT.map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
                                             </select>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -780,25 +813,30 @@ export const AdminPanel: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="text-zinc-500 text-xs font-bold uppercase mb-1 block">Конец</label>
-                                                <input value={scheduleForm.time_end} onChange={e => setScheduleForm({...scheduleForm, time_end: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="11:00" />
+                                                <input value={scheduleForm.time_end} onChange={e => setScheduleForm({...scheduleForm, time_end: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="11:30" />
                                             </div>
                                         </div>
                                         <div className="col-span-2">
-                                            <input value={scheduleForm.title} onChange={e => setScheduleForm({...scheduleForm, title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="Название (Урок Python)" />
+                                            <input value={scheduleForm.title} onChange={e => setScheduleForm({...scheduleForm, title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" placeholder="Junior / Middle / Senior / Senior+ / Отработка" />
                                         </div>
                                     </div>
-                                    <button onClick={saveScheduleEvent} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200">Добавить</button>
+                                    <button type="button" onClick={saveScheduleGroup} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200">Добавить группу</button>
                                 </div>
 
                                 <div className="max-w-2xl mx-auto space-y-2">
-                                    {scheduleEvents.map(ev => (
-                                        <div key={ev.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-                                            <div>
-                                                <span className="text-zinc-500 font-bold mr-3">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][ev.day_of_week - 1]}</span>
-                                                <span className="text-white font-bold mr-3">{ev.time_start} - {ev.time_end}</span>
+                                    {scheduleGroups.length === 0 && (
+                                        <p className="text-zinc-600 text-sm text-center py-8">Групп пока нет</p>
+                                    )}
+                                    {scheduleGroups.map(ev => (
+                                        <div key={ev.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <span className="text-zinc-500 font-bold mr-3">{DAY_SHORT[ev.day_of_week - 1]}</span>
+                                                <span className="text-white font-bold mr-3 font-mono text-sm">{ev.time_start} – {ev.time_end}</span>
                                                 <span className="text-zinc-300">{ev.title}</span>
                                             </div>
-                                            <button onClick={() => deleteScheduleEvent(ev.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={16}/></button>
+                                            <button type="button" onClick={() => deleteScheduleGroup(ev.id)} className="shrink-0 text-kiddy-cherry/70 hover:text-kiddy-cherry" aria-label="Удалить группу">
+                                                <Trash2 size={16}/>
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
