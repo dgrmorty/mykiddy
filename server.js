@@ -22,7 +22,12 @@ const DAILY_HOMEWORK_LIMIT = parseInt(process.env.AI_DAILY_HOMEWORK_LIMIT || '15
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const hasSupabase = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+const supabaseAdmin =
+    SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+        ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+        : null;
 
 /** Создаёт Supabase-клиент от имени пользователя (JWT) для RLS */
 function supabaseForUser(accessToken) {
@@ -949,6 +954,109 @@ app.post('/api/lesson-video/upload', async (req, res) => {
     } catch (e) {
         console.error('[bunny] upload error', e);
         return res.status(500).json({ error: 'Не удалось загрузить видео.', code: 'SERVER_ERROR' });
+    }
+});
+
+const LESSON_MATERIAL_MAX_BYTES = 50 * 1024 * 1024;
+const LESSON_MATERIAL_EXT = new Set(['pdf', 'ppt', 'pptx', 'doc', 'docx', 'zip', 'png', 'jpg', 'jpeg', 'webp']);
+
+function sanitizeLessonMaterialName(rawName) {
+    const name = String(rawName || 'material.bin');
+    const ext = (name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+    const safeExt = LESSON_MATERIAL_EXT.has(ext) ? ext : 'bin';
+    const base = name.replace(/\.[^.]+$/, '');
+    const safeBase =
+        base
+            .toLowerCase()
+            .replace(/[^a-z0-9._-]+/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 80)
+            .replace(/^-|-$/g, '') || 'material';
+    return `${safeBase}.${safeExt}`;
+}
+
+/** Синхронизирует profiles.role=Admin для email из ADMIN_EMAILS (для RLS is_admin_user). */
+app.post('/api/admin/sync-profile-role', async (req, res) => {
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (!isServerAdmin(auth.user)) {
+        return res.status(403).json({ error: 'Только администратор.', code: 'FORBIDDEN' });
+    }
+    if (!supabaseAdmin) {
+        return res.status(503).json({
+            error: 'SUPABASE_SERVICE_ROLE_KEY не задан на сервере.',
+            code: 'STORAGE_NOT_CONFIGURED',
+        });
+    }
+    const { error } = await supabaseAdmin
+        .from('profiles')
+        .update({ role: 'Admin' })
+        .eq('id', auth.user.id);
+    if (error) {
+        console.error('[admin] sync-profile-role', error);
+        return res.status(500).json({ error: 'Не удалось обновить роль.', code: 'SERVER_ERROR' });
+    }
+    return res.json({ ok: true, role: 'Admin' });
+});
+
+/** Загрузка материала к уроку (PDF/PPTX) — только админ, через service role. */
+app.post('/api/lesson-material/upload', async (req, res) => {
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (!isServerAdmin(auth.user)) {
+        return res.status(403).json({ error: 'Только администратор может загружать материалы.', code: 'FORBIDDEN' });
+    }
+    if (!supabaseAdmin) {
+        return res.status(503).json({
+            error: 'SUPABASE_SERVICE_ROLE_KEY не задан на сервере.',
+            code: 'STORAGE_NOT_CONFIGURED',
+        });
+    }
+
+    const rawName = typeof req.query.filename === 'string' ? req.query.filename : `material-${Date.now()}.pdf`;
+    const safeName = sanitizeLessonMaterialName(rawName);
+    const storagePath = `materials/${Date.now()}_${safeName}`;
+    const contentType = req.headers['content-type'] || 'application/octet-stream';
+
+    try {
+        const chunks = [];
+        let total = 0;
+        for await (const chunk of req) {
+            total += chunk.length;
+            if (total > LESSON_MATERIAL_MAX_BYTES) {
+                return res.status(413).json({
+                    error: 'Файл слишком большой (макс. 50 MB).',
+                    code: 'FILE_TOO_LARGE',
+                });
+            }
+            chunks.push(chunk);
+        }
+        const body = Buffer.concat(chunks);
+        if (body.length === 0) {
+            return res.status(400).json({ error: 'Пустое тело запроса.', code: 'VALIDATION_ERROR' });
+        }
+
+        const { data, error } = await supabaseAdmin.storage
+            .from('lesson_materials')
+            .upload(storagePath, body, {
+                contentType,
+                cacheControl: '3600',
+                upsert: false,
+            });
+        if (error) {
+            console.error('[lesson-material] upload failed', error);
+            return res.status(502).json({ error: error.message || 'Storage upload failed', code: 'STORAGE_UPLOAD_FAILED' });
+        }
+
+        const { data: urlData } = supabaseAdmin.storage.from('lesson_materials').getPublicUrl(data.path);
+        return res.json({ url: urlData.publicUrl, name: safeName, path: data.path });
+    } catch (e) {
+        console.error('[lesson-material] upload error', e);
+        return res.status(500).json({ error: 'Не удалось загрузить файл.', code: 'SERVER_ERROR' });
     }
 });
 

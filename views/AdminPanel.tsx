@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, uploadFile } from '../services/supabase';
 import { uploadLessonVideoToBunny } from '../services/bunnyVideoService';
+import { uploadLessonMaterial, syncAdminProfileRole } from '../services/lessonMaterialService';
 import { 
     Plus, Loader2, Trash2, Video, Upload, Shield, Lock, Unlock,
     Edit2, X, Search, Calendar, Sparkles, Users, BookOpen,
@@ -168,6 +169,14 @@ export const AdminPanel: React.FC = () => {
         else if (currentView === 'homework') fetchHomeworkQueue();
     }, [currentView]);
 
+    useEffect(() => {
+        void (async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (token) await syncAdminProfileRole(token);
+        })();
+    }, []);
+
     // --- Data Fetching ---
     const fetchContent = async () => {
         setLoading(true);
@@ -321,16 +330,18 @@ export const AdminPanel: React.FC = () => {
         }
         setUploading(true);
         try {
-            showToast('Загрузка файла...', 'info');
-            const { url, error: uploadError } = await uploadFile(file, 'lesson_materials');
-            if (!url) {
-                showToast(uploadError || 'Не удалось загрузить файл', 'error');
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) {
+                showToast('Нужна авторизация', 'error');
                 return;
             }
+            showToast('Загрузка файла...', 'info');
+            const { url, name } = await uploadLessonMaterial(file, token);
             setLessonForm((prev) => ({
                 ...prev,
                 attachment_url: url,
-                attachment_name: file.name,
+                attachment_name: name,
             }));
             showToast('Файл загружен — нажмите Сохранить', 'success');
         } catch (error) {
