@@ -166,10 +166,32 @@ export const signOut = async () => {
 /**
  * Загружает файл в хранилище Supabase с автоматическим выбором бакета и обработкой ошибок.
  */
-export const uploadFile = async (file: File, folder: string = 'avatars'): Promise<string | null> => {
+function guessStorageContentType(file: File, fileExt: string): string {
+    if (file.type && file.type !== 'application/octet-stream') return file.type;
+    const byExt: Record<string, string> = {
+        pdf: 'application/pdf',
+        ppt: 'application/vnd.ms-powerpoint',
+        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        doc: 'application/msword',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        zip: 'application/zip',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        mp4: 'video/mp4',
+    };
+    return byExt[fileExt] || file.type || 'application/octet-stream';
+}
+
+export type UploadFileResult = { url: string | null; error?: string };
+
+export const uploadFile = async (file: File, folder: string = 'avatars'): Promise<UploadFileResult> => {
     try {
         const fileExt = file.name.split('.').pop()?.toLowerCase() || 'bin';
         const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        let lastError = 'Не удалось загрузить файл';
 
         // Определяем приоритетный бакет на основе типа файла и папки
         let bucketPriority: string[] = [];
@@ -201,7 +223,7 @@ export const uploadFile = async (file: File, folder: string = 'avatars'): Promis
                           : 10 * 1024 * 1024;
                 if (file.size > maxSize) {
                     console.error(`[Storage] File too large: ${file.size} bytes, max: ${maxSize}`);
-                    return null;
+                    return { url: null, error: 'Файл слишком большой' };
                 }
                 
                 const { data, error } = await supabase.storage
@@ -209,17 +231,13 @@ export const uploadFile = async (file: File, folder: string = 'avatars'): Promis
                     .upload(fileName, file, {
                         cacheControl: '3600',
                         upsert: false,
-                        contentType: file.type || (fileExt === 'jpg' || fileExt === 'jpeg' ? 'image/jpeg' : 
-                                                   fileExt === 'png' ? 'image/png' : 
-                                                   fileExt === 'gif' ? 'image/gif' : 
-                                                   fileExt === 'webp' ? 'image/webp' : 
-                                                   fileExt === 'mp4' ? 'video/mp4' : 'application/octet-stream')
+                        contentType: guessStorageContentType(file, fileExt),
                     });
 
                 if (!error && data) {
                     const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
                     console.log(`[Storage] Upload success: ${urlData.publicUrl}`);
-                    return urlData.publicUrl;
+                    return { url: urlData.publicUrl };
                 }
                 
                 // Если ошибка связана с отсутствием бакета, пробуем следующий
@@ -228,17 +246,19 @@ export const uploadFile = async (file: File, folder: string = 'avatars'): Promis
                     continue;
                 }
                 
+                lastError = error?.message || lastError;
                 console.warn(`[Storage] Bucket ${bucket} failed:`, error?.message);
             } catch (e: any) {
+                lastError = e?.message || lastError;
                 console.warn(`[Storage] Exception for bucket ${bucket}:`, e?.message);
                 continue; // Пробуем следующий бакет
             }
         }
 
         console.error('[Storage] All buckets failed, upload unsuccessful');
-        return null;
+        return { url: null, error: lastError };
     } catch (error: any) {
         console.error('[Storage] Critical crash:', error?.message || error);
-        return null;
+        return { url: null, error: error?.message || 'Ошибка загрузки' };
     }
 };

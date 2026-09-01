@@ -294,12 +294,12 @@ export const AdminPanel: React.FC = () => {
                 showToast('Видео в Bunny — нажмите Сохранить', 'success');
             } else {
                 showToast('Загрузка файла...', 'info');
-                const url = await uploadFile(file, 'covers');
+                const { url, error: uploadError } = await uploadFile(file, 'covers');
                 if (url) {
                     setCourseForm(prev => ({ ...prev, cover_image: url }));
                     showToast('Файл загружен', 'success');
                 } else {
-                    showToast('Не удалось загрузить обложку', 'error');
+                    showToast(uploadError || 'Не удалось загрузить обложку', 'error');
                 }
             }
         } catch (error) {
@@ -322,9 +322,9 @@ export const AdminPanel: React.FC = () => {
         setUploading(true);
         try {
             showToast('Загрузка файла...', 'info');
-            const url = await uploadFile(file, 'lesson_materials');
+            const { url, error: uploadError } = await uploadFile(file, 'lesson_materials');
             if (!url) {
-                showToast('Не удалось загрузить файл', 'error');
+                showToast(uploadError || 'Не удалось загрузить файл', 'error');
                 return;
             }
             setLessonForm((prev) => ({
