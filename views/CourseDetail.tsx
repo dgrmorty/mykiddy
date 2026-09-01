@@ -23,6 +23,7 @@ import { useToast } from '../contexts/ToastContext';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { ThemedLoader } from '../components/ui/ThemedLoader';
 import { LessonVideoPlayer } from '../components/LessonVideoPlayer';
+import { LessonMaterialCard } from '../components/LessonMaterialCard';
 import { LearningSectionNav } from '../components/LearningSectionNav';
 import { isBunnyLessonVideo } from '../services/bunnyVideoService';
 
@@ -654,7 +655,12 @@ export const CourseDetail: React.FC = () => {
                 </div>
             </div>
             <div className={`grid grid-cols-1 ${isTheaterMode ? 'gap-12' : 'lg:grid-cols-3 gap-10'}`}>
-                    <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}><Card className="relative aspect-video bg-black border-white/[0.08] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card></div>
+                    <div className={`${isTheaterMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}>
+                        <Card className="relative aspect-video bg-black border-white/[0.08] shadow-2xl overflow-hidden rounded-[2rem]" noPadding>{getVideoComponent(activeLesson.videoUrl)}</Card>
+                        {activeLesson.attachmentUrl ? (
+                            <LessonMaterialCard url={activeLesson.attachmentUrl} name={activeLesson.attachmentName} />
+                        ) : null}
+                    </div>
                     {!isTheaterMode && (
                         <div className="flex flex-col justify-start pt-1 lg:pt-2">
                             <HomeworkIsland

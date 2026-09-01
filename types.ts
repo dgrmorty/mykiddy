@@ -45,6 +45,9 @@ export interface Lesson {
   description: string;
   duration: string;
   videoUrl?: string;
+  /** Презентация / файл к уроку (PDF, PPTX и т.д.) */
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
   isCompleted: boolean;
   codeSnippet?: string;
   locked: boolean;

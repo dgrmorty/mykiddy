@@ -120,6 +120,8 @@ export const contentService = {
                     isCompleted,
                     locked,
                     videoUrl: l.video_url || 'https://www.youtube.com/watch?v=M576WGiDBdQ',
+                    attachmentUrl: l.attachment_url || null,
+                    attachmentName: l.attachment_name || null,
                     homeworkTask: l.homework_task || l.homeworkTask || null,
                     quizCues: normalizeQuizCues(l.quiz_cues),
                 };

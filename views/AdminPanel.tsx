@@ -143,11 +143,13 @@ export const AdminPanel: React.FC = () => {
         title: string;
         description: string;
         video_url: string;
+        attachment_url: string;
+        attachment_name: string;
         homework_task: string;
         module_id: string;
         id: string;
         quizCues: LessonQuizCue[];
-    }>({ title: '', description: '', video_url: '', homework_task: '', module_id: '', id: '', quizCues: [] });
+    }>({ title: '', description: '', video_url: '', attachment_url: '', attachment_name: '', homework_task: '', module_id: '', id: '', quizCues: [] });
     
     const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
     const [moduleForm, setModuleForm] = useState({ title: '', course_id: '', id: '' });
@@ -156,6 +158,7 @@ export const AdminPanel: React.FC = () => {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lessonVideoInputRef = useRef<HTMLInputElement>(null);
+    const lessonAttachmentInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (currentView === 'content') fetchContent();
@@ -308,6 +311,37 @@ export const AdminPanel: React.FC = () => {
         }
     };
 
+    const handleLessonAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 50 * 1024 * 1024) {
+            showToast('Файл слишком большой (макс. 50 MB)', 'error');
+            if (e.target) e.target.value = '';
+            return;
+        }
+        setUploading(true);
+        try {
+            showToast('Загрузка файла...', 'info');
+            const url = await uploadFile(file, 'lesson_materials');
+            if (!url) {
+                showToast('Не удалось загрузить файл', 'error');
+                return;
+            }
+            setLessonForm((prev) => ({
+                ...prev,
+                attachment_url: url,
+                attachment_name: file.name,
+            }));
+            showToast('Файл загружен — нажмите Сохранить', 'success');
+        } catch (error) {
+            console.error('[Admin] attachment upload', error);
+            showToast(error instanceof Error ? error.message : 'Ошибка загрузки', 'error');
+        } finally {
+            setUploading(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
     // --- Course CRUD ---
     const saveCourse = async () => {
         if (!courseForm.title) return showToast('Введите название', 'error');
@@ -377,6 +411,8 @@ export const AdminPanel: React.FC = () => {
                 title: lessonForm.title,
                 description: lessonForm.description,
                 video_url: lessonForm.video_url,
+                attachment_url: lessonForm.attachment_url.trim() || null,
+                attachment_name: lessonForm.attachment_name.trim() || null,
                 homework_task: lessonForm.homework_task,
                 quiz_cues: quizCuesToDb(lessonForm.quizCues),
             };
@@ -684,12 +720,12 @@ export const AdminPanel: React.FC = () => {
                                                                 <div key={l.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group">
                                                                     <span className="text-zinc-300 text-sm font-medium">{l.title}</span>
                                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title || '', description: l.description || '', video_url: l.video_url || '', homework_task: l.homework_task || '', module_id: l.module_id, quizCues: normalizeQuizCues(l.quiz_cues) }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
+                                                                        <button onClick={() => { setLessonForm({ id: l.id, title: l.title || '', description: l.description || '', video_url: l.video_url || '', attachment_url: l.attachment_url || '', attachment_name: l.attachment_name || '', homework_task: l.homework_task || '', module_id: l.module_id, quizCues: normalizeQuizCues(l.quiz_cues) }); setLessonModalOpen(true); }} className="text-zinc-400 hover:text-white"><Edit2 size={14}/></button>
                                                                         <button onClick={() => deleteLesson(l.id)} className="text-kiddy-cherry/70 hover:text-kiddy-cherry"><Trash2 size={14}/></button>
                                                                     </div>
                                                                 </div>
                                                             ))}
-                                                            <div onClick={() => { setLessonForm({ title: '', description: '', video_url: '', homework_task: '', module_id: m.id, id: '', quizCues: [] }); setLessonModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
+                                                            <div onClick={() => { setLessonForm({ title: '', description: '', video_url: '', attachment_url: '', attachment_name: '', homework_task: '', module_id: m.id, id: '', quizCues: [] }); setLessonModalOpen(true); }} className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
                                                                 <span className="text-zinc-400 text-sm font-bold flex items-center gap-2"><Plus size={16}/> Добавить урок</span>
                                                             </div>
                                                         </div>
@@ -835,13 +871,57 @@ export const AdminPanel: React.FC = () => {
                         <input value={lessonForm.title || ''} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} placeholder="Название" className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
                         <textarea value={lessonForm.description || ''} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} placeholder="Описание" rows={2} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
                         <div className="flex gap-2">
-                            <input value={lessonForm.video_url || ''} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="bunny:lessons/... или YouTube URL" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
-                            <button type="button" onClick={() => lessonVideoInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white" disabled={uploading}>
+                            <input value={lessonForm.video_url || ''} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="YouTube URL (youtube.com/watch?v=...)" className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-white outline-none" />
+                            <button type="button" onClick={() => lessonVideoInputRef.current?.click()} className="p-3 bg-white/10 rounded-xl text-white" disabled={uploading} title="Загрузить MP4 на Bunny (опционально)">
                                 {uploading ? <Loader2 size={18} className="animate-spin" /> : <Video size={18} />}
                             </button>
                             <input type="file" ref={lessonVideoInputRef} className="hidden" accept="video/mp4,video/webm,.mp4,.webm" onChange={e => handleUpload(e, 'lesson')} />
                         </div>
-                        {uploading && <p className="text-zinc-500 text-xs">Идёт загрузка на Bunny, не закрывайте окно…</p>}
+                        {uploading && <p className="text-zinc-500 text-xs">Идёт загрузка, не закрывайте окно…</p>}
+
+                        <div className="rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                                <div>
+                                    <p className="text-white text-sm font-bold">Файл к уроку</p>
+                                    <p className="text-zinc-500 text-[11px]">Презентация или PDF — дети смогут скачать в уроке.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => lessonAttachmentInputRef.current?.click()}
+                                    className="shrink-0 px-3 py-2 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/15 disabled:opacity-50"
+                                    disabled={uploading}
+                                >
+                                    {uploading ? <Loader2 size={14} className="animate-spin inline" /> : <Upload size={14} className="inline mr-1" />}
+                                    Загрузить
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={lessonAttachmentInputRef}
+                                    className="hidden"
+                                    accept=".pdf,.ppt,.pptx,.doc,.docx,.zip,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip"
+                                    onChange={e => void handleLessonAttachmentUpload(e)}
+                                />
+                            </div>
+                            {lessonForm.attachment_url ? (
+                                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#111] px-3 py-2">
+                                    <FileText size={16} className="text-zinc-400 shrink-0" />
+                                    <span className="text-white text-xs truncate flex-1" title={lessonForm.attachment_name || lessonForm.attachment_url}>
+                                        {lessonForm.attachment_name || 'Файл прикреплён'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setLessonForm((prev) => ({ ...prev, attachment_url: '', attachment_name: '' }))}
+                                        className="p-1.5 text-zinc-500 hover:text-red-400"
+                                        title="Убрать файл"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="text-zinc-600 text-xs">Файл не прикреплён.</p>
+                            )}
+                        </div>
+
                         <textarea value={lessonForm.homework_task || ''} onChange={e => setLessonForm({...lessonForm, homework_task: e.target.value})} placeholder="Домашнее задание" rows={3} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none resize-none" />
 
                         <div className="rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3">

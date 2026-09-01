@@ -180,6 +180,8 @@ export const uploadFile = async (file: File, folder: string = 'avatars'): Promis
             bucketPriority = ['covers', 'images'];
         } else if (folder === 'videos' || folder === 'video') {
             bucketPriority = ['videos', 'images'];
+        } else if (folder === 'lesson_materials') {
+            bucketPriority = ['lesson_materials'];
         } else {
             bucketPriority = ['images', 'covers'];
         }
@@ -191,7 +193,12 @@ export const uploadFile = async (file: File, folder: string = 'avatars'): Promis
                 console.log(`[Storage] Trying upload to bucket: ${bucket}, file: ${fileName}`);
                 
                 // Проверяем размер файла (макс 10MB для изображений, 100MB для видео)
-                const maxSize = folder === 'videos' || folder === 'video' ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+                const maxSize =
+                    folder === 'videos' || folder === 'video'
+                        ? 100 * 1024 * 1024
+                        : folder === 'lesson_materials'
+                          ? 50 * 1024 * 1024
+                          : 10 * 1024 * 1024;
                 if (file.size > maxSize) {
                     console.error(`[Storage] File too large: ${file.size} bytes, max: ${maxSize}`);
                     return null;
