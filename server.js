@@ -1060,7 +1060,7 @@ app.post('/api/lesson-material/upload', async (req, res) => {
     }
 });
 
-function normalizeScheduleTime(value: unknown): string | null {
+function normalizeScheduleTime(value) {
     const raw = String(value || '').trim().replace(/\s+/g, '');
     const m = raw.match(/^(\d{1,2}):(\d{2})$/);
     if (!m) return null;
