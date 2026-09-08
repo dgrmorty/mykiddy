@@ -60,9 +60,9 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
           className="nav-island-logo"
         >
           <BrandLogo
-            url={logoUrl}
+            url={logoUrl || '/logo-vtope.png'}
             alt="Дети В ТОПЕ"
-            className="h-8 w-auto max-w-[132px] object-contain object-left sm:h-9"
+            className="h-11 w-auto max-w-[7.5rem] rounded-lg bg-white object-contain object-center p-0.5 sm:h-12 sm:max-w-[9.5rem]"
             wordmarkClassName="max-w-[140px] truncate"
           />
         </Link>

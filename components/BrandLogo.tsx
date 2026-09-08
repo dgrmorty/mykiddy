@@ -24,7 +24,7 @@ export function BrandLogo({ url, alt, className = '', wordmarkClassName = '', co
       src={safe}
       alt={alt}
       className={className}
-      loading="lazy"
+      loading="eager"
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}

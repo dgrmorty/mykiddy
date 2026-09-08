@@ -1,10 +1,12 @@
 /**
  * Значения брендинга из таблицы settings (админка).
- * Логотип — только по HTTPS-URL из БД (локальные файлы не используем).
+ * Логотип: HTTPS или локальный путь вида `/logo-vtope.png`.
  */
 
 const MAX_LOGO_URL_LEN = 2048;
 const MAX_SCHOOL_NAME_LEN = 120;
+
+const DEFAULT_LOGO_PATH = '/logo-vtope.png';
 
 export function sanitizeLogoUrl(raw: string | null | undefined): string | null {
   if (!raw || typeof raw !== 'string') return null;
@@ -19,6 +21,9 @@ export function sanitizeLogoUrl(raw: string | null | undefined): string | null {
   ) {
     return null;
   }
+  if (t.startsWith('/') && !t.startsWith('//') && !t.includes('\\') && !t.includes('..')) {
+    return t;
+  }
   try {
     const u = new URL(t);
     if (u.protocol === 'https:') return t;
@@ -31,6 +36,10 @@ export function sanitizeLogoUrl(raw: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+export function defaultLogoUrl(): string {
+  return DEFAULT_LOGO_PATH;
 }
 
 export function sanitizeSchoolName(raw: string | null | undefined, fallback: string): string {

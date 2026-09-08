@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Regenerates favicon PNG/ICO and og-image from centered SVG sources.
+ * Regenerates favicon PNG/ICO from favicon.svg.
+ * Rebuilds og-image.png from public/logo-vtope.png (white 1200×630 lockup).
  * Requires: rsvg-convert (librsvg)
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
@@ -109,28 +110,23 @@ writeFileSync(path.join(publicDir, 'favicon.ico'), buildIco([
   { data: ico32 },
 ]));
 
-const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0a0a0a"/>
-      <stop offset="100%" stop-color="#141414"/>
-    </linearGradient>
-  </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <g transform="translate(220 95) scale(6.8)">
-    <rect width="64" height="64" rx="14" fill="#ffffff"/>
-    ${dots.replace(/class="dot-white"/g, 'fill="#e5e5e5"')}
-  </g>
-  <text x="640" y="250" fill="#ffffff" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="800">Дети В ТОПЕ</text>
-  <text x="640" y="330" fill="#a1a1aa" font-family="Inter, system-ui, sans-serif" font-size="36" font-weight="500">IT-школа для детей и подростков</text>
-  <text x="640" y="400" fill="#71717a" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="400">Программирование · проекты · нейросети</text>
-  <text x="640" y="520" fill="#e61e78" font-family="Inter, system-ui, sans-serif" font-size="30" font-weight="600">detivtope.online</text>
-</svg>`;
-
+const logoLockup = path.join(publicDir, 'logo-vtope.png');
+if (!existsSync(logoLockup)) {
+  console.error('Missing public/logo-vtope.png — cannot build og-image.png');
+  process.exit(1);
+}
 const ogSvgPath = path.join(publicDir, '_og-image.svg');
-writeFileSync(ogSvgPath, ogSvg);
+const logoHref = pathToFileURL(logoLockup).href;
+writeFileSync(
+  ogSvgPath,
+  `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#ffffff"/>
+  <image href="${logoHref}" xlink:href="${logoHref}" x="140" y="40" width="920" height="550" preserveAspectRatio="xMidYMid meet"/>
+</svg>`,
+);
 execFileSync('rsvg-convert', ['-w', '1200', '-h', '630', '-o', path.join(publicDir, 'og-image.png'), ogSvgPath], {
   stdio: 'inherit',
 });
+unlinkSync(ogSvgPath);
 
-console.log('Icons and og-image regenerated.');
+console.log('Icons and og-image regenerated from logo-vtope.png.');

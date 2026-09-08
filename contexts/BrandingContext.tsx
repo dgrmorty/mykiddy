@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { sanitizeLogoUrl, sanitizeSchoolName } from '../utils/branding';
+import { defaultLogoUrl, sanitizeSchoolName } from '../utils/branding';
 
 const DEFAULT_SCHOOL = 'Дети В ТОПЕ';
 
@@ -14,7 +14,7 @@ interface BrandingValue {
 const BrandingContext = createContext<BrandingValue | undefined>(undefined);
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const logoUrl = defaultLogoUrl();
   const [schoolName, setSchoolName] = useState(DEFAULT_SCHOOL);
   const [brandingLoading, setBrandingLoading] = useState(true);
 
@@ -22,17 +22,13 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase.from('settings').select('id, value').in('id', ['logo_url', 'school_name']);
+        const { data, error } = await supabase.from('settings').select('id, value').eq('id', 'school_name');
         if (cancelled) return;
         if (error || !data) {
           setBrandingLoading(false);
           return;
         }
         for (const row of data) {
-          if (row.id === 'logo_url' && row.value != null) {
-            const s = sanitizeLogoUrl(String(row.value));
-            if (s) setLogoUrl(s);
-          }
           if (row.id === 'school_name' && row.value != null) {
             setSchoolName(sanitizeSchoolName(String(row.value), DEFAULT_SCHOOL));
           }

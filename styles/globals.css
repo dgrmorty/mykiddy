@@ -714,8 +714,8 @@ body.lesson-video-fs {
     padding-right: 8px;
   }
   .nav-island-logo {
-    width: 30px;
-    max-width: 30px;
+    width: auto;
+    max-width: 7.5rem;
     overflow: hidden;
   }
   .nav-island-logo > * {
