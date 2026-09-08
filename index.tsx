@@ -23,7 +23,7 @@ void (async () => {
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
     ]);
     if (!userResult || !('error' in userResult)) {
-      await clearCorruptAuthSession('session validation timeout');
+      console.warn('[Boot] session validation timed out, keeping local session');
       return;
     }
     const { error } = userResult;

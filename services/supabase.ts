@@ -1,4 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import {
+  fetchTimeoutMsForUrl,
+  isCorruptAuthError,
+  shouldPurgeStoredAuthValue,
+} from './sessionHygiene';
+
+export { isCorruptAuthError };
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
@@ -9,29 +16,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const SUPABASE_FETCH_TIMEOUT_MS = 8000;
 
-/** Удаляем протухшую сессию до инициализации клиента — иначе refresh зависает и лента не грузится. */
+/** Drop only unusable local auth blobs. Never throw away a refresh token just because the access JWT aged out. */
 export function purgeStaleLocalSession(): void {
   if (typeof localStorage === 'undefined') return;
   const now = Date.now();
   for (const key of Object.keys(localStorage)) {
     if (!key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw) as { expires_at?: number };
-      const expiresAt = Number(parsed?.expires_at);
-      if (!Number.isFinite(expiresAt) || expiresAt * 1000 < now - 5000) {
-        localStorage.removeItem(key);
-      }
-    } catch {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    if (shouldPurgeStoredAuthValue(raw, now)) {
       localStorage.removeItem(key);
     }
   }
 }
 
+function requestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.href;
+  if (typeof Request !== 'undefined' && input instanceof Request) return input.url;
+  return '';
+}
+
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), SUPABASE_FETCH_TIMEOUT_MS);
+  const timeoutMs = fetchTimeoutMsForUrl(requestUrl(input), SUPABASE_FETCH_TIMEOUT_MS);
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   const ext = init?.signal;
   if (ext) {
     if (ext.aborted) controller.abort();
@@ -62,39 +71,28 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-/** Битый/просроченный JWT в localStorage → все REST-запросы (лента, логин) падают с 401. */
-export function isCorruptAuthError(err: unknown): boolean {
-  const msg = String(
-    (err as { message?: string })?.message ||
-      (err as { error_description?: string })?.error_description ||
-      err ||
-      '',
-  ).toLowerCase();
-  const code = String((err as { code?: string })?.code || '').toLowerCase();
-  return (
-    code === 'pgrst301' ||
-    code === '401' ||
-    msg.includes('jwt') ||
-    msg.includes('no suitable key') ||
-    msg.includes('refresh token') ||
-    msg.includes('invalid claim') ||
-    msg.includes('session from session_id claim') ||
-    msg.includes('auth session missing')
-  );
-}
-
 let clearingCorruptSession: Promise<void> | null = null;
 
 type SupabaseResult<T> = { data: T | null; error: { message?: string; code?: string } | null };
 
-/** Повтор запроса после сброса битого JWT в localStorage (PGRST301 / expired session). */
+/** Expired JWT: try refresh first. Only drop the session if refresh itself fails. */
 export async function withAuthRecovery<T>(
   run: () => Promise<SupabaseResult<T>>,
   label = 'supabase query',
 ): Promise<SupabaseResult<T>> {
   let result = await run();
   if (result.error && isCorruptAuthError(result.error)) {
-    console.warn(`[Supabase] ${label}: corrupt session, retrying as anon`);
+    console.warn(`[Supabase] ${label}: auth error, trying refresh`, result.error.message);
+    try {
+      const { data, error: refreshErr } = await supabase.auth.refreshSession();
+      if (!refreshErr && data.session) {
+        result = await run();
+        return result;
+      }
+      console.warn(`[Supabase] ${label}: refresh failed`, refreshErr?.message);
+    } catch (e) {
+      console.warn(`[Supabase] ${label}: refresh threw`, e);
+    }
     await clearCorruptAuthSession(result.error.message);
     result = await run();
   }
@@ -128,23 +126,21 @@ export async function clearCorruptAuthSession(reason?: string): Promise<void> {
   return clearingCorruptSession;
 }
 
-/** В фоновых вкладках браузер троттлит таймеры — без этого сессия может «отвалиться», а UI — потерять данные профиля. */
+/** Keep refresh running in background tabs. Stopping it lets the access token expire, then the next query logs the user out. */
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  const syncAuthRefresh = () => {
+  const ensureAuthRefresh = () => {
     try {
-      if (document.visibilityState === 'visible') {
-        void supabase.auth.startAutoRefresh();
-      } else {
-        void supabase.auth.stopAutoRefresh();
-      }
+      void supabase.auth.startAutoRefresh();
     } catch {
       /* старые версии клиента */
     }
   };
-  syncAuthRefresh();
-  document.addEventListener('visibilitychange', syncAuthRefresh);
+  ensureAuthRefresh();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') ensureAuthRefresh();
+  });
   window.addEventListener('pageshow', (e) => {
-    if (e.persisted) syncAuthRefresh();
+    if (e.persisted) ensureAuthRefresh();
   });
 }
 
