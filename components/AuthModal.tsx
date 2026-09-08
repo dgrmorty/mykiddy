@@ -106,7 +106,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
         provider: 'google',
         options: {
           redirectTo: `${getAuthRedirectOrigin()}/`,
-          queryParams: { prompt: 'select_account' },
         },
       });
       if (err) {

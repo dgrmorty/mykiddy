@@ -173,17 +173,16 @@ additional_redirect_urls = [
   "exp://localhost:8081",
   "exp://localhost:8081/**",
 ]
-# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
-jwt_expiry = 3600
+# How long access tokens are valid for, in seconds. Max 604800 (1 week).
+# Short-lived JWTs force a refresh every hour; if that refresh fails, the user looks logged out.
+jwt_expiry = 604800
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
 # signing_keys_path = "./signing_keys.json"
-# If disabled, the refresh token will never expire.
-enable_refresh_token_rotation = true
-# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
-# Requires enable_refresh_token_rotation = true.
-refresh_token_reuse_interval = 10
+# Rotation + two tabs / a slow refresh = reused token is revoked and the user is signed out.
+# Disabled: refresh token can be reused and does not get invalidated by a parallel refresh.
+enable_refresh_token_rotation = false
 # Allow/disallow new user signups to your project.
 enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
@@ -204,11 +203,11 @@ sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
 anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
-token_refresh = 150
+token_refresh = 600
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+sign_in_sign_ups = 200
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
-token_verifications = 30
+token_verifications = 360
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 

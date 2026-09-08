@@ -5,35 +5,11 @@ import '@fontsource-variable/unbounded/wght.css';
 import '@fontsource-variable/jetbrains-mono/wght.css';
 import './styles/globals.css';
 import { runCanonicalHostRedirect } from './utils/canonicalRedirect';
-import { clearCorruptAuthSession, isCorruptAuthError, purgeStaleLocalSession, supabase } from './services/supabase';
+import { purgeStaleLocalSession } from './services/supabase';
 import App from './App';
 
 runCanonicalHostRedirect();
 purgeStaleLocalSession();
-
-void (async () => {
-  try {
-    const sessionResult = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
-    ]);
-    if (!sessionResult || !('data' in sessionResult) || !sessionResult.data.session) return;
-    const userResult = await Promise.race([
-      supabase.auth.getUser(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
-    ]);
-    if (!userResult || !('error' in userResult)) {
-      console.warn('[Boot] session validation timed out, keeping local session');
-      return;
-    }
-    const { error } = userResult;
-    if (error && isCorruptAuthError(error)) {
-      await clearCorruptAuthSession(error.message);
-    }
-  } catch (e) {
-    console.warn('[Boot] session hygiene skipped', e);
-  }
-})();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

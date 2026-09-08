@@ -36,7 +36,7 @@ export function isAuthApiUrl(url: string): boolean {
   return /\/auth\/v1\//i.test(url);
 }
 
-export function fetchTimeoutMsForUrl(url: string, defaultMs: number, authMs = 20000): number {
+export function fetchTimeoutMsForUrl(url: string, defaultMs: number, authMs = 60000): number {
   return isAuthApiUrl(url) ? authMs : defaultMs;
 }
 

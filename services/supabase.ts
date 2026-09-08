@@ -75,7 +75,7 @@ let clearingCorruptSession: Promise<void> | null = null;
 
 type SupabaseResult<T> = { data: T | null; error: { message?: string; code?: string } | null };
 
-/** Expired JWT: try refresh first. Only drop the session if refresh itself fails. */
+/** Expired JWT: refresh and retry. Never sign the user out — only Profile → Выйти does that. */
 export async function withAuthRecovery<T>(
   run: () => Promise<SupabaseResult<T>>,
   label = 'supabase query',
@@ -85,16 +85,14 @@ export async function withAuthRecovery<T>(
     console.warn(`[Supabase] ${label}: auth error, trying refresh`, result.error.message);
     try {
       const { data, error: refreshErr } = await supabase.auth.refreshSession();
-      if (!refreshErr && data.session) {
+      if (refreshErr) {
+        console.warn(`[Supabase] ${label}: refresh failed, keeping session`, refreshErr.message);
+      } else if (data.session) {
         result = await run();
-        return result;
       }
-      console.warn(`[Supabase] ${label}: refresh failed`, refreshErr?.message);
     } catch (e) {
-      console.warn(`[Supabase] ${label}: refresh threw`, e);
+      console.warn(`[Supabase] ${label}: refresh threw, keeping session`, e);
     }
-    await clearCorruptAuthSession(result.error.message);
-    result = await run();
   }
   return result;
 }

@@ -34,7 +34,7 @@ assert.equal(
 );
 
 assert.equal(isAuthApiUrl('https://x.supabase.co/auth/v1/token?grant_type=refresh_token'), true);
-assert.equal(fetchTimeoutMsForUrl('https://x.supabase.co/auth/v1/user', 8000), 20000);
+assert.equal(fetchTimeoutMsForUrl('https://x.supabase.co/auth/v1/user', 8000), 60000);
 assert.equal(fetchTimeoutMsForUrl('https://x.supabase.co/rest/v1/courses', 8000), 8000);
 
 assert.equal(isCorruptAuthError({ code: 'PGRST301', message: 'JWT expired' }), true);

@@ -3,8 +3,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   supabase,
   signOut as supabaseSignOut,
-  isCorruptAuthError,
-  clearCorruptAuthSession,
 } from '../services/supabase';
 import { invalidateCoursesCache } from '../services/contentService';
 import { User, Role, normalizeCourseLevelTier } from '../types';
@@ -106,6 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const oauthRecoveryActiveRef = React.useRef(false);
   const oauthRecoveryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Только явный выход из профиля. Авто-SIGNED_OUT (сеть, refresh) не должен делать гостя. */
+  const explicitSignOutRef = React.useRef(false);
   userRef.current = user;
 
   const setAuthLoading = (val: boolean) => {
@@ -270,8 +270,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return mergePreserveAvatar(prev, mapAuthToUser(authUser));
         });
       } else {
-        // Если нет authUser, устанавливаем гостя
-        setUser(GUEST_USER);
+        if (userRef.current.role === Role.GUEST) {
+          setUser(GUEST_USER);
+        }
       }
     } finally {
       clearTimeout(safetyTimer);
@@ -330,25 +331,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) {
           console.error("[Auth] Session error:", error);
-          if (isCorruptAuthError(error)) {
-            await clearCorruptAuthSession(error.message);
-          }
           if (mounted) {
             endOAuthRecoveryWindow();
-            setUser(GUEST_USER);
             setAuthLoading(false);
           }
           return;
-        }
-
-        // Локальная сессия есть, но JWT уже невалиден → иначе лента/логин сыплют 401.
-        if (session?.user) {
-          const { error: userErr } = await supabase.auth.getUser();
-          if (userErr && isCorruptAuthError(userErr)) {
-            console.warn('[Auth] Stored session rejected by Auth API, clearing', userErr.message);
-            await clearCorruptAuthSession(userErr.message);
-            session = null;
-          }
         }
 
         if (session?.user && mounted) {
@@ -364,14 +351,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (mounted) {
           console.log("[Auth] No session found after init.");
           endOAuthRecoveryWindow();
-          setUser(GUEST_USER);
+          if (userRef.current.role === Role.GUEST) {
+            setUser(GUEST_USER);
+          }
           setAuthLoading(false);
         }
       } catch (err: any) {
         console.error("[Auth] Init Error:", err?.message || err);
         if (mounted) {
           endOAuthRecoveryWindow();
-          setUser(GUEST_USER);
           setAuthLoading(false);
         }
       }
@@ -406,6 +394,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAuthLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
+        if (!explicitSignOutRef.current) {
+          console.warn('[Auth] SIGNED_OUT without explicit logout — trying to restore session');
+          try {
+            const { data } = await supabase.auth.refreshSession();
+            if (data.session?.user) {
+              await fetchProfile(data.session.user.id, data.session.user, { silent: true });
+              return;
+            }
+          } catch (e) {
+            console.warn('[Auth] restore after SIGNED_OUT failed, keeping current user', e);
+          }
+          if (userRef.current.role !== Role.GUEST) {
+            setAuthLoading(false);
+            return;
+          }
+        }
+        explicitSignOutRef.current = false;
         endOAuthRecoveryWindow();
         console.log("[Auth] User signed out");
         setUser(GUEST_USER);
@@ -441,6 +446,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser((prev) => mergePreserveAvatar(prev, mapAuthToUser(lateSession.user)));
               setAuthLoading(false);
             }
+            return;
+          }
+          if (userRef.current.role !== Role.GUEST) {
+            console.warn('[Auth] Empty INITIAL_SESSION but user already in memory — keep session');
+            setAuthLoading(false);
             return;
           }
           console.log('[Auth] No initial session (confirmed)');
@@ -494,6 +504,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    explicitSignOutRef.current = true;
     setAuthLoading(true);
     try {
         await supabaseSignOut();
