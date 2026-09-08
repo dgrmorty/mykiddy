@@ -7,7 +7,7 @@ import {
   clearCorruptAuthSession,
 } from '../services/supabase';
 import { invalidateCoursesCache } from '../services/contentService';
-import { User, Role } from '../types';
+import { User, Role, normalizeCourseLevelTier } from '../types';
 import { GUEST_USER } from '../constants';
 import { bundledAvatarCanonical, defaultAvatarUrlForUserId, isBundledSchoolAvatar } from '../data/defaultAvatars';
 import { levelFromXp } from '../progression';
@@ -177,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profileRequest = supabase
         .from('profiles')
         .select(
-          'id, email, name, role, avatar, level, xp, is_approved, created_at, updated_at, streak_current, streak_longest, streak_last_activity_date, avatar_accessory',
+          'id, email, name, role, avatar, level, xp, is_approved, created_at, updated_at, streak_current, streak_longest, streak_last_activity_date, avatar_accessory, course_level_tier',
         )
         .eq('id', userId)
         .single();
@@ -210,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isApproved: profile.is_approved !== false,
               streakCurrent: profile.streak_current ?? 0,
               streakLongest: profile.streak_longest ?? 0,
+              courseLevelTier: normalizeCourseLevelTier(profile.course_level_tier, 'senior_plus'),
             });
           });
           // Не блокируем finally: при зависании RPC UI навсегда оставался бы на глобальном лоадере.

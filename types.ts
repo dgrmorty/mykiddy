@@ -13,6 +13,26 @@ export enum CourseType {
   DESIGN = '3D Дизайн'
 }
 
+/** Уровень курса в библиотеке (колонка courses.level_tier / profiles.course_level_tier) */
+export const COURSE_LEVEL_TIERS = ['junior', 'middle', 'senior', 'senior_plus'] as const;
+export type CourseLevelTier = (typeof COURSE_LEVEL_TIERS)[number];
+
+export const COURSE_LEVEL_LABELS: Record<CourseLevelTier, string> = {
+  junior: 'Junior',
+  middle: 'Middle',
+  senior: 'Senior',
+  senior_plus: 'Senior+',
+};
+
+export function normalizeCourseLevelTier(
+  value: unknown,
+  fallback: CourseLevelTier = 'junior',
+): CourseLevelTier {
+  return value === 'middle' || value === 'senior' || value === 'senior_plus' || value === 'junior'
+    ? value
+    : fallback;
+}
+
 export interface User {
   id: string;
   email?: string;
@@ -27,6 +47,8 @@ export interface User {
   streakLongest?: number;
   /** Owner-selected public medal IDs (max 3), from profiles.equipped_badges */
   equippedBadges?: string[];
+  /** Assigned library level from profiles.course_level_tier (admin-set). */
+  courseLevelTier?: CourseLevelTier;
 }
 
 export interface LessonQuizCue {
@@ -75,23 +97,6 @@ export const COURSE_YEAR_LABELS: Record<CourseYearTier, string> = {
 
 export function normalizeCourseYearTier(value: unknown): CourseYearTier {
   return value === 'year_2_plus' ? 'year_2_plus' : 'year_1';
-}
-
-/** Уровень курса в библиотеке (колонка courses.level_tier) */
-export const COURSE_LEVEL_TIERS = ['junior', 'middle', 'senior', 'senior_plus'] as const;
-export type CourseLevelTier = (typeof COURSE_LEVEL_TIERS)[number];
-
-export const COURSE_LEVEL_LABELS: Record<CourseLevelTier, string> = {
-  junior: 'Junior',
-  middle: 'Middle',
-  senior: 'Senior',
-  senior_plus: 'Senior+',
-};
-
-export function normalizeCourseLevelTier(value: unknown): CourseLevelTier {
-  return value === 'middle' || value === 'senior' || value === 'senior_plus' || value === 'junior'
-    ? value
-    : 'junior';
 }
 
 export interface Course {

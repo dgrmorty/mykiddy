@@ -175,7 +175,7 @@ const CourseIsland = ({ course, onClick, index }: any) => {
 }
 
 export const CourseDetail: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { activeCourse, setActiveCourse, activeLesson, setActiveLesson } = useContentContext();
   const { showToast } = useToast();
   
@@ -218,18 +218,19 @@ export const CourseDetail: React.FC = () => {
   const [librarySearchFocused, setLibrarySearchFocused] = useState(false);
 
   useEffect(() => {
+    if (!isAdmin) return;
     try {
       sessionStorage.setItem('kiddy_library_level', libraryLevel);
     } catch {
       /* ignore */
     }
-  }, [libraryLevel]);
+  }, [libraryLevel, isAdmin]);
 
   const libraryLevelIndex = Math.max(0, COURSE_LEVEL_TIERS.indexOf(libraryLevel));
 
   const coursesInLevel = useMemo(
-    () => courses.filter((c) => c.levelTier === libraryLevel),
-    [courses, libraryLevel],
+    () => (isAdmin ? courses.filter((c) => c.levelTier === libraryLevel) : courses),
+    [courses, libraryLevel, isAdmin],
   );
 
   const filteredCourses = useMemo(() => {
@@ -266,7 +267,12 @@ export const CourseDetail: React.FC = () => {
                   if (activeLesson) {
                       const updatedLesson = updatedCourse.modules.flatMap(m => m.lessons).find(l => l.id === activeLesson.id);
                       if (updatedLesson) setActiveLesson(updatedLesson);
+                      else setActiveLesson(null);
                   }
+              } else {
+                  setActiveCourse(null);
+                  setActiveLesson(null);
+                  setClosingCourse(null);
               }
           }
       } catch (err) {
@@ -697,6 +703,7 @@ export const CourseDetail: React.FC = () => {
           </h1>
           <p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p>
         </div>
+        {isAdmin && (
         <div className="course-level-switch-wrap">
           <div
             className="course-level-switch"
@@ -720,6 +727,7 @@ export const CourseDetail: React.FC = () => {
             ))}
           </div>
         </div>
+        )}
         <div className="relative max-w-xl isolate">
           <span
             className="pointer-events-none absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center"
@@ -753,7 +761,7 @@ export const CourseDetail: React.FC = () => {
       </header>
       {courses.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
-            <AnimatedEmptyState message={loadError || "Курсы загружаются или временно недоступны"} />
+            <AnimatedEmptyState message={loadError || (isAdmin ? 'Курсы загружаются или временно недоступны' : 'Пока нет курсов вашего уровня')} />
             <button onClick={() => loadData(false, true)} className="px-6 py-2 bg-kiddy-surfaceHighlight border border-white/[0.08] rounded-xl text-xs font-bold text-white hover:bg-[#2a2a2a] transition-colors">
               Повторить
             </button>
@@ -768,7 +776,9 @@ export const CourseDetail: React.FC = () => {
       ) : filteredCourses.length === 0 ? (
           <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
             <p className="text-kiddy-textSecondary font-medium">
-              Ничего не найдено в уровне «{COURSE_LEVEL_LABELS[libraryLevel]}»
+              {isAdmin
+                ? `Ничего не найдено в уровне «${COURSE_LEVEL_LABELS[libraryLevel]}»`
+                : 'Ничего не найдено'}
             </p>
             <p className="text-kiddy-textMuted mt-2 text-sm">Попробуйте другой запрос или сбросьте поиск.</p>
             <button

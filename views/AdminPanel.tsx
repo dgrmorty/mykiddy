@@ -212,7 +212,8 @@ export const AdminPanel: React.FC = () => {
             if (!rpcError && Array.isArray(rpcUsers)) {
                 setUsersList(rpcUsers.map((u: any) => ({
                     id: u.id, email: u.email || '', name: u.name || 'Аноним', role: u.role || 'Student',
-                    avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 1, xp: u.xp || 0, isApproved: u.is_approved === true
+                    avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 1, xp: u.xp || 0, isApproved: u.is_approved === true,
+                    courseLevelTier: normalizeCourseLevelTier(u.course_level_tier, 'senior_plus'),
                 })));
             } else {
                 const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
@@ -220,7 +221,8 @@ export const AdminPanel: React.FC = () => {
                 if (profilesData) {
                     setUsersList(profilesData.map((u: any) => ({
                         id: u.id, email: u.email || '', name: u.name || 'Аноним', role: u.role || 'Student',
-                        avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 0, xp: u.xp || 0, isApproved: u.is_approved === true
+                        avatar: resolveBundledOrDefault(u.id, u.avatar), level: u.level || 0, xp: u.xp || 0, isApproved: u.is_approved === true,
+                        courseLevelTier: normalizeCourseLevelTier(u.course_level_tier, 'senior_plus'),
                     })));
                 } else {
                     setUsersList([]);
@@ -545,6 +547,23 @@ export const AdminPanel: React.FC = () => {
         } catch (e) { showToast('Ошибка', 'error'); }
     };
 
+    const setUserCourseLevel = async (u: User, tier: CourseLevelTier) => {
+        if (u.courseLevelTier === tier) return;
+        try {
+            const { error } = await supabase.rpc('admin_set_course_level_tier', {
+                p_user_id: u.id,
+                p_tier: tier,
+            });
+            if (error) throw error;
+            const next = { ...u, courseLevelTier: tier };
+            setUsersList(prev => prev.map(x => x.id === u.id ? next : x));
+            setActiveUser(next);
+            showToast(`Уровень: ${COURSE_LEVEL_LABELS[tier]}`, 'success');
+        } catch (e) {
+            showToast('Не удалось сменить уровень', 'error');
+        }
+    };
+
     const deleteUser = async (u: User) => {
         if (u.id === user.id) return showToast('Нельзя удалить себя', 'error');
         if (!window.confirm('Точно удалить?')) return;
@@ -622,6 +641,9 @@ export const AdminPanel: React.FC = () => {
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-white font-bold truncate">{u.name}</h4>
                                                 <p className="text-zinc-500 text-xs truncate">{u.email}</p>
+                                                <span className="mt-1 inline-flex rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                                                    {COURSE_LEVEL_LABELS[normalizeCourseLevelTier(u.courseLevelTier, 'senior_plus')]}
+                                                </span>
                                             </div>
                                             <div className="shrink-0">
                                                 {!u.isApproved ? <Lock className="text-kiddy-cherry" size={16} /> : <CheckCircle className="text-emerald-500" size={16} />}
@@ -866,6 +888,29 @@ export const AdminPanel: React.FC = () => {
                             </div>
                         </div>
                         <div className="space-y-3">
+                            <div className="course-level-switch-wrap">
+                                <div
+                                    className="course-level-switch"
+                                    role="radiogroup"
+                                    aria-label="Уровень обучения"
+                                    data-index={String(Math.max(0, COURSE_LEVEL_TIERS.indexOf(normalizeCourseLevelTier(activeUser.courseLevelTier, 'senior_plus'))))}
+                                    style={{ '--active-index': String(Math.max(0, COURSE_LEVEL_TIERS.indexOf(normalizeCourseLevelTier(activeUser.courseLevelTier, 'senior_plus')))) } as React.CSSProperties}
+                                >
+                                    <span className="course-level-switch__pill" aria-hidden />
+                                    {COURSE_LEVEL_TIERS.map((tier) => (
+                                        <button
+                                            key={tier}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={normalizeCourseLevelTier(activeUser.courseLevelTier, 'senior_plus') === tier}
+                                            onClick={() => void setUserCourseLevel(activeUser, tier)}
+                                            className={`course-level-switch__item ${normalizeCourseLevelTier(activeUser.courseLevelTier, 'senior_plus') === tier ? 'is-active' : ''}`}
+                                        >
+                                            {COURSE_LEVEL_LABELS[tier]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                             <button onClick={() => toggleUserApproval(activeUser)} className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
                                 {activeUser.isApproved ? <Lock size={18} className="text-zinc-400"/> : <Unlock size={18} className="text-emerald-500"/>}
                                 {activeUser.isApproved ? 'Заблокировать доступ' : 'Разблокировать'}
