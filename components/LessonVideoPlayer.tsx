@@ -9,6 +9,12 @@ import { useAuth } from '../contexts/AuthContext';
 import type { LessonQuizCue } from '../types';
 import { normalizeQuizCues } from '../utils/quizCues';
 import {
+  clearLessonVideoPos,
+  lessonVideoProgressKey,
+  readLessonVideoPos,
+  writeLessonVideoPos,
+} from '../utils/lessonVideoProgress';
+import {
   enterIosVideoFullscreen,
   ensureVideoCanFullscreen,
   exitDocumentFullscreen,
@@ -330,13 +336,50 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   const answeredRef = useRef<Set<string>>(new Set());
   const activeCueRef = useRef<LessonQuizCue | null>(null);
   const lastTimeRef = useRef(0);
+  const pendingResumeRef = useRef<{ t: number; play: boolean } | null>(null);
+  const lastSaveAtRef = useRef(0);
+  const progressKey = lessonVideoProgressKey(lessonId, videoUrl);
+  const progressKeyRef = useRef(progressKey);
+  progressKeyRef.current = progressKey;
   const [, setAnsweredTick] = useState(0);
+
+  const savePosition = useCallback((v?: HTMLVideoElement | null, force = false) => {
+    const el = v ?? videoRef.current;
+    if (!el || !progressKey) return;
+    const now = Date.now();
+    if (!force && now - lastSaveAtRef.current < 4000) return;
+    lastSaveAtRef.current = now;
+    writeLessonVideoPos(progressKey, el.currentTime, el.duration);
+  }, [progressKey]);
+
+  const applyResume = useCallback((el: HTMLVideoElement) => {
+    if (activeCueRef.current) return;
+    const pending = pendingResumeRef.current;
+    if (!pending || pending.t < 2) return;
+    const t = pending.t;
+    const wantPlay = pending.play;
+    if (Math.abs(el.currentTime - t) < 1.25) {
+      pendingResumeRef.current = null;
+      return;
+    }
+    lastTimeRef.current = t;
+    try {
+      el.currentTime = t;
+    } catch {
+      return;
+    }
+    pendingResumeRef.current = null;
+    if (wantPlay) void el.play().catch(() => undefined);
+  }, []);
 
   // Загрузить уже отвеченные квизы — больше не показывать
   useEffect(() => {
     answeredRef.current = new Set();
     lastTimeRef.current = 0;
     activeCueRef.current = null;
+    lastSaveAtRef.current = 0;
+    const stored = readLessonVideoPos(progressKey);
+    pendingResumeRef.current = stored != null ? { t: stored, play: false } : null;
     setActiveCue(null);
     setSelected(null);
     setFeedback(null);
@@ -356,11 +399,12 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     return () => {
       cancelled = true;
     };
-  }, [lessonId, videoUrl, isGuest]);
+  }, [lessonId, videoUrl, isGuest, progressKey]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+      // TOKEN_REFRESHED не должен пересобирать <video> — из-за этого ролик начинался сначала.
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         setAuthTick((n) => n + 1);
       }
     });
@@ -436,12 +480,54 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   }, [src]);
 
   useEffect(() => {
+    const onVis = () => {
+      const v = videoRef.current;
+      if (document.visibilityState === 'hidden') {
+        savePosition(v, true);
+        return;
+      }
+      if (!v || v.readyState < 1 || activeCueRef.current) return;
+      const stored = readLessonVideoPos(progressKey, v.duration);
+      if (stored != null && v.currentTime < 2 && stored > 3) {
+        lastTimeRef.current = stored;
+        try {
+          v.currentTime = stored;
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    const onHide = () => savePosition(videoRef.current, true);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', onHide);
+    };
+  }, [progressKey, savePosition]);
+
+  useEffect(() => {
     let cancelled = false;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     const gen = ++loadGen.current;
 
     async function load() {
-      setLoading(true);
+      const existing = videoRef.current;
+      const refreshing = Boolean(existing && existing.currentSrc && existing.readyState > 0);
+      if (refreshing && existing) {
+        pendingResumeRef.current = {
+          t: existing.currentTime,
+          play: !existing.paused,
+        };
+        writeLessonVideoPos(progressKeyRef.current, existing.currentTime, existing.duration);
+      } else if (!pendingResumeRef.current) {
+        const stored = readLessonVideoPos(progressKeyRef.current);
+        if (stored != null) pendingResumeRef.current = { t: stored, play: false };
+      }
+
+      if (!refreshing) {
+        setLoading(true);
+      }
       setError(null);
 
       if (!isBunnyLessonVideo(videoUrl)) {
@@ -573,6 +659,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     const t = v.currentTime;
     const prev = lastTimeRef.current;
     lastTimeRef.current = t;
+    savePosition(v);
     for (const cue of cues) {
       if (answeredRef.current.has(cue.id)) continue;
       if (prev < cue.timeSec && t >= cue.timeSec) {
@@ -682,7 +769,6 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
       {src && (
         <video
           ref={videoRef}
-          key={src}
           src={src}
           controls={!activeCue}
           playsInline
@@ -690,8 +776,17 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
           controlsList="nodownload nofullscreen noremoteplayback"
           disablePictureInPicture
           className={`h-full w-full bg-black object-contain ${className}`}
-          onCanPlay={() => setLoading(false)}
-          onLoadedMetadata={() => setLoading(false)}
+          onCanPlay={(e) => {
+            setLoading(false);
+            applyResume(e.currentTarget);
+          }}
+          onLoadedMetadata={(e) => {
+            setLoading(false);
+            applyResume(e.currentTarget);
+          }}
+          onPause={(e) => savePosition(e.currentTarget, true)}
+          onSeeked={(e) => savePosition(e.currentTarget, true)}
+          onEnded={() => clearLessonVideoPos(progressKey)}
           onTimeUpdate={onTimeUpdate}
           onSeeking={onSeeking}
           onError={(e) => {
