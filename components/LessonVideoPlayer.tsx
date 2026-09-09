@@ -338,6 +338,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
   const lastTimeRef = useRef(0);
   const pendingResumeRef = useRef<{ t: number; play: boolean } | null>(null);
   const lastSaveAtRef = useRef(0);
+  const cuesReadyRef = useRef(!lessonId || isGuest);
   const progressKey = lessonVideoProgressKey(lessonId, videoUrl);
   const progressKeyRef = useRef(progressKey);
   progressKeyRef.current = progressKey;
@@ -354,6 +355,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const applyResume = useCallback((el: HTMLVideoElement) => {
     if (activeCueRef.current) return;
+    if (!cuesReadyRef.current) return;
     const pending = pendingResumeRef.current;
     if (!pending || pending.t < 2) return;
     const t = pending.t;
@@ -368,7 +370,6 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     } catch {
       return;
     }
-    pendingResumeRef.current = null;
     if (wantPlay) void el.play().catch(() => undefined);
   }, []);
 
@@ -378,6 +379,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     lastTimeRef.current = 0;
     activeCueRef.current = null;
     lastSaveAtRef.current = 0;
+    cuesReadyRef.current = !lessonId || isGuest;
     const stored = readLessonVideoPos(progressKey);
     pendingResumeRef.current = stored != null ? { t: stored, play: false } : null;
     setActiveCue(null);
@@ -386,6 +388,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     setAwardedXp(0);
 
     if (!lessonId || isGuest) {
+      cuesReadyRef.current = true;
       setAnsweredTick((n) => n + 1);
       return;
     }
@@ -394,12 +397,15 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
     void fetchAnsweredQuizCueIds(lessonId).then((ids) => {
       if (cancelled) return;
       answeredRef.current = new Set(ids);
+      cuesReadyRef.current = true;
       setAnsweredTick((n) => n + 1);
+      const v = videoRef.current;
+      if (v && v.readyState >= 1) applyResume(v);
     });
     return () => {
       cancelled = true;
     };
-  }, [lessonId, videoUrl, isGuest, progressKey]);
+  }, [lessonId, videoUrl, isGuest, progressKey, applyResume]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -655,7 +661,7 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const onTimeUpdate = () => {
     const v = videoRef.current;
-    if (!v || activeCueRef.current) return;
+    if (!v || activeCueRef.current || !cuesReadyRef.current) return;
     const t = v.currentTime;
     const prev = lastTimeRef.current;
     lastTimeRef.current = t;
@@ -671,12 +677,17 @@ export function LessonVideoPlayer({ videoUrl, className = '', quizCues, lessonId
 
   const onSeeking = () => {
     const v = videoRef.current;
-    if (!v || activeCueRef.current) return;
+    if (!v || activeCueRef.current || !cuesReadyRef.current) return;
     const t = v.currentTime;
     const blocked = cues.find((c) => !answeredRef.current.has(c.id) && t > c.timeSec + 0.2);
     if (blocked) {
       v.currentTime = blocked.timeSec;
       void openCue(blocked);
+      return;
+    }
+    const pending = pendingResumeRef.current;
+    if (pending && Math.abs(t - pending.t) < 2) {
+      pendingResumeRef.current = null;
     }
   };
 

@@ -23,9 +23,11 @@ import { useToast } from '../contexts/ToastContext';
 import { AnimatedEmptyState } from '../components/ui/AnimatedEmptyState';
 import { ThemedLoader } from '../components/ui/ThemedLoader';
 import { LessonVideoPlayer } from '../components/LessonVideoPlayer';
+import { YoutubeLessonPlayer } from '../components/YoutubeLessonPlayer';
 import { LessonMaterialCard } from '../components/LessonMaterialCard';
 import { LearningSectionNav } from '../components/LearningSectionNav';
 import { isBunnyLessonVideo } from '../services/bunnyVideoService';
+import { parseYoutubeVideoId } from '../utils/youtube';
 
 const HW_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const HW_MAX_VIDEO_BYTES = 12 * 1024 * 1024;
@@ -582,14 +584,8 @@ export const CourseDetail: React.FC = () => {
         />
       );
     }
-    const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
-    if (isYoutube) {
-        let id = '';
-        try {
-            if (url.includes('v=')) id = url.split('v=')[1].split('&')[0];
-            else if (url.includes('youtu.be/')) id = url.split('youtu.be/')[1].split('?')[0];
-            else id = url.split('/').pop() || '';
-        } catch (e) {}
+    const youtubeId = parseYoutubeVideoId(url);
+    if (youtubeId) {
         return (
           <>
             {videoLoading && (
@@ -597,14 +593,11 @@ export const CourseDetail: React.FC = () => {
                 <div className="w-10 h-10 border-2 border-white/20 border-t-kiddy-cherry rounded-full animate-spin" />
               </div>
             )}
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0`}
-              title="Lesson Video"
-              className="w-full h-full absolute inset-0 border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              loading="lazy"
-              onLoad={() => setVideoLoading(false)}
+            <YoutubeLessonPlayer
+              videoId={youtubeId}
+              videoUrl={url}
+              lessonId={activeLesson?.id}
+              onReady={() => setVideoLoading(false)}
             />
           </>
         );
