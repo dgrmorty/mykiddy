@@ -39,12 +39,126 @@ type HomeworkSubmissionRow = {
     submitted_at: string;
     status: 'pending' | 'approved' | 'rejected';
     answer: string | null;
-    attachments: any;
+    attachments: unknown;
     admin_comment: string | null;
     reviewed_by: string | null;
     reviewed_at: string | null;
     lessons?: HomeworkLessonEmbed | HomeworkLessonEmbed[] | null;
 };
+
+type HomeworkAttachment = {
+    mimeType?: string;
+    dataBase64?: string;
+    name?: string;
+};
+
+function homeworkAttachmentsOf(raw: unknown): HomeworkAttachment[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((x): x is HomeworkAttachment => !!x && typeof x === 'object');
+}
+
+function homeworkAttachmentSrc(a: HomeworkAttachment): string | null {
+    const mime = (a.mimeType || '').trim();
+    const b64 = (a.dataBase64 || '').trim();
+    if (!b64) return null;
+    if (b64.startsWith('data:')) return b64;
+    if (!mime) return null;
+    return `data:${mime};base64,${b64}`;
+}
+
+function HomeworkReviewCard({
+    submission,
+    authorName,
+    rejectReason,
+    onRejectReasonChange,
+    onReject,
+    onApprove,
+}: {
+    submission: HomeworkSubmissionRow;
+    authorName: string;
+    rejectReason: string;
+    onRejectReasonChange: (value: string) => void;
+    onReject: () => void;
+    onApprove: () => void;
+}) {
+    const ctx = homeworkLessonContext(submission);
+    const files = homeworkAttachmentsOf(submission.attachments);
+    return (
+        <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-[2.5rem] p-6 shadow-premium">
+            <div className="mb-6">
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Ученик</p>
+                <p className="text-white font-bold">{authorName}</p>
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-4 mb-1">Урок</p>
+                <p className="text-white font-bold">{ctx?.path || 'Неизвестный урок'}</p>
+            </div>
+            {ctx?.homeworkTask ? (
+                <div className="bg-black/20 rounded-2xl p-4 mb-4">
+                    <p className="text-zinc-400 text-xs mb-2">Задание</p>
+                    <p className="text-zinc-200 text-sm whitespace-pre-wrap">{ctx.homeworkTask}</p>
+                </div>
+            ) : null}
+            <div className="bg-black/40 rounded-2xl p-4 mb-4">
+                <p className="text-zinc-400 text-xs mb-2">Ответ ученика:</p>
+                {submission.answer?.trim() ? (
+                    <p className="text-white text-sm whitespace-pre-wrap">{submission.answer}</p>
+                ) : (
+                    <p className="text-zinc-500 text-sm">Без текста — только вложения</p>
+                )}
+                {files.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                        <p className="text-zinc-400 text-xs">Вложения ({files.length})</p>
+                        <div className="flex flex-wrap gap-3">
+                            {files.map((a, i) => {
+                                const src = homeworkAttachmentSrc(a);
+                                if (!src) return null;
+                                const mime = (a.mimeType || '').toLowerCase();
+                                return mime.startsWith('video/') ? (
+                                    <video
+                                        key={`${submission.id}-v-${i}`}
+                                        src={src}
+                                        controls
+                                        className="max-h-56 w-full rounded-xl border border-white/10 bg-black"
+                                    />
+                                ) : (
+                                    <a
+                                        key={`${submission.id}-i-${i}`}
+                                        href={src}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block"
+                                    >
+                                        <img
+                                            src={src}
+                                            alt={a.name || `Фото ${i + 1}`}
+                                            className="max-h-56 max-w-full rounded-xl border border-white/10 object-contain bg-black/40"
+                                        />
+                                    </a>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <textarea
+                value={rejectReason}
+                onChange={(e) => onRejectReasonChange(e.target.value)}
+                placeholder="Комментарий ученику..."
+                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm mb-6 outline-none focus:border-kiddy-cherry resize-none"
+                rows={2}
+            />
+
+            <div className="flex gap-3">
+                <button onClick={onReject} className="flex-1 py-4 rounded-2xl bg-white/5 text-kiddy-cherry font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                    <XCircle size={18} /> Отклонить
+                </button>
+                <button onClick={onApprove} className="flex-1 py-4 rounded-2xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
+                    <CheckCircle size={18} /> Принять (+XP)
+                </button>
+            </div>
+        </div>
+    );
+}
 
 function firstOf<T>(x: T | T[] | null | undefined): T | null {
     if (x == null) return null;
@@ -696,31 +810,14 @@ export const AdminPanel: React.FC = () => {
                                 {homeworkQueue.length === 0 ? (
                                     <EmptyState title="Очередь пуста" description="Все домашние задания проверены." icon={<FileText size={40} />} />
                                 ) : (
-                                    <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-[2.5rem] p-6 shadow-premium">
-                                        <div className="mb-6">
-                                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Урок</p>
-                                            <p className="text-white font-bold">{homeworkLessonContext(homeworkQueue[0])?.path || 'Неизвестный урок'}</p>
-                                        </div>
-                                        <div className="bg-black/40 rounded-2xl p-4 mb-6">
-                                            <p className="text-zinc-400 text-xs mb-2">Ответ ученика:</p>
-                                            <p className="text-white text-sm whitespace-pre-wrap">{homeworkQueue[0].answer || 'Нет текстового ответа'}</p>
-                                        </div>
-                                        
-                                        <textarea 
-                                            value={rejectReason} onChange={e => setRejectReason(e.target.value)}
-                                            placeholder="Комментарий ученику..."
-                                            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm mb-6 outline-none focus:border-kiddy-cherry resize-none" rows={2}
-                                        />
-
-                                        <div className="flex gap-3">
-                                            <button onClick={() => reviewHomework(homeworkQueue[0].id, false)} className="flex-1 py-4 rounded-2xl bg-white/5 text-kiddy-cherry font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
-                                                <XCircle size={18} /> Отклонить
-                                            </button>
-                                            <button onClick={() => reviewHomework(homeworkQueue[0].id, true)} className="flex-1 py-4 rounded-2xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
-                                                <CheckCircle size={18} /> Принять (+XP)
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <HomeworkReviewCard
+                                        submission={homeworkQueue[0]}
+                                        authorName={homeworkAuthors[homeworkQueue[0].user_id]?.name || 'Ученик'}
+                                        rejectReason={rejectReason}
+                                        onRejectReasonChange={setRejectReason}
+                                        onReject={() => reviewHomework(homeworkQueue[0].id, false)}
+                                        onApprove={() => reviewHomework(homeworkQueue[0].id, true)}
+                                    />
                                 )}
                             </div>
                         )}
