@@ -16,7 +16,8 @@
     "supabase:migrations": "supabase migration list",
     "supabase:lint": "supabase db lint --linked",
     "supabase:push": "supabase db push",
-    "icons:generate": "node scripts/generate-icons.mjs"
+    "icons:generate": "node scripts/generate-icons.mjs",
+    "promo:record": "node promo/record.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -53,6 +54,7 @@
     "@types/cors": "^2.8.17",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "playwright": "^1.63.0",
     "typescript": "^5.2.2"
   },
   "engines": {

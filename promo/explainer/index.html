@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1080" />
+  <title>Дети В ТОПЕ — explainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./motion.css" />
+</head>
+<body>
+  <div id="frame">
+    <div id="stage">
+      <div id="cam">
+
+        <section class="scene is-on" id="scene-open" data-scene>
+          <div class="open-glow"></div>
+          <div class="logo-tile" id="open-logo">
+            <img src="/logo-vtope.png" alt="Дети В ТОПЕ" />
+          </div>
+          <p class="open-sub" id="open-sub">Потрясающая it-школа</p>
+        </section>
+
+        <section class="scene" id="scene-home" data-scene>
+          <header class="topbar">
+            <div class="logo-mini"><img src="/logo-vtope.png" alt="" /></div>
+            <nav class="nav-dots">
+              <span class="nav-dot is-on"></span>
+              <span class="nav-dot"></span>
+              <span class="nav-dot"></span>
+            </nav>
+            <img class="nav-av" src="/avatars/student-boy.png" alt="" />
+          </header>
+          <div class="home-hero">
+            <h1 class="display home-title" id="home-title">Продолжай учиться.</h1>
+            <p class="home-lead">Твоя траектория, проекты и сообщество — в одном месте.</p>
+            <div class="home-actions">
+              <button class="btn-cta" id="btn-courses">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Мои курсы
+              </button>
+              <button class="btn-ghost">Расписание</button>
+            </div>
+          </div>
+          <div class="home-strip">
+            <p class="kicker">Витрина проектов</p>
+            <div class="strip-cards">
+              <div class="strip-card">
+                <img src="/avatars/student-girl.png" alt="" />
+                <span>Змейка на C++</span>
+              </div>
+              <div class="strip-card">
+                <img src="/avatars/student-boy.png" alt="" />
+                <span>Калькулятор</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-course" data-scene>
+          <header class="topbar">
+            <div class="logo-mini"><img src="/logo-vtope.png" alt="" /></div>
+            <p class="topbar-title">Обучение</p>
+            <img class="nav-av" src="/avatars/student-boy.png" alt="" />
+          </header>
+          <div class="course-hero">
+            <p class="kicker">Курс</p>
+            <h2 class="display course-name">Программирование C++</h2>
+            <p class="muted">Модуль 1 · Основы языка</p>
+            <div class="progress-row">
+              <span>Прогресс</span>
+              <b>18%</b>
+            </div>
+            <div class="bar"><i id="course-bar"></i></div>
+          </div>
+          <div class="lesson-list">
+            <button class="lesson-card is-open" id="lesson-1">
+              <span class="num">1</span>
+              <span>
+                <strong>Введение в C++</strong>
+                <small>15 минут · видео</small>
+              </span>
+            </button>
+            <div class="lesson-card dim">
+              <span class="num">2</span>
+              <span>
+                <strong>Переменные и типы</strong>
+                <small>скоро</small>
+              </span>
+            </div>
+            <div class="lesson-card dim">
+              <span class="num">3</span>
+              <span>
+                <strong>Первая программа</strong>
+                <small>скоро</small>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-player" data-scene>
+          <header class="player-head">
+            <div class="back-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div>
+              <p class="crumbs">C++ / Модуль 1 / Введение</p>
+              <h2 class="display player-title">Введение в C++</h2>
+            </div>
+          </header>
+          <div class="player" id="player">
+            <div class="player-screen">
+              <pre class="code-block" id="code-block"><span class="cm">#include</span> <span class="st">&lt;iostream&gt;</span>
+<span class="kw">int</span> <span class="fn">main</span>() {
+  std::cout &lt;&lt; <span class="st">"Hello, TOP!"</span>;
+}</pre>
+              <button class="play" id="btn-play" aria-label="Смотреть">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <div class="now-playing" id="now-playing">Смотрим урок</div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-fill" id="vid-fill"></div>
+            </div>
+            <div class="times"><span>0:28</span><span>15:00</span></div>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-profile" data-scene>
+          <header class="topbar">
+            <div class="logo-mini"><img src="/logo-vtope.png" alt="" /></div>
+            <p class="topbar-title">Профиль</p>
+            <img class="nav-av" src="/avatars/student-boy.png" alt="" />
+          </header>
+          <div class="profile-card">
+            <div class="av-wrap" id="av-wrap">
+              <img id="av-main" src="/avatars/student-boy.png" alt="" />
+              <span class="lvl">LVL 4</span>
+            </div>
+            <h2 class="display profile-name" id="profile-name">Максим</h2>
+            <button class="btn-white" id="btn-edit">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+              Редактировать профиль
+            </button>
+          </div>
+          <div class="xp-card" id="xp-card">
+            <p class="kicker">Опыт</p>
+            <p class="display xp-num">1 850 XP</p>
+            <div class="bar tall"><i id="xp-bar"></i></div>
+            <p class="muted right">до уровня 5 · 70%</p>
+          </div>
+          <div class="picker" id="picker">
+            <p class="kicker">Выбери персонажа</p>
+            <div class="picker-row">
+              <button class="pick is-on" id="pick-boy"><img src="/avatars/student-boy.png" alt="" /></button>
+              <button class="pick" id="pick-girl"><img src="/avatars/student-girl.png" alt="" /></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-friends" data-scene>
+          <header class="topbar">
+            <div class="logo-mini"><img src="/logo-vtope.png" alt="" /></div>
+            <p class="topbar-title">Сообщество</p>
+            <img class="nav-av" src="/avatars/student-boy.png" alt="" />
+          </header>
+          <h2 class="display page-h">Ученики</h2>
+          <div class="islands">
+            <div class="island">
+              <img src="/avatars/student-boy.png" alt="" />
+              <span>Тимур</span>
+            </div>
+            <div class="island is-open" id="friend-card">
+              <div class="island-top">
+                <img src="/avatars/student-girl.png" alt="" />
+                <span>Алина</span>
+              </div>
+              <div class="island-more">
+                <div>
+                  <b>Ур. 6</b>
+                  <small>3 200 XP</small>
+                </div>
+                <button class="btn-white sm" id="btn-friend">В друзья</button>
+              </div>
+            </div>
+            <div class="island">
+              <img src="/avatars/student-boy.png" alt="" />
+              <span>Илья</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-hw" data-scene>
+          <header class="player-head compact">
+            <div>
+              <p class="crumbs">C++ / Домашнее задание</p>
+              <h2 class="display player-title">Первая программа</h2>
+            </div>
+          </header>
+          <div class="hw-card" id="hw-card">
+            <p class="kicker">Задание</p>
+            <p class="hw-task">Напиши программу Hello World на C++ и пришли фото с экрана.</p>
+            <div class="hw-photo" id="hw-photo">
+              <pre>cout &lt;&lt; "Hello";</pre>
+              <span>IMG_0142.JPG</span>
+            </div>
+            <button class="btn-cta full" id="btn-hw">Отправить на проверку</button>
+            <p class="hw-status" id="hw-status">На проверке</p>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-schedule" data-scene>
+          <header class="topbar">
+            <div class="logo-mini"><img src="/logo-vtope.png" alt="" /></div>
+            <p class="topbar-title">Расписание</p>
+            <img class="nav-av" src="/avatars/student-boy.png" alt="" />
+          </header>
+          <h2 class="display page-h">Эта неделя</h2>
+          <div class="days">
+            <span>Пн</span><span>Вт</span><span class="is-on">Ср</span><span>Чт</span><span>Пт</span>
+          </div>
+          <div class="islands">
+            <div class="ev live" id="ev-live">
+              <span class="time">16:00</span>
+              <span>C++ Senior</span>
+              <i class="live-dot"></i>
+            </div>
+            <div class="ev">
+              <span class="time cherry">18:30</span>
+              <span>Python Master</span>
+            </div>
+            <div class="ev">
+              <span class="time cherry">19:45</span>
+              <span>Roblox Studio</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-show" data-scene>
+          <header class="topbar">
+            <div class="logo-mini"><img src="/logo-vtope.png" alt="" /></div>
+            <p class="topbar-title">Витрина</p>
+            <img class="nav-av" src="/avatars/student-boy.png" alt="" />
+          </header>
+          <article class="post" id="post">
+            <div class="post-h">
+              <img src="/avatars/student-girl.png" alt="" />
+              <div>
+                <b>Алина</b>
+                <small>Ур. 6 · сегодня</small>
+              </div>
+            </div>
+            <p class="post-body">Сделала змейку на C++ за выходные. Можно играть в терминале!</p>
+            <div class="post-art">
+              <div class="snake" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+                <i></i><b></b><b></b><b></b><i></i>
+                <i></i><b></b><i class="head"></i><b></b><i></i>
+                <i></i><b></b><b></b><b></b><i></i>
+                <i></i><i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+            <button class="like" id="btn-like">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 1 0-1-7.8z"/></svg>
+              <span id="like-n">12 лайков</span>
+            </button>
+          </article>
+        </section>
+
+        <section class="scene" id="scene-end" data-scene>
+          <div class="open-glow"></div>
+          <div class="logo-tile" id="end-logo">
+            <img src="/logo-vtope.png" alt="Дети В ТОПЕ" />
+          </div>
+          <p class="end-url" id="end-url">detivtope.online</p>
+        </section>
+      </div>
+
+      <div id="cursor"><i></i></div>
+      <div id="ripple"></div>
+      <div id="caption-bar"><p id="caption"></p></div>
+    </div>
+  </div>
+  <script src="/vendor/gsap.min.js"></script>
+  <script src="./motion.js"></script>
+</body>
+</html>

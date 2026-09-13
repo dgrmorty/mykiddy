@@ -44,3 +44,6 @@ android/local.properties
 *.aab
 
 mykiddy.zip
+
+# Promo explainer render
+promo/out/
