@@ -148,26 +148,27 @@ const CourseIsland = ({ course, onClick, index }: any) => {
   }, [expanded]);
 
   return (
-    <div 
+    <div
       ref={ref}
-      className="relative aspect-[16/10] rounded-[2rem] overflow-hidden cursor-pointer group shadow-island border border-white/10"
+      className="course-card group relative aspect-[16/10] cursor-pointer overflow-hidden rounded-[2rem]"
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       onClick={onClick}
       style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${index * 0.1}s` }}
     >
-      <img src={course.coverImage || 'https://picsum.photos/400/250'} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 ${course.progress === 100 ? 'grayscale-0' : 'grayscale'}`} alt="" />
-      
+      <img src={course.coverImage || 'https://picsum.photos/400/250'} className="course-card__img absolute inset-0 h-full w-full object-cover" alt="" />
+      <div className="course-card__shade" aria-hidden />
+
       <div className="absolute inset-x-3 bottom-3 flex items-end">
         <div className="course-pill w-full bg-black/50 backdrop-blur-md border border-white/10 overflow-hidden flex flex-col justify-end" style={{ height: 56, borderRadius: 28, padding: 8 }}>
           <div className="flex h-[40px] shrink-0 items-center justify-between gap-3 px-3">
             <span className="course-pill-label truncate text-sm font-bold text-white">{course.title}</span>
-            <span className="course-pill-progress inline-flex h-6 shrink-0 items-center justify-center rounded-full bg-white px-2.5 text-[10px] font-bold tabular-nums text-black">{course.progress}%</span>
+            <span className={`course-pill-progress inline-flex h-6 shrink-0 items-center justify-center rounded-full px-2.5 text-[10px] font-bold tabular-nums ${course.progress === 100 ? 'bg-kiddy-cherry text-white' : 'bg-white text-black'}`}>{course.progress}%</span>
           </div>
           <div className="course-details hidden opacity-0 flex-col gap-4 mt-4 min-h-0">
             <p className="text-zinc-300 text-xs leading-relaxed line-clamp-3">{course.description}</p>
             <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden shrink-0 mt-auto">
-              <div className="h-full bg-white rounded-full" style={{ width: `${course.progress}%` }} />
+              <div className="course-card__bar h-full rounded-full" style={{ width: `${course.progress}%` }} />
             </div>
           </div>
         </div>
@@ -691,10 +692,11 @@ export const CourseDetail: React.FC = () => {
       <LearningSectionNav />
       <header className="space-y-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tighter">
-            Библиотека <span className="text-white">Курсов</span>
+          <p className="eyebrow mb-3">Обучение</p>
+          <h1 className="page-title font-display text-4xl font-semibold tracking-[-0.035em] md:text-5xl">
+            Библиотека курсов
           </h1>
-          <p className="text-kiddy-textMuted mt-2 font-medium">Ваш путь к мастерству в IT.</p>
+          <p className="mt-3 max-w-md text-base text-zinc-400">Ваш путь к мастерству в IT.</p>
         </div>
         {isAdmin && (
         <div className="course-level-switch-wrap">
@@ -747,7 +749,7 @@ export const CourseDetail: React.FC = () => {
             onFocus={() => setLibrarySearchFocused(true)}
             onBlur={() => setLibrarySearchFocused(false)}
             placeholder="Поиск по названию, описанию или направлению…"
-            className="w-full rounded-2xl border border-white/[0.08] bg-black/40 py-3.5 pl-[3.25rem] pr-4 text-sm text-white placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-colors focus:border-white/30 selection:bg-white/30"
+            className="input-premium w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-3.5 pl-[3.25rem] pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] placeholder:text-kiddy-textMuted outline-none backdrop-blur-sm transition-[border-color,box-shadow] duration-200"
             aria-label="Поиск курсов"
           />
         </div>
@@ -760,14 +762,14 @@ export const CourseDetail: React.FC = () => {
             </button>
           </div>
       ) : coursesInLevel.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
+          <div className="card-premium rounded-[1.75rem] border border-white/[0.08] px-8 py-16 text-center">
             <p className="text-kiddy-textSecondary font-medium">
               В уровне «{COURSE_LEVEL_LABELS[libraryLevel]}» пока нет курсов.
             </p>
             <p className="text-kiddy-textMuted mt-2 text-sm">Выберите другой уровень или добавьте курс в админ-панели.</p>
           </div>
       ) : filteredCourses.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-kiddy-surfaceElevated/50 px-8 py-16 text-center">
+          <div className="card-premium rounded-[1.75rem] border border-white/[0.08] px-8 py-16 text-center">
             <p className="text-kiddy-textSecondary font-medium">
               {isAdmin
                 ? `Ничего не найдено в уровне «${COURSE_LEVEL_LABELS[libraryLevel]}»`

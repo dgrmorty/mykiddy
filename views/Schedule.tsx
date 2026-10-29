@@ -230,7 +230,7 @@ export const Schedule: React.FC = () => {
 
       {/* ─── Week nav ─── */}
       <div className="mb-10 mt-10">
-        <p className="text-kiddy-textMuted text-[10px] font-bold uppercase tracking-[0.3em] mb-2">
+        <p className="eyebrow mb-3 text-center">
           Расписание
         </p>
 

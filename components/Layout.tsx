@@ -27,7 +27,7 @@ function LayoutShell({ user }: LayoutProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] flex-col bg-transparent font-sans text-white selection:bg-white/30 selection:text-white">
+    <div className="flex min-h-screen min-h-[100dvh] flex-col bg-transparent font-sans text-white">
       {isOffline && (
         <div className="fixed left-0 right-0 top-0 z-[100] bg-amber-500/95 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))] text-center text-sm font-semibold text-black">
           Нет соединения с интернетом. Часть функций недоступна.

@@ -1129,3 +1129,145 @@ body::before {
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Premium layer II — внутренние страницы, карточки курсов, финал лендинга
+   ═══════════════════════════════════════════════════════════ */
+
+/* Заголовок страницы: тот же объём, что у hero, но спокойнее */
+.page-title {
+  background-image: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+/* Карточка курса: цветная обложка, виньетка снизу, светлая кромка, подъём */
+.course-card {
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 30px 60px -34px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition:
+    transform 450ms var(--ease-out),
+    border-color 300ms ease,
+    box-shadow 450ms var(--ease-out);
+}
+.course-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.course-card__img {
+  filter: saturate(0.82) brightness(0.92);
+  transform: scale(1.001);
+  transition: transform 1000ms var(--ease-out), filter 500ms ease;
+}
+.course-card__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 100%),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 60%);
+}
+.course-card > div:last-child { z-index: 3; }
+.course-card__bar {
+  background-image: linear-gradient(90deg, #ff4d6d 0%, #e6002b 100%);
+  box-shadow: 0 0 12px rgba(230, 0, 43, 0.6);
+}
+.course-card:active { transform: scale(0.985); }
+@media (hover: hover) and (pointer: fine) {
+  .course-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow:
+      0 40px 70px -34px rgba(0, 0, 0, 1),
+      0 0 0 1px rgba(230, 0, 43, 0.1),
+      0 24px 60px -40px rgba(230, 0, 43, 0.55);
+  }
+  .course-card:hover .course-card__img {
+    transform: scale(1.05);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+/* Финальный призыв на лендинге */
+.cta-band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 72px 24px;
+  border-radius: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0) 45%),
+    #060606;
+  box-shadow:
+    0 40px 80px -48px rgba(0, 0, 0, 1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.cta-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 100%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 60% 70% at 50% 100%, #000 0%, transparent 75%);
+}
+.cta-band__glow {
+  position: absolute;
+  left: 50%;
+  bottom: -160px;
+  z-index: 0;
+  width: min(720px, 110%);
+  height: 320px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(230, 0, 43, 0.38), rgba(230, 0, 43, 0.08) 60%, transparent);
+  filter: blur(30px);
+}
+@media (min-width: 768px) {
+  .cta-band { padding: 96px 48px; }
+}
+
+/* Футер: тихая подпись с тонким разделителем */
+.site-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 28px;
+  font-size: 13px;
+  text-align: center;
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent) 1;
+}
+@media (min-width: 640px) {
+  .site-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+/* Логотип в шапке: мягкая кромка вместо «наклейки» */
+.nav-island-logo img {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 20px -10px rgba(0, 0, 0, 0.9);
+}

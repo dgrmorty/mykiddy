@@ -200,9 +200,9 @@ export const Notifications: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="stagger-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.35em] text-kiddy-cherry">Аккаунт</p>
-          <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Уведомления</h1>
-          <p className="mt-2 max-w-xl text-sm text-kiddy-textMuted">
+          <p className="eyebrow mb-3">Аккаунт</p>
+          <h1 className="page-title font-display text-4xl font-semibold tracking-[-0.035em] md:text-5xl">Уведомления</h1>
+          <p className="mt-3 max-w-xl text-base text-zinc-400">
             Заявки в друзья, витрина проектов и ответы наставников по модерации.
           </p>
         </div>

@@ -90,7 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-1 pb-24 pt-4 sm:px-4 md:px-8 md:pt-8">
+    <div className="mx-auto w-full max-w-6xl px-1 pb-6 pt-4 sm:px-4 md:px-8 md:pt-8">
       <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
 
       {/* ─── Hero ─── */}
@@ -215,6 +215,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
         <ProjectShowcasePanel embed postLimit={6} onSuggestProject={handleSuggestProject} />
       </section>
+
+      {/* ─── Closing CTA (гости) ─── */}
+      {isGuest && (
+        <section className="cta-band mt-24 md:mt-32">
+          <div className="cta-band__glow" aria-hidden="true" />
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <p className="eyebrow mb-4">Первый шаг</p>
+            <h2 className="page-title max-w-2xl font-display text-3xl font-semibold tracking-[-0.035em] md:text-5xl">
+              Готов сделать свой первый проект?
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-base text-zinc-400 [text-wrap:balance]">
+              Войди в аккаунт ученика — уроки, задания и наставники уже ждут.
+            </p>
+            <button type="button" onClick={openAuthModal} className="btn-cta group mt-8 h-14 px-8 text-[15px]">
+              Войти и начать
+              <ArrowRight
+                size={18}
+                className="ml-2 transition-transform duration-300 ease-entrance group-hover:translate-x-1"
+              />
+            </button>
+          </div>
+        </section>
+      )}
+
+      <footer className="site-footer mt-20 md:mt-24">
+        <span className="font-display text-sm font-semibold tracking-tight text-white">Дети В ТОПЕ</span>
+        <span className="text-zinc-500">IT-школа для детей и подростков · {new Date().getFullYear()}</span>
+      </footer>
     </div>
   );
 };

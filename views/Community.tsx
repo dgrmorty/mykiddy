@@ -323,9 +323,9 @@ export const Community: React.FC = () => {
   return (
     <div className="space-y-8 pb-20">
       <header className="stagger-1 space-y-2">
-        <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.35em]">Ученики</p>
-        <h1 className="font-display text-3xl font-bold italic tracking-tight text-white md:text-4xl">Резиденты</h1>
-        <p className="max-w-xl text-sm text-kiddy-textMuted">
+        <p className="eyebrow mb-3">Ученики</p>
+        <h1 className="page-title font-display text-4xl font-semibold tracking-[-0.035em] md:text-5xl">Резиденты</h1>
+        <p className="max-w-xl pt-1 text-base text-zinc-400">
           Профили одноклассников, друзья и заявки. Лента проектов — на{' '}
           <button
             type="button"
