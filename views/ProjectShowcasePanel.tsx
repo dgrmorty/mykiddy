@@ -46,7 +46,7 @@ import { Heart, Sparkles, Trash2 } from 'lucide-react';
 const PostIsland = ({ p, au, name, body, media, liked, cnt, lvl, when, handleLike, handleDeleteAsAdmin, user, isAdmin, navigate, index }: any) => {
   return (
     <article 
-      className="relative overflow-hidden border border-white/10 shadow-island bg-black rounded-[2.5rem] p-4 sm:p-5 transition-colors hover:border-white/20"
+      className="showcase-post relative h-full overflow-hidden p-4 sm:p-5"
     >
       <div className="flex items-start gap-3 mb-4">
         <button type="button" onClick={() => navigate(`/users/${p.author_id}`)} className="shrink-0">
@@ -79,7 +79,7 @@ const PostIsland = ({ p, au, name, body, media, liked, cnt, lvl, when, handleLik
           type="button"
           onClick={() => p.id && void handleLike(p.id, p.author_id)}
           disabled={!p.id || p.author_id === user.id}
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-[transform,background-color,color] duration-160 ease-out active:scale-[0.97] ${liked ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} disabled:opacity-50`}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-[transform,background-color,color] duration-160 ease-out active:scale-[0.97] ${liked ? 'bg-kiddy-cherry text-white shadow-[0_8px_20px_-8px_rgba(230,0,43,0.8)]' : 'bg-white/[0.06] text-zinc-200 ring-1 ring-inset ring-white/10 hover:bg-white/[0.12] hover:text-white'} disabled:opacity-50`}
         >
           <Heart size={16} strokeWidth={2.5} className={liked ? 'fill-current' : ''} />
           {cnt} {cnt === 1 ? 'лайк' : cnt > 1 && cnt < 5 ? 'лайка' : 'лайков'}
@@ -261,7 +261,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
         />
       ) : (
         <div className={feedWrap}>
-          <ul className="flex flex-col gap-5 sm:gap-6">
+          <ul className={embed ? 'grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2' : 'flex flex-col gap-5 sm:gap-6'}>
             {posts.map((p, i) => {
               const postKey = p.id || `post-fallback-${i}`;
               const au = authors[p.author_id];
@@ -274,7 +274,7 @@ export const ProjectShowcasePanel: React.FC<ProjectShowcasePanelProps> = ({
               const when = formatRelativeTimeRu(p.created_at || '');
 
               return (
-                <li key={postKey}>
+                <li key={postKey} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}>
                   <PostIsland 
                     p={p} au={au} name={name} body={body} media={media} 
                     liked={liked} cnt={cnt} lvl={lvl} when={when} 

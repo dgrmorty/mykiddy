@@ -836,3 +836,296 @@ body.lesson-video-fs {
   }
 }
 .themed-loader--inline { display: inline-flex; padding: 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   Premium layer — глубина, свет и акцент-кромка поверх базовых стилей
+   ═══════════════════════════════════════════════════════════ */
+
+/* Атмосферный фон: тёплое свечение сверху + мягкий холодный блик внизу */
+body {
+  background-image:
+    radial-gradient(1100px 620px at 50% -12%, rgba(230, 0, 43, 0.14), transparent 62%),
+    radial-gradient(800px 480px at 105% 108%, rgba(255, 255, 255, 0.035), transparent 60%),
+    linear-gradient(180deg, #050505 0%, #000000 45%, #000000 100%);
+  background-attachment: fixed;
+}
+
+/* Фокус с клавиатуры — заметное, но аккуратное кольцо */
+:focus-visible {
+  outline: 2px solid rgba(230, 0, 43, 0.85);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+/* Плёночное зерно поверх фона — убирает «цифровую» плоскость чёрного */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: rgba(230, 0, 43, 0.45);
+  color: #fff;
+}
+
+/* Тонкий скроллбар на десктопе */
+@media (hover: hover) and (pointer: fine) {
+  html { scrollbar-width: thin; scrollbar-color: #262626 transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: #232323;
+    border: 3px solid #000;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #333; }
+}
+
+/* ─── Типографика-акценты ─── */
+.hero-title {
+  background-image: linear-gradient(180deg, #ffffff 0%, #ffffff 60%, rgba(255, 255, 255, 0.72) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-wrap: balance;
+}
+.text-cherry-gradient {
+  background-image: linear-gradient(100deg, #ff4d6d 0%, #e6002b 45%, #ff2452 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #e6002b;
+}
+.eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #d4d4d8;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.eyebrow-pill__dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #e6002b;
+  box-shadow: 0 0 10px rgba(230, 0, 43, 0.9);
+}
+.eyebrow-pill__dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 0, 43, 0.6);
+  animation: eyebrow-ping 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes eyebrow-ping {
+  0% { transform: scale(0.6); opacity: 1; }
+  80%, 100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* ─── Сцена hero: сетка с маской и световое пятно ─── */
+.hero-stage { isolation: isolate; }
+.hero-stage__grid {
+  position: absolute;
+  inset: -10% -20% 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 55% 60% at 50% 35%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 55% 60% at 50% 35%, #000 0%, transparent 75%);
+}
+.hero-stage__orb {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  z-index: 0;
+  width: min(640px, 90vw);
+  height: 320px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(230, 0, 43, 0.28), rgba(230, 0, 43, 0.08) 55%, transparent);
+  filter: blur(40px);
+  animation: hero-orb 9s ease-in-out infinite;
+}
+@keyframes hero-orb {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+}
+
+/* ─── Плитки возможностей / быстрого доступа ─── */
+.feature-tile {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.01) 100%),
+    #070707;
+  box-shadow:
+    0 24px 48px -32px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    transform 400ms var(--ease-out),
+    border-color 300ms var(--ease-out),
+    box-shadow 400ms var(--ease-out);
+}
+.feature-tile__icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #ff4d6d;
+  background: linear-gradient(180deg, rgba(230, 0, 43, 0.2), rgba(230, 0, 43, 0.06));
+  border: 1px solid rgba(230, 0, 43, 0.25);
+  box-shadow: 0 8px 20px -10px rgba(230, 0, 43, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.feature-tile__arrow { transition: transform 300ms var(--ease-out), color 300ms ease; }
+.feature-tile.is-interactive:active { transform: scale(0.985); }
+@media (hover: hover) and (pointer: fine) {
+  .feature-tile.is-interactive:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow:
+      0 32px 56px -30px rgba(0, 0, 0, 0.95),
+      0 0 0 1px rgba(230, 0, 43, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  .feature-tile.is-interactive:hover .feature-tile__arrow {
+    transform: translateX(3px);
+    color: #fff;
+  }
+}
+
+/* ─── Посты витрины ─── */
+.showcase-post {
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 30%),
+    #070707;
+  box-shadow:
+    0 30px 60px -36px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: transform 450ms var(--ease-out), border-color 300ms ease, box-shadow 450ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .showcase-post:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Основная CTA: объём, верхний блик и свечение цвета cherry */
+.btn-cta {
+  background-image: linear-gradient(180deg, #ff2452 0%, #e6002b 100%);
+  box-shadow:
+    0 10px 30px -12px rgba(230, 0, 43, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  letter-spacing: 0.01em;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-cta:hover {
+    background-image: linear-gradient(180deg, #ff3361 0%, #ff1a45 100%);
+    box-shadow:
+      0 16px 36px -12px rgba(230, 0, 43, 0.75),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  }
+}
+
+/* Вторичная кнопка: стеклянная поверхность с тонкой светлой кромкой */
+.btn-secondary {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* Карточки: светлая кромка сверху, объём при наведении */
+.card-premium {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 38%);
+  background-color: var(--kiddy-surface);
+  box-shadow:
+    0 24px 48px -28px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+@media (hover: hover) {
+  .card-premium:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 32px 64px -28px rgba(0, 0, 0, 0.95),
+      0 0 0 1px rgba(230, 0, 43, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Поля ввода: кольцо фокуса в цвете бренда */
+.input-premium:focus {
+  border-color: rgba(230, 0, 43, 0.55);
+  box-shadow: 0 0 0 4px rgba(230, 0, 43, 0.14);
+}
+
+/* Навигация: активный пункт — более глубокий объём и блик */
+.nav-island-link.is-active {
+  background-image: linear-gradient(180deg, #ff2452 0%, #e6002b 100%);
+}
+.nav-shell[data-compact='true'] .nav-island {
+  background: rgba(8, 8, 8, 0.78);
+  box-shadow:
+    0 24px 60px -20px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Уважать системную настройку «уменьшить движение» */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

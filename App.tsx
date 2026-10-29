@@ -45,19 +45,12 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div
-        className="flex min-h-screen min-h-[100dvh] flex-col items-center justify-center gap-5 px-6"
-        style={{ background: '#050505' }}
-      >
-        <div className="relative">
-          <div
-            className="relative animate-spin rounded-full border-2 border-white/10 border-t-white"
-            style={{ width: 44, height: 44 }}
-          />
+      <div className="app-boot" role="status" aria-label="Загрузка">
+        <div className="app-boot__mark" aria-hidden="true">
+          <span className="app-boot__ring" />
+          <span className="app-boot__core" />
         </div>
-        <p className="animate-fade-in text-center text-sm font-medium text-kiddy-textSecondary" style={{ animationDelay: '0.2s' }}>
-          Дети В ТОПЕ
-        </p>
+        <p className="app-boot__label">Дети В ТОПЕ</p>
       </div>
     );
   }
