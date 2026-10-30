@@ -1753,7 +1753,8 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Телефон: разделы — в нижней панели вкладок, наверху только логотип и действия
+   Телефон: разделы — в нижнем «острове». В покое он во всю ширину у края,
+   при прокрутке отрывается, скругляется в капсулу и чуть уменьшается — как верхний
    ═══════════════════════════════════════════════════════════ */
 
 :root { --tabbar-h: 0px; }
@@ -1769,6 +1770,7 @@ body::before {
   main { padding-bottom: calc(var(--tabbar-h) + 24px) !important; }
 
   .tabbar {
+    --pad: 6px;
     position: fixed;
     left: 0;
     right: 0;
@@ -1777,35 +1779,73 @@ body::before {
     display: grid;
     grid-template-columns: repeat(var(--tab-count), 1fr);
     height: var(--tabbar-h);
-    padding: 0 8px env(safe-area-inset-bottom, 0px);
-    background: linear-gradient(180deg, rgba(14, 14, 15, 0.82), rgba(6, 6, 7, 0.94));
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 -18px 40px -24px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    padding: var(--pad) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom, 0px));
+    border-radius: 0;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    transition:
+      left 280ms var(--ease-in-out),
+      right 280ms var(--ease-in-out),
+      bottom 280ms var(--ease-in-out),
+      height 280ms var(--ease-in-out),
+      padding 280ms var(--ease-in-out),
+      border-radius 280ms var(--ease-in-out),
+      background-color 200ms var(--ease-out),
+      border-color 200ms var(--ease-out),
+      box-shadow 280ms var(--ease-in-out);
+  }
+  .tabbar[data-compact='true'] {
+    left: 14px;
+    right: 14px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    height: 58px;
+    padding: 5px;
+    border-radius: 999px;
+    background: rgba(8, 8, 8, 0.82);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 22px 54px -14px rgba(0, 0, 0, 0.95),
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
-  /* Подложка активной вкладки переезжает между вкладками */
+  /* Активная вкладка — красная капсула, как в верхнем меню; переезжает между вкладками */
   .tabbar__indicator {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: calc((100% - 16px) / var(--tab-count));
-    height: 48px;
-    display: flex;
-    justify-content: center;
+    top: var(--pad);
+    left: var(--pad);
+    width: calc((100% - var(--pad) * 2) / var(--tab-count));
+    height: calc(64px - var(--pad) * 2);
+    padding: 0 3px;
     pointer-events: none;
     transform: translateX(calc(100% * var(--tab-index)));
-    transition: transform 320ms var(--ease-out);
+    transition:
+      transform 320ms var(--ease-out),
+      top 280ms var(--ease-in-out),
+      left 280ms var(--ease-in-out),
+      height 280ms var(--ease-in-out);
+  }
+  .tabbar[data-compact='true'] .tabbar__indicator {
+    top: 5px;
+    left: 5px;
+    width: calc((100% - 10px) / var(--tab-count));
+    height: 46px;
   }
   .tabbar__indicator::before {
     content: '';
-    width: 64px;
+    display: block;
     height: 100%;
-    border-radius: 16px;
-    background: linear-gradient(180deg, rgba(230, 0, 43, 0.22), rgba(230, 0, 43, 0.08));
-    box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.28), 0 8px 22px -10px rgba(230, 0, 43, 0.8);
+    border-radius: 18px;
+    background-image: linear-gradient(180deg, #ff2452 0%, #e6002b 100%);
+    box-shadow:
+      0 8px 22px -10px rgba(230, 0, 43, 0.85),
+      inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    transition: border-radius 280ms var(--ease-in-out);
   }
+  .tabbar[data-compact='true'] .tabbar__indicator::before { border-radius: 999px; }
 
   .tabbar__item {
     position: relative;
@@ -1814,22 +1854,25 @@ body::before {
     align-items: center;
     justify-content: center;
     gap: 3px;
-    height: 64px;
+    height: calc(64px - var(--pad) * 2);
     color: #a1a1aa;
     -webkit-tap-highlight-color: transparent;
-    transition: color 200ms ease, transform 160ms var(--ease-out);
+    transition: color 200ms ease, transform 160ms var(--ease-out), height 280ms var(--ease-in-out), gap 280ms var(--ease-in-out);
   }
+  .tabbar[data-compact='true'] .tabbar__item { height: 46px; gap: 1px; }
   .tabbar__item:active { transform: scale(0.94); }
   .tabbar__item.is-active { color: #fff; }
-  .tabbar__item.is-active .tabbar__icon { color: #ff4d6d; }
   .tabbar__item.is-locked { opacity: 0.45; }
-  .tabbar__icon { display: block; }
+  .tabbar__icon { display: block; transition: transform 280ms var(--ease-in-out); }
+  .tabbar[data-compact='true'] .tabbar__icon { transform: scale(0.9); }
   .tabbar__label {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.01em;
     line-height: 1;
+    transition: font-size 280ms var(--ease-in-out);
   }
+  .tabbar[data-compact='true'] .tabbar__label { font-size: 10px; }
   .tabbar .svg-line {
     stroke-dashoffset: 100;
     opacity: 0;
@@ -1840,7 +1883,7 @@ body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tabbar__indicator { transition: none; }
+  .tabbar, .tabbar__indicator, .tabbar__indicator::before, .tabbar__item, .tabbar__icon, .tabbar__label { transition: none; }
   .tabbar .svg-line { stroke-dashoffset: 0; opacity: 1; animation: none; }
 }
 .tour-card--sheet-top {

@@ -144,6 +144,7 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
 
     <nav
       className="tabbar"
+      data-compact={compact ? 'true' : 'false'}
       aria-label="Разделы"
       style={{ '--tab-count': tabs.length, '--tab-index': Math.max(0, activeTab) } as React.CSSProperties}
     >
