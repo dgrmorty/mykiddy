@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft } from 'lucide-react';
 import {
   getStepsForUser,
   onboardingStorageKey,
@@ -14,9 +14,16 @@ interface OnboardingTourProps {
   role: Role;
 }
 
-const OVERLAY_Z = 10000;
+type Box = { top: number; left: number; width: number; height: number; radius: number };
 
-const DIM_CLASS = 'bg-black/80 animate-fade-in';
+const OVERLAY_Z = 10000;
+/** Отступ подсветки вокруг кнопки и минимальный зазор до края экрана. */
+const PAD = 8;
+const EDGE = 6;
+const GAP = 18;
+const CARD_W = 360;
+/** Шапка сжимается анимацией ~280 мс — всё это время следим за кнопкой покадрово. */
+const FOLLOW_MS = 700;
 
 function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(() =>
@@ -34,52 +41,28 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-/** Затемнение только вокруг прямоугольника — центр без слоя, без blur (интерфейс остаётся чётким). */
-function DimmingCutout({
-  rect,
-  zIndex,
-}: {
-  rect: { top: number; left: number; width: number; height: number };
-  zIndex: number;
-}) {
-  const { top, left, width, height } = rect;
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
-  const right = left + width;
-  const bottom = top + height;
-
-  return (
-    <>
-      <div className={`fixed left-0 right-0 top-0 ${DIM_CLASS}`} style={{ height: Math.max(0, top), zIndex }} aria-hidden />
-      <div
-        className={`fixed left-0 right-0 ${DIM_CLASS}`}
-        style={{ top: bottom, height: Math.max(0, vh - bottom), zIndex }}
-        aria-hidden
-      />
-      <div
-        className={`fixed ${DIM_CLASS}`}
-        style={{ top, left: 0, width: Math.max(0, left), height, zIndex }}
-        aria-hidden
-      />
-      <div
-        className={`fixed ${DIM_CLASS}`}
-        style={{ top, left: right, width: Math.max(0, vw - right), height, zIndex }}
-        aria-hidden
-      />
-    </>
-  );
+/** Прямоугольник подсветки: повторяет форму кнопки и никогда не выходит за край экрана. */
+function measureTarget(el: HTMLElement): Box {
+  const r = el.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const top = Math.max(EDGE, r.top - PAD);
+  const left = Math.max(EDGE, r.left - PAD);
+  const bottom = Math.min(vh - EDGE, r.bottom + PAD);
+  const right = Math.min(vw - EDGE, r.right + PAD);
+  const height = Math.max(0, bottom - top);
+  const width = Math.max(0, right - left);
+  const own = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
+  return { top, left, width, height, radius: Math.min(own + PAD, height / 2) };
 }
 
 export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest, role }) => {
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const [rect, setRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({
-    top: 120,
-    left: 24,
-  });
-  const [useMobileSheet, setUseMobileSheet] = useState(false);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<Box | null>(null);
+  const [card, setCard] = useState<{ top: number; left: number; caretX: number; below: boolean } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
   const isMobile = useIsMobile();
 
   const isAdmin = role === Role.ADMIN;
@@ -97,54 +80,33 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
   }, [userId]);
 
   const updateGeometry = useCallback(() => {
-    if (!open) return;
-    const s = steps[stepIndex];
-    if (!s) {
-      setRect(null);
-      setUseMobileSheet(isMobile);
-      return;
-    }
-    const el = resolveTourTarget(s.anchor);
+    if (!open || !step) return;
+    const el = resolveTourTarget(step.anchor);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const cardW = Math.min(CARD_W, vw - 32);
+    const cardH = cardRef.current?.offsetHeight ?? 240;
+
     if (!el) {
-      setRect(null);
-      setUseMobileSheet(isMobile);
-      const tw = Math.min(340, window.innerWidth - 32);
-      setTooltipPos({
-        top: Math.max(80, window.innerHeight / 2 - 100),
-        left: Math.max(16, (window.innerWidth - tw) / 2),
-      });
-      return;
-    }
-    const r = el.getBoundingClientRect();
-    const pad = isMobile ? 8 : 10;
-    setRect({
-      top: r.top - pad,
-      left: r.left - pad,
-      width: r.width + pad * 2,
-      height: r.height + pad * 2,
-    });
-
-    if (isMobile) {
-      setUseMobileSheet(true);
+      setBox(null);
+      setCard({ top: Math.max(24, (vh - cardH) / 2), left: (vw - cardW) / 2, caretX: -1, below: true });
       return;
     }
 
-    setUseMobileSheet(false);
-    const tw = Math.min(340, window.innerWidth - 32);
-    let left = r.left + r.width / 2 - tw / 2;
-    left = Math.max(16, Math.min(left, window.innerWidth - tw - 16));
+    const b = measureTarget(el);
+    setBox(b);
+    if (isMobile) return;
 
-    const tooltipH = tooltipRef.current?.offsetHeight ?? 260;
-    const spaceBelow = window.innerHeight - r.bottom;
-    const spaceAbove = r.top;
-    let top: number;
-    if (spaceBelow >= tooltipH + 24 || spaceBelow >= spaceAbove) {
-      top = Math.min(r.bottom + 16, window.innerHeight - tooltipH - 16);
-    } else {
-      top = Math.max(16, r.top - tooltipH - 16);
-    }
-    setTooltipPos({ top, left });
-  }, [open, stepIndex, steps, isMobile]);
+    const centerX = b.left + b.width / 2;
+    const left = Math.max(16, Math.min(centerX - cardW / 2, vw - cardW - 16));
+    const spaceBelow = vh - (b.top + b.height);
+    const below = spaceBelow >= cardH + GAP + 16 || spaceBelow >= b.top;
+    const top = below
+      ? Math.min(b.top + b.height + GAP, vh - cardH - 16)
+      : Math.max(16, b.top - cardH - GAP);
+    const caretX = Math.max(24, Math.min(centerX - left, cardW - 24));
+    setCard({ top, left, caretX, below });
+  }, [open, step, isMobile]);
 
   useEffect(() => {
     if (isGuest || !userId || userId === 'guest') return;
@@ -158,24 +120,21 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
     return () => clearTimeout(t);
   }, [isGuest, userId, steps.length]);
 
+  // На каждом шаге несколько сотен мс следим за кнопкой: шапка и прокрутка ещё анимируются
   useLayoutEffect(() => {
     if (!open || !step) return;
-
     const el = resolveTourTarget(step.anchor);
-    if (el) {
-      el.scrollIntoView({
-        block: isMobile ? 'nearest' : 'center',
-        behavior: 'smooth',
-      });
-    }
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
-    const id = window.requestAnimationFrame(() => updateGeometry());
-    const id2 = window.setTimeout(() => updateGeometry(), 280);
-    return () => {
-      cancelAnimationFrame(id);
-      clearTimeout(id2);
+    let frame = 0;
+    const until = performance.now() + FOLLOW_MS;
+    const tick = () => {
+      updateGeometry();
+      if (performance.now() < until) frame = requestAnimationFrame(tick);
     };
-  }, [open, stepIndex, step, updateGeometry, isMobile]);
+    tick();
+    return () => cancelAnimationFrame(frame);
+  }, [open, step, updateGeometry]);
 
   useEffect(() => {
     if (!open) return;
@@ -189,128 +148,118 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
   }, [open, updateGeometry]);
 
   useEffect(() => {
-    if (!open || !useMobileSheet) return;
-    const id = window.requestAnimationFrame(() => updateGeometry());
-    return () => cancelAnimationFrame(id);
-  }, [open, useMobileSheet, stepIndex, updateGeometry]);
-
-  useEffect(() => {
     if (!open) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    nextRef.current?.focus({ preventScroll: true });
     return () => {
       document.body.style.overflow = prevOverflow;
     };
   }, [open]);
 
+  const next = useCallback(() => {
+    if (lastStep) finishTour();
+    else setStepIndex((i) => i + 1);
+  }, [lastStep, finishTour]);
+
+  const back = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') finishTour();
+      else if (e.key === 'ArrowRight') next();
+      else if (e.key === 'ArrowLeft') back();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, finishTour]);
-
-  const next = () => {
-    if (lastStep) finishTour();
-    else setStepIndex((i) => i + 1);
-  };
-
-  const back = () => setStepIndex((i) => Math.max(0, i - 1));
+  }, [open, finishTour, next, back]);
 
   if (!open || isGuest || !step || steps.length === 0) return null;
 
+  const sheet = isMobile || !card;
+  const cardStyle: React.CSSProperties = sheet
+    ? { zIndex: OVERLAY_Z + 3 }
+    : {
+        zIndex: OVERLAY_Z + 3,
+        top: card.top,
+        left: card.left,
+        width: `min(${CARD_W}px, calc(100vw - 32px))`,
+        ['--caret-x' as string]: `${card.caretX}px`,
+      };
+
   const node = (
-    <div className="fixed inset-0" style={{ zIndex: OVERLAY_Z }} role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      {rect ? (
-        <DimmingCutout rect={rect} zIndex={OVERLAY_Z} />
-      ) : (
-        <div className={`fixed inset-0 ${DIM_CLASS}`} style={{ zIndex: OVERLAY_Z }} aria-hidden />
-      )}
-      {rect && (
+    <div className="tour" style={{ zIndex: OVERLAY_Z }} role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+      {/* Перехватывает клики по интерфейсу, пока идёт тур */}
+      <div className="tour__blocker" style={{ zIndex: OVERLAY_Z }} aria-hidden />
+
+      {box ? (
         <div
-          className="pointer-events-none absolute rounded-[2rem] border border-white/20 transition-all duration-300 ease-out"
+          className="tour__spotlight"
           style={{
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
             zIndex: OVERLAY_Z + 1,
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.1), 0 0 32px rgba(255,255,255,0.1)',
+            top: box.top,
+            left: box.left,
+            width: box.width,
+            height: box.height,
+            borderRadius: box.radius,
           }}
-        />
+          aria-hidden
+        >
+          <span className="tour__pulse" style={{ borderRadius: box.radius }} />
+        </div>
+      ) : (
+        <div className="tour__dim" style={{ zIndex: OVERLAY_Z + 1 }} aria-hidden />
       )}
+
       <div
-        ref={tooltipRef}
-        className={`max-w-[340px] rounded-[2rem] border border-white/10 bg-black/90 backdrop-blur-2xl p-5 shadow-island animate-fade-in sm:p-6 ${
-          useMobileSheet
-            ? 'fixed left-4 right-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] w-auto max-w-none'
-            : 'absolute'
+        ref={cardRef}
+        className={`tour-card ${sheet ? 'tour-card--sheet' : 'tour-card--float'} ${
+          !sheet && card && card.caretX >= 0 ? (card.below ? 'has-caret-top' : 'has-caret-bottom') : ''
         }`}
-        style={
-          useMobileSheet
-            ? { zIndex: OVERLAY_Z + 3, animationDuration: '0.4s' }
-            : {
-                top: tooltipPos.top,
-                left: tooltipPos.left,
-                width: 'min(340px, calc(100vw - 32px))',
-                zIndex: OVERLAY_Z + 3,
-                animationDuration: '0.4s',
-              }
-        }
+        style={cardStyle}
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 text-white">
-            <Sparkles size={18} />
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="tour-card__eyebrow">
+            Шаг {stepIndex + 1} из {steps.length}
+          </p>
+          <button type="button" onClick={finishTour} className="tour-card__close" aria-label="Закрыть гид">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="tour-card__progress" aria-hidden>
+          {steps.map((s, i) => (
+            <span key={s.anchor} className={i <= stepIndex ? 'is-done' : ''} />
+          ))}
+        </div>
+
+        <div key={step.anchor} className="tour-card__content">
+          <h2 id="onboarding-title" className="font-display text-xl font-semibold tracking-[-0.02em] text-white">
+            {step.title}
+          </h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-zinc-400">{step.body}</p>
+        </div>
+
+        <div className="mt-6 flex items-center gap-2">
           <button
             type="button"
             onClick={finishTour}
-            className="rounded-full p-1.5 text-zinc-500 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Закрыть гайд"
+            className="mr-auto px-1 text-sm font-semibold text-zinc-400 transition-colors hover:text-white"
           >
-            <X size={18} />
+            Пропустить
           </button>
-        </div>
-        <h2 id="onboarding-title" className="font-display text-xl font-bold text-white tracking-tight">
-          {step.title}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">{step.body}</p>
-        <div className="mt-5 flex flex-col gap-3 sm:mt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-            {stepIndex + 1} / {steps.length}
-          </span>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-            <button
-              type="button"
-              onClick={finishTour}
-              className="rounded-xl px-3 py-2.5 text-xs font-bold text-zinc-500 transition-colors hover:text-white sm:py-2"
-            >
-              Пропустить
+          {stepIndex > 0 && (
+            <button type="button" onClick={back} className="btn-secondary btn-solid h-10 w-10 shrink-0" aria-label="Назад">
+              <ArrowLeft size={16} />
             </button>
-            {stepIndex > 0 ? (
-              <button
-                type="button"
-                onClick={back}
-                className="flex items-center justify-center gap-1 rounded-xl bg-white/5 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-white/10 sm:py-2"
-              >
-                <ChevronLeft size={16} /> Назад
-              </button>
-            ) : (
-              <span className="hidden sm:block" aria-hidden />
+          )}
+          <button ref={nextRef} type="button" onClick={next} className="btn-cta group h-10 px-5 text-sm">
+            {lastStep ? 'Готово' : 'Далее'}
+            {!lastStep && (
+              <ArrowRight size={16} className="ml-1.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             )}
-            <button
-              type="button"
-              onClick={next}
-              className={`flex items-center justify-center gap-1 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black shadow-premium transition-all hover:bg-zinc-200 sm:py-2 ${
-                stepIndex > 0 ? 'col-span-2 sm:col-span-1' : 'col-span-1'
-              }`}
-            >
-              {lastStep ? 'Готово' : 'Далее'}
-              {!lastStep && <ChevronRight size={16} />}
-            </button>
-          </div>
+          </button>
         </div>
       </div>
     </div>

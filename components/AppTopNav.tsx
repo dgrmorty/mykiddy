@@ -127,7 +127,7 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
               Войти
             </button>
           ) : (
-            <Link to="/profile" className="nav-island-avatar" title="Профиль" aria-label="Профиль">
+            <Link id="tour-dsk-nav-profile" to="/profile" className="nav-island-avatar" title="Профиль" aria-label="Профиль">
               <UserAvatar user={currentUser} size="xs" />
             </Link>
           )}
