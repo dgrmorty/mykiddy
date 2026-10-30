@@ -102,12 +102,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="hero-stage__orb" aria-hidden="true" />
 
         <div className="relative z-10 flex flex-col items-center">
-          {isGuest && (
-            <span className="eyebrow-pill hero-enter mb-7" style={{ '--d': '0ms' } as React.CSSProperties}>
-              <span className="eyebrow-pill__dot" aria-hidden="true" />
-              IT-школа «Дети В ТОПЕ»
-            </span>
-          )}
 
           <h1 className="mb-6 max-w-4xl font-display text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-6xl md:text-7xl">
             <span className="hero-line">
