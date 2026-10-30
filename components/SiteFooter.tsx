@@ -14,6 +14,7 @@ export const SiteFooter: React.FC = () => (
     <nav aria-label="Документы" className="site-footer__links">
       <Link to="/privacy">Конфиденциальность</Link>
       <Link to="/terms">Условия</Link>
+      <Link to="/consent">Согласие</Link>
       <a href={LEGAL.offerUrl} target="_blank" rel="noopener noreferrer">
         Оферта
       </a>

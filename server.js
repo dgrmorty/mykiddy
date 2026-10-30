@@ -1001,6 +1001,56 @@ app.post('/api/admin/sync-profile-role', async (req, res) => {
     return res.json({ ok: true, role: 'Admin' });
 });
 
+/**
+ * Отзыв согласия на обработку персональных данных = удаление аккаунта (ст. 10 Закона № 99-З).
+ * Удаляет файлы ученика в хранилище и пользователя auth; таблицы чистятся каскадом от auth.users.
+ */
+app.post('/api/account/delete', async (req, res) => {
+    const auth = await requireAuthedUser(req);
+    if (auth.error) {
+        return res.status(401).json({ error: 'Нужна авторизация.', code: 'AUTH_REQUIRED' });
+    }
+    if (isServerAdmin(auth.user)) {
+        return res.status(403).json({
+            error: 'Администратор не может удалить свой аккаунт сам — обратитесь к другому администратору.',
+            code: 'FORBIDDEN',
+        });
+    }
+    if (!supabaseAdmin) {
+        return res.status(503).json({
+            error: 'SUPABASE_SERVICE_ROLE_KEY не задан на сервере.',
+            code: 'STORAGE_NOT_CONFIGURED',
+        });
+    }
+    const userId = auth.user.id;
+
+    const { data: files, error: listError } = await supabaseAdmin.rpc('user_storage_paths', { p_user_id: userId });
+    if (listError) {
+        console.error('[account-delete] list files', listError);
+        return res.status(500).json({ error: 'Не удалось удалить аккаунт. Попробуйте позже.', code: 'SERVER_ERROR' });
+    }
+    const byBucket = new Map();
+    for (const f of files || []) {
+        if (!byBucket.has(f.bucket_id)) byBucket.set(f.bucket_id, []);
+        byBucket.get(f.bucket_id).push(f.name);
+    }
+    for (const [bucket, paths] of byBucket) {
+        const { error } = await supabaseAdmin.storage.from(bucket).remove(paths);
+        if (error) {
+            console.error('[account-delete] remove files', bucket, error);
+            return res.status(500).json({ error: 'Не удалось удалить файлы аккаунта. Попробуйте позже.', code: 'SERVER_ERROR' });
+        }
+    }
+
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (deleteError) {
+        console.error('[account-delete] delete user', deleteError);
+        return res.status(500).json({ error: 'Не удалось удалить аккаунт. Попробуйте позже.', code: 'SERVER_ERROR' });
+    }
+    console.log('[account-delete] deleted', userId);
+    return res.json({ ok: true });
+});
+
 /** Загрузка материала к уроку (PDF/PPTX) — только админ, через service role. */
 app.post('/api/lesson-material/upload', async (req, res) => {
     const auth = await requireAuthedUser(req);
@@ -1156,7 +1206,7 @@ app.delete('/api/schedule-groups/:id', async (req, res) => {
 // Любой другой запрос отправляем на index.html в папке dist (SPA Routing)
 // Маршруты SPA (см. App.tsx). Всё остальное отдаём той же страницей, но со статусом 404,
 // чтобы поисковики не индексировали несуществующие адреса как дубли главной.
-const SPA_ROUTES = /^\/(?:|auth\/confirmed|courses|profile|notifications|schedule|community|users\/[^/]+|admin|privacy|terms)\/?$/;
+const SPA_ROUTES = /^\/(?:|auth\/confirmed|courses|profile|notifications|schedule|community|users\/[^/]+|admin|privacy|terms|consent)\/?$/;
 
 app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {

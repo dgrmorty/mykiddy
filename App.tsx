@@ -18,6 +18,7 @@ import { Role } from './types';
 import { AccessGate } from './components/AccessGate';
 import { PrivacyPolicy } from './views/legal/PrivacyPolicy';
 import { Terms } from './views/legal/Terms';
+import { Consent } from './views/legal/Consent';
 import { NotFound } from './views/NotFound';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -111,6 +112,7 @@ const AppContent: React.FC = () => {
           
           <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="terms" element={<Terms />} />
+          <Route path="consent" element={<Consent />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>

@@ -28,6 +28,7 @@ import { levelFromXp, xpLevelProgressPercent } from '../progression';
 import { AnimatedIcon } from '../components/ui/AnimatedIcon';
 import { BadgePickerModal } from '../components/BadgePickerModal';
 import { clearAllOnboardingKeys } from '../data/onboardingTour';
+import { WithdrawConsent } from '../components/WithdrawConsent';
 import {
   AVATAR_BOY_PATH,
   AVATAR_GIRL_PATH,
@@ -517,6 +518,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
               <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
               Выход из системы
             </button>
+            <WithdrawConsent />
           </div>
         </div>
       </div>
@@ -672,6 +674,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
             Выход из системы
           </button>
+          <WithdrawConsent />
         </div>
       </div>
 

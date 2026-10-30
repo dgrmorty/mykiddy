@@ -67,6 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   /** Honeypot: скрытое поле, которое видят только боты. */
   const [website, setWebsite] = useState('');
   const openedAtRef = useRef(Date.now());
@@ -108,8 +109,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
 
   const handleGoogleLogin = async () => {
     if (authInFlightRef.current || loading) return;
-    if (mode === 'signup' && !consent) {
-      setError('Нужно согласие на обработку персональных данных');
+    if (mode === 'signup' && (!consent || !termsAccepted)) {
+      setError('Отметьте обе галочки: условия и согласие на обработку данных');
       return;
     }
     authInFlightRef.current = true;
@@ -170,8 +171,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           setError('Укажите имя и фамилию через пробел');
           return;
         }
-        if (!consent) {
-          setError('Нужно согласие на обработку персональных данных');
+        if (!consent || !termsAccepted) {
+          setError('Отметьте обе галочки: условия и согласие на обработку данных');
           return;
         }
         const { data, error: err } = await supabase.auth.signUp({
@@ -181,6 +182,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
               name: name.trim(),
               pd_consent_at: new Date().toISOString(),
               pd_consent_version: LEGAL.consentVersion,
+              terms_accepted_at: new Date().toISOString(),
             },
             emailRedirectTo: `${getAuthRedirectOrigin()}/auth/confirmed`,
           },
@@ -370,20 +372,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           />
 
           {currentMode === 'signup' && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-left text-xs leading-relaxed text-zinc-400">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#e6002b]"
-              />
-              <span>
-                Я принимаю <a href="/terms" target="_blank" rel="noopener" className="font-semibold text-white underline underline-offset-2">условия</a> и
-                даю согласие на обработку персональных данных, в том числе их передачу за рубеж, по{' '}
-                <a href="/privacy" target="_blank" rel="noopener" className="font-semibold text-white underline underline-offset-2">политике конфиденциальности</a>.
-                Если ученику нет 16 лет, согласие даёт родитель.
-              </span>
-            </label>
+            <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-left text-xs leading-relaxed text-zinc-400">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#e6002b]"
+                />
+                <span>
+                  Принимаю <a href="/terms" target="_blank" rel="noopener" className="font-semibold text-white underline underline-offset-2">условия использования</a>.
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#e6002b]"
+                />
+                <span>
+                  Даю <a href="/consent" target="_blank" rel="noopener" className="font-semibold text-white underline underline-offset-2">согласие на обработку персональных данных</a>,
+                  в том числе их передачу за рубеж. Если ученику нет 16 лет, согласие даёт родитель.
+                </span>
+              </label>
+            </div>
           )}
 
           {error && (

@@ -9,6 +9,7 @@ import { useProfileLastSeenHeartbeat } from '../hooks/useProfileLastSeenHeartbea
 import { SiteFooter } from './SiteFooter';
 import { CookieBanner } from './CookieBanner';
 import { InstallAppPrompt } from './InstallAppPrompt';
+import { ConsentGate } from './ConsentGate';
 import { trackPageView } from '../utils/consent';
 interface LayoutProps {
   user: User;
@@ -52,6 +53,7 @@ function LayoutShell({ user }: LayoutProps) {
 
       <CookieBanner />
       <InstallAppPrompt />
+      <ConsentGate />
 
       <OnboardingTour userId={user.id} isGuest={isGuest} role={user.role} />
     </div>
