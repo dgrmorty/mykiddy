@@ -170,7 +170,7 @@ export const InstallAppPrompt: React.FC = () => {
             {Array.from({ length: 8 }).map((_, i) =>
               i === 5 ? (
                 <span key={i} className="install-phone__slot">
-                  <img src="/apple-touch-icon-dark.png" alt="" className="install-phone__icon" />
+                  <img src="/apple-touch-icon.png" alt="" className="install-phone__icon" />
                 </span>
               ) : (
                 <span key={i} className="install-phone__app" style={{ animationDelay: `${i * 40}ms` }} />

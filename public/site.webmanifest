@@ -1,6 +1,6 @@
 {
   "name": "Дети В ТОПЕ — IT-школа для детей",
-  "short_name": "В ТОПЕ",
+  "short_name": "Дети В ТОПЕ",
   "description": "Учебная платформа IT-школы «Дети В ТОПЕ»: курсы, задания и проекты учеников.",
   "start_url": "/",
   "scope": "/",
@@ -17,6 +17,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "theme_color": "#000000",
