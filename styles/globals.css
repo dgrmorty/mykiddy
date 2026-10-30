@@ -536,97 +536,6 @@ body.lesson-video-fs {
   animation: draw-line 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ─── Courses / schedule local navigation ─── */
-.learning-section-nav {
-  --active-index: 0;
-  --switch-count: 2;
-  position: relative;
-  isolation: isolate;
-  display: inline-grid;
-  grid-template-columns: repeat(var(--switch-count), minmax(44px, 1fr));
-  align-items: stretch;
-  max-width: 100%;
-  padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.learning-section-pill {
-  position: absolute;
-  z-index: 0;
-  top: 4px;
-  left: 4px;
-  width: calc((100% - 8px) / var(--switch-count));
-  height: calc(100% - 8px);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transform: translate3d(calc(var(--active-index) * 100%), 0, 0);
-  transition:
-    transform 280ms var(--ease-out),
-    opacity 200ms var(--ease-out);
-  pointer-events: none;
-}
-
-.learning-section-link {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  min-height: 44px;
-  min-width: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-  border-radius: 999px;
-  color: #71717a;
-  font-size: 13px;
-  font-weight: 650;
-  background: transparent;
-  opacity: 0.82;
-  transition:
-    color 200ms var(--ease-out),
-    opacity 200ms var(--ease-out),
-    transform 160ms var(--ease-out);
-}
-
-.learning-section-link.is-active {
-  color: #fff;
-  opacity: 1;
-}
-
-.learning-section-link:active {
-  transform: scale(0.97);
-}
-
-.learning-section-link:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.55);
-  outline-offset: 2px;
-}
-
-.learning-section-nav .svg-line {
-  stroke-dashoffset: 100;
-  opacity: 0;
-  animation: draw-line 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .learning-section-link:not(.is-active):hover {
-    color: #fff;
-    opacity: 1;
-  }
-}
-
-/* Course card capsule: center glyphs, not the extra line-box space */
-.course-pill-label,
-.course-pill-progress {
-  line-height: 1;
-  text-box-trim: trim-both;
-  text-box-edge: cap alphabetic;
-}
-
 /* ─── Course level switch (Junior / Middle / Senior / Senior+) ─── */
 .course-level-switch-wrap {
   max-width: 100%;
@@ -753,14 +662,6 @@ body.lesson-video-fs {
     height: 40px;
     padding: 0 13px;
   }
-  .learning-section-nav {
-    display: grid;
-    width: 100%;
-  }
-  .learning-section-link {
-    padding: 0 12px;
-    font-size: 12px;
-  }
   .course-level-switch {
     width: max-content;
     min-width: 100%;
@@ -780,16 +681,9 @@ body.lesson-video-fs {
     stroke-dashoffset: 0;
     animation: none;
   }
-  .learning-section-pill,
   .course-level-switch__pill,
-  .learning-section-link,
   .course-level-switch__item {
     transition: none;
-  }
-  .learning-section-nav .svg-line {
-    stroke-dashoffset: 0;
-    opacity: 1;
-    animation: none;
   }
 }
 

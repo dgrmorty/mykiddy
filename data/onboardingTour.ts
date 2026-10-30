@@ -39,7 +39,7 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
   {
     anchor: 'nav-library',
     title: 'Обучение',
-    body: 'Курсы, видеоуроки и задания твоего уровня. Тут же — расписание занятий твоей группы.',
+    body: 'Курсы, видеоуроки и задания твоего уровня. Домашку проверяет наставник.',
   },
   {
     anchor: 'nav-community',
@@ -59,7 +59,7 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
   {
     anchor: 'nav-admin',
     title: 'Управление',
-    body: 'Админ-панель: ученики, курсы, расписание и проверка домашних заданий.',
+    body: 'Админ-панель: ученики, курсы и проверка домашних заданий.',
     adminOnly: true,
   },
 ];

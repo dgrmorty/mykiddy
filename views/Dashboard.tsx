@@ -3,7 +3,7 @@ import { Role, User } from '../types';
 import {
   Sparkles,
   BookOpen,
-  CalendarDays,
+  Trophy,
   ArrowRight,
   PlayCircle,
   Rocket,
@@ -39,7 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
 
   const handleGoCourses = () => (isGuest ? openAuthModal() : navigate('/courses'));
-  const handleGoSchedule = () => (isGuest ? openAuthModal() : navigate('/schedule'));
+  const handleGoProfile = () => (isGuest ? openAuthModal() : navigate('/profile'));
   const handleGoCommunity = () => (isGuest ? openAuthModal() : navigate('/community'));
 
   const handleSuggestProject = () => {
@@ -79,10 +79,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           onClick: handleGoCourses,
         },
         {
-          icon: <CalendarDays size={20} strokeWidth={1.75} />,
-          title: 'Расписание',
-          text: 'Ближайшие занятия твоей группы.',
-          onClick: handleGoSchedule,
+          icon: <Trophy size={20} strokeWidth={1.75} />,
+          title: 'Профиль',
+          text: 'Твой уровень, опыт и бейджи.',
+          onClick: handleGoProfile,
         },
         {
           icon: <Users size={20} strokeWidth={1.75} />,
@@ -142,9 +142,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 className="ml-2 transition-transform duration-300 ease-entrance group-hover:translate-x-1"
               />
             </button>
-            <button type="button" onClick={handleGoSchedule} className="btn-secondary btn-solid h-14 px-8 text-[15px]">
-              <CalendarDays size={18} className="mr-2 text-zinc-400" />
-              Расписание
+            <button type="button" onClick={handleGoCommunity} className="btn-secondary btn-solid h-14 px-8 text-[15px]">
+              <Users size={18} className="mr-2 text-zinc-400" />
+              Сообщество
             </button>
           </div>
         </div>

@@ -35,7 +35,7 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
 
   const items: NavItem[] = [
     { iconName: 'dashboard', label: 'Главная', path: '/', matches: ['/'], locked: false, onboardingAnchor: 'nav-home' },
-    { iconName: 'book', label: 'Обучение', path: '/courses', matches: ['/courses', '/schedule'], locked: isGuest, onboardingAnchor: 'nav-library' },
+    { iconName: 'book', label: 'Обучение', path: '/courses', matches: ['/courses'], locked: isGuest, onboardingAnchor: 'nav-library' },
     { iconName: 'usersGroup', label: 'Сообщество', path: '/community', matches: ['/community', '/users'], locked: isGuest, onboardingAnchor: 'nav-community' },
   ];
 

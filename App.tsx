@@ -5,7 +5,6 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './views/Dashboard';
 import { CourseDetail } from './views/CourseDetail';
 import { Profile } from './views/Profile';
-import { Schedule } from './views/Schedule';
 import { AdminPanel } from './views/AdminPanel';
 import { Community } from './views/Community';
 import { UserPublicProfile } from './views/UserPublicProfile';
@@ -91,11 +90,8 @@ const AppContent: React.FC = () => {
             </ProtectedRoute>
           } />
           
-          <Route path="schedule" element={
-            <ProtectedRoute>
-                <Schedule />
-            </ProtectedRoute>
-          } />
+          {/* Расписания больше нет — старые ссылки ведут в обучение */}
+          <Route path="schedule" element={<Navigate to="/courses" replace />} />
 
           <Route path="community" element={
             <ProtectedRoute>

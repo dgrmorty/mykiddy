@@ -25,7 +25,6 @@ import { ThemedLoader } from '../components/ui/ThemedLoader';
 import { LessonVideoPlayer } from '../components/LessonVideoPlayer';
 import { YoutubeLessonPlayer } from '../components/YoutubeLessonPlayer';
 import { LessonMaterialCard } from '../components/LessonMaterialCard';
-import { LearningSectionNav } from '../components/LearningSectionNav';
 import { isBunnyLessonVideo } from '../services/bunnyVideoService';
 import { parseYoutubeVideoId } from '../utils/youtube';
 
@@ -693,7 +692,6 @@ export const CourseDetail: React.FC = () => {
 
   return (
     <div className="animate-slide-up space-y-12">
-      <LearningSectionNav />
       <header className="space-y-6">
         <div>
           <p className="eyebrow mb-3">Обучение</p>
