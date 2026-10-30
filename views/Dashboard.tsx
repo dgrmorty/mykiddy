@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Role, User } from '../types';
 import {
   Sparkles,
@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useContent } from '../hooks/useContent';
 import { ProjectShowcasePanel } from './ProjectShowcasePanel';
 import { ShowcaseSubmitModal } from './ShowcaseSubmitModal';
+import { usePointerLight, useRevealOnScroll } from '../hooks/usePremiumMotion';
 
 interface DashboardProps {
   user: User;
@@ -33,6 +34,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { showToast } = useToast();
   const { loadError } = useContent(user?.id !== 'guest' ? user?.id : undefined);
   const navigate = useNavigate();
+  const rootRef = useRef<HTMLDivElement>(null);
+  useRevealOnScroll(rootRef);
+  usePointerLight(rootRef);
   const [showcaseModalOpen, setShowcaseModalOpen] = useState(false);
 
   const handleGoCourses = () => (isGuest ? openAuthModal() : navigate('/courses'));
@@ -90,42 +94,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-1 pb-6 pt-4 sm:px-4 md:px-8 md:pt-8">
+    <div ref={rootRef} className="mx-auto w-full max-w-6xl px-1 pb-6 pt-4 sm:px-4 md:px-8 md:pt-8">
       <ShowcaseSubmitModal isOpen={showcaseModalOpen} onClose={() => setShowcaseModalOpen(false)} />
 
       {/* ─── Hero ─── */}
-      <section className="hero-stage relative pb-16 pt-10 text-center md:pb-24 md:pt-20">
+      <section data-parallax className="hero-stage relative pb-16 pt-10 text-center md:pb-24 md:pt-20">
         <div className="hero-stage__grid" aria-hidden="true" />
         <div className="hero-stage__orb" aria-hidden="true" />
 
         <div className="relative z-10 flex flex-col items-center">
-          <span className="eyebrow-pill mb-7 animate-fade-in-up">
-            <span className="eyebrow-pill__dot" aria-hidden="true" />
-            {isGuest ? 'IT-школа «Дети В ТОПЕ»' : 'Платформа учеников'}
-          </span>
+          {isGuest && (
+            <span className="eyebrow-pill hero-enter mb-7" style={{ '--d': '0ms' } as React.CSSProperties}>
+              <span className="eyebrow-pill__dot" aria-hidden="true" />
+              IT-школа «Дети В ТОПЕ»
+            </span>
+          )}
 
-          <h1
-            className="hero-title mb-6 max-w-4xl animate-fade-in-up font-display text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-6xl md:text-7xl"
-            style={{ animationDelay: '60ms' }}
-          >
-            {isGuest ? (
-              <>
-                Начни свой путь
-                <br />
-                <span className="text-cherry-gradient">в IT.</span>
-              </>
-            ) : (
-              <>
-                {firstName ? `Привет, ${firstName}.` : 'С возвращением.'}
-                <br />
-                <span className="text-cherry-gradient">Продолжаем учиться.</span>
-              </>
-            )}
+          <h1 className="mb-6 max-w-4xl font-display text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-6xl md:text-7xl">
+            <span className="hero-line">
+              <span className="hero-line__inner hero-title" style={{ '--d': '40ms' } as React.CSSProperties}>
+                {isGuest ? 'Начни свой путь' : firstName ? `Привет, ${firstName}.` : 'С возвращением.'}
+              </span>
+            </span>
+            <span className="hero-line">
+              <span className="hero-line__inner text-cherry-gradient" style={{ '--d': '130ms' } as React.CSSProperties}>
+                {isGuest ? 'в IT.' : 'Продолжаем учиться.'}
+              </span>
+            </span>
           </h1>
 
           <p
-            className="mx-auto mb-10 max-w-xl animate-fade-in-up text-base leading-relaxed text-zinc-400 [text-wrap:balance] md:text-lg"
-            style={{ animationDelay: '120ms' }}
+            className="hero-enter mx-auto mb-10 max-w-xl text-base leading-relaxed text-zinc-400 [text-wrap:balance] md:text-lg"
+            style={{ '--d': '240ms' } as React.CSSProperties}
           >
             {loadError
               ? 'Не удалось загрузить данные. Попробуйте обновить страницу.'
@@ -133,8 +133,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </p>
 
           <div
-            className="flex w-full animate-fade-in-up flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center"
-            style={{ animationDelay: '180ms' }}
+            className="hero-enter flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center"
+            style={{ '--d': '320ms' } as React.CSSProperties}
           >
             <button type="button" onClick={handleGoCourses} className="btn-cta group h-14 px-8 text-[15px]">
               {isGuest ? 'Начать обучение' : 'Мои курсы'}
@@ -143,8 +143,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 className="ml-2 transition-transform duration-300 ease-entrance group-hover:translate-x-1"
               />
             </button>
-            <button type="button" onClick={handleGoSchedule} className="btn-secondary h-14 px-8 text-[15px]">
-              <CalendarDays size={18} className="mr-2 opacity-80" />
+            <button type="button" onClick={handleGoSchedule} className="btn-secondary btn-solid h-14 px-8 text-[15px]">
+              <CalendarDays size={18} className="mr-2 text-zinc-400" />
               Расписание
             </button>
           </div>
@@ -172,19 +172,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               )}
             </>
           );
-          const style = { animationDelay: `${240 + i * 70}ms` };
+          const revealDelay = String(i * 90);
           return t.onClick ? (
             <button
               key={t.title}
               type="button"
               onClick={t.onClick}
-              className="feature-tile is-interactive animate-fade-in-up text-left"
-              style={style}
+              data-reveal
+              data-reveal-delay={revealDelay}
+              data-spotlight
+              className="feature-tile is-interactive reveal text-left"
             >
               {content}
             </button>
           ) : (
-            <div key={t.title} className="feature-tile animate-fade-in-up" style={style}>
+            <div key={t.title} data-reveal data-reveal-delay={revealDelay} data-spotlight className="feature-tile reveal">
               {content}
             </div>
           );
@@ -193,7 +195,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* ─── Showcase ─── */}
       <section className="mt-24 md:mt-32">
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between md:mb-10">
+        <div data-reveal className="reveal mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between md:mb-10">
           <div>
             <p className="eyebrow mb-3">Витрина</p>
             <h2 className="font-display text-3xl font-semibold tracking-[-0.03em] text-white md:text-4xl">
@@ -206,7 +208,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           <button
             type="button"
             onClick={handleSuggestProject}
-            className="btn-secondary h-12 w-full px-6 text-sm sm:w-auto"
+            className="btn-secondary btn-solid h-12 w-full shrink-0 whitespace-nowrap px-6 text-sm sm:w-auto"
           >
             <Sparkles size={16} className="mr-2 text-kiddy-cherry" />
             Предложить проект
@@ -218,7 +220,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* ─── Closing CTA (гости) ─── */}
       {isGuest && (
-        <section className="cta-band mt-24 md:mt-32">
+        <section data-reveal data-spotlight className="cta-band reveal mt-24 md:mt-32">
           <div className="cta-band__glow" aria-hidden="true" />
           <div className="relative z-10 flex flex-col items-center text-center">
             <p className="eyebrow mb-4">Первый шаг</p>

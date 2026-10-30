@@ -12,7 +12,7 @@
   --ease-apple: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-spring: cubic-bezier(0.23, 1, 0.32, 1);
 
-  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Onest Variable', 'Onest Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-display: 'Unbounded Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
@@ -24,6 +24,16 @@
   --type-display-lg: clamp(2.25rem, 1.85rem + 1.75vw, 3rem);
   --type-display-xl: clamp(2.75rem, 2rem + 3vw, 4rem);
   --measure: 66ch;
+}
+
+/* Метрики Arial подогнаны под Onest: до загрузки шрифта текст занимает то же место — без сдвига вёрстки */
+@font-face {
+  font-family: 'Onest Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Helvetica');
+  size-adjust: 103.7%;
+  ascent-override: 93.5%;
+  descent-override: 29.4%;
+  line-gap-override: 0%;
 }
 
 * { box-sizing: border-box; }
@@ -57,6 +67,10 @@ h1, h2, h3, h4 {
 }
 
 h1 { line-height: 1.05; }
+
+/* Абзацы без «висячих» слов в последней строке; цифры одинаковой ширины в счётчиках */
+p, li, blockquote { text-wrap: pretty; }
+.tabular-nums, time { font-variant-numeric: tabular-nums; }
 
 .type-prose p,
 .type-prose li,
@@ -1355,4 +1369,184 @@ body::before {
 /* Логотип в шапке: мягкая кромка вместо «наклейки» */
 .nav-island-logo img {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 20px -10px rgba(0, 0, 0, 0.9);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Motion layer — вход героя, появление при прокрутке, свет за курсором
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Вторичная кнопка без стекла: плотная матовая поверхность, ничего не просвечивает */
+.btn-solid {
+  background: linear-gradient(180deg, #1a1a1c 0%, #111113 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 10px 24px -14px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-weight: 600;
+  transition:
+    transform 200ms var(--ease-premium),
+    border-color 200ms ease,
+    background 200ms ease,
+    box-shadow 200ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-solid:hover {
+    background: linear-gradient(180deg, #202023 0%, #161618 100%);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow:
+      0 14px 30px -14px rgba(0, 0, 0, 0.95),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
+}
+.btn-solid:active { transform: scale(0.97); }
+
+/* CTA: один проход блика при наведении */
+.btn-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.28) 48%, transparent 66%);
+  transform: translateX(-120%);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-cta:hover::after {
+    transform: translateX(120%);
+    transition: transform 800ms var(--ease-premium);
+  }
+}
+
+/* Вход героя: строки заголовка выезжают из-под маски, остальное — мягко проявляется */
+.hero-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.hero-line__inner {
+  display: inline-block;
+  transform: translateY(105%);
+  animation: hero-line-in 850ms var(--ease-premium) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes hero-line-in {
+  to { transform: translateY(0); }
+}
+.hero-enter {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(12px);
+  animation: hero-enter 700ms var(--ease-premium) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes hero-enter {
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+/* Сцена героя слегка следует за курсором */
+.hero-stage[data-parallax] .hero-stage__orb {
+  translate: calc(var(--px, 0) * 28px) calc(var(--py, 0) * 18px);
+  transition: translate 1200ms var(--ease-premium);
+}
+.hero-stage[data-parallax] .hero-stage__grid {
+  translate: calc(var(--px, 0) * -10px) calc(var(--py, 0) * -6px);
+  transition: translate 1400ms var(--ease-premium);
+}
+
+/* Появление при прокрутке */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  filter: blur(6px);
+  transition:
+    opacity 900ms var(--ease-premium),
+    transform 900ms var(--ease-premium),
+    filter 900ms var(--ease-premium);
+}
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+/* После появления плитки снова реагируют на наведение без задержки */
+.feature-tile.reveal.is-revealed {
+  transition:
+    opacity 900ms var(--ease-premium),
+    transform 400ms var(--ease-out),
+    filter 900ms var(--ease-premium),
+    border-color 300ms var(--ease-out),
+    box-shadow 400ms var(--ease-out);
+}
+
+/* Свет за курсором: мягкое пятно внутри и подсветка кромки */
+[data-spotlight] {
+  --mx: -500px;
+  --my: -500px;
+}
+.feature-tile::before,
+.cta-band::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  background: radial-gradient(320px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.07), transparent 60%);
+}
+.feature-tile::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  background: radial-gradient(220px circle at var(--mx) var(--my), rgba(255, 77, 109, 0.7), transparent 65%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.cta-band::after { z-index: 1; background: radial-gradient(520px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.05), transparent 60%); }
+@media (hover: hover) and (pointer: fine) {
+  .feature-tile:hover::before,
+  .feature-tile:hover::after,
+  .cta-band:hover::after { opacity: 1; }
+}
+.feature-tile > * { position: relative; z-index: 1; }
+
+/* Иконка плитки чуть оживает при наведении */
+.feature-tile__icon { transition: transform 500ms var(--ease-premium), box-shadow 500ms var(--ease-premium); }
+@media (hover: hover) and (pointer: fine) {
+  .feature-tile:hover .feature-tile__icon {
+    transform: translateY(-2px) rotate(-4deg);
+    box-shadow: 0 14px 28px -12px rgba(230, 0, 43, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-line__inner,
+  .hero-enter,
+  .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .hero-stage[data-parallax] .hero-stage__orb,
+  .hero-stage[data-parallax] .hero-stage__grid { translate: none; }
 }
