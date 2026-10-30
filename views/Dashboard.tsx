@@ -7,7 +7,6 @@ import {
   ArrowRight,
   PlayCircle,
   Rocket,
-  Bot,
   Users,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -67,9 +66,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           text: 'Игры, сайты и приложения — лучшие попадают на витрину.',
         },
         {
-          icon: <Bot size={20} strokeWidth={1.75} />,
-          title: 'ИИ-тьютор',
-          text: 'Подскажет, если застрял, и объяснит ошибку простыми словами.',
+          icon: <Users size={20} strokeWidth={1.75} />,
+          title: 'Сообщество',
+          text: 'Одноклассники, друзья и лайки за лучшие работы.',
         },
       ]
     : [
