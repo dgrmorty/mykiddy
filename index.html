@@ -71,14 +71,30 @@
     <link rel="preload" href="/avatars/student-girl.png" as="image" type="image/png" />
     <style>
       html, body { background: #000; }
-      @keyframes root-spin { to { transform: rotate(360deg); } }
-      @keyframes root-pulse { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1); } }
-      .app-boot { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: radial-gradient(600px 360px at 50% 40%, rgba(230,0,43,.14), transparent 70%), #000; color: #fff; font-family: 'Onest Variable', system-ui, -apple-system, sans-serif; }
-      .app-boot__mark { position: relative; width: 52px; height: 52px; }
-      .app-boot__ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,.08); border-top-color: #e6002b; border-right-color: rgba(230,0,43,.35); animation: root-spin .9s cubic-bezier(.5,.15,.5,.85) infinite; }
-      .app-boot__core { position: absolute; inset: 19px; border-radius: 50%; background: #e6002b; box-shadow: 0 0 18px rgba(230,0,43,.9); animation: root-pulse 1.8s ease-in-out infinite; }
-      .app-boot__label { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .32em; text-transform: uppercase; color: #a1a1aa; }
-      @media (prefers-reduced-motion: reduce) { .app-boot__ring, .app-boot__core { animation: none; } }
+      /* Загрузчик: комета бежит по контуру (вращение conic-gradient под маской — на GPU), внутри прорисовывается </> */
+      .app-boot { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; background: radial-gradient(520px 320px at 50% 42%, rgba(230,0,43,.12), transparent 70%), #000; color: #fff; font-family: 'Onest Variable', system-ui, -apple-system, sans-serif; }
+      .app-boot__mark { position: relative; width: 68px; height: 68px; animation: boot-in .6s cubic-bezier(.23,1,.32,1) both; }
+      .app-boot__glow { position: absolute; inset: -18px; border-radius: 32px; background: radial-gradient(closest-side, rgba(230,0,43,.45), transparent); filter: blur(14px); opacity: .5; animation: boot-breathe 2.4s ease-in-out infinite; }
+      .app-boot__track { position: absolute; inset: 0; border-radius: 22px; background: linear-gradient(180deg, #151517, #0a0a0b); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.07), inset 0 1px 0 rgba(255,255,255,.08), 0 18px 40px -18px rgba(0,0,0,.9); }
+      .app-boot__orbit { position: absolute; inset: 0; border-radius: 22px; overflow: hidden;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'%3E%3Crect x='1' y='1' width='66' height='66' rx='21' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+                mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'%3E%3Crect x='1' y='1' width='66' height='66' rx='21' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+      .app-boot__comet { position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent 0 62%, rgba(230,0,43,.15) 74%, #e6002b 92%, #ff8fa3 99%, #fff 100%); animation: boot-spin 1.5s linear infinite; will-change: transform; }
+      .app-boot__code { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .app-boot__code path { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; stroke-dashoffset: 30; animation: boot-draw .7s cubic-bezier(.23,1,.32,1) forwards, boot-breathe 2.4s ease-in-out 1.2s infinite; }
+      .app-boot__code .l { stroke: #fff; animation-delay: .15s, 1.2s; }
+      .app-boot__code .r { stroke: #fff; animation-delay: .3s, 1.2s; }
+      .app-boot__code .s { stroke: #e6002b; animation-delay: .45s, 1.2s; }
+      .app-boot__label { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .34em; text-transform: uppercase; color: #8a8a93; animation: boot-in .6s cubic-bezier(.23,1,.32,1) .2s both; }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @keyframes boot-draw { to { stroke-dashoffset: 0; } }
+      @keyframes boot-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+      @keyframes boot-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) {
+        .app-boot__mark, .app-boot__label { animation: none; }
+        .app-boot__comet { animation: none; transform: rotate(-45deg); }
+        .app-boot__code path { stroke-dashoffset: 0; animation: boot-breathe 2.4s ease-in-out infinite; }
+      }
     </style>
   </head>
   <body>
@@ -91,7 +107,11 @@
     </noscript>
     <div id="root">
       <div class="app-boot" role="status" aria-label="Загрузка">
-        <div class="app-boot__mark" aria-hidden="true"><span class="app-boot__ring"></span><span class="app-boot__core"></span></div>
+        <div class="app-boot__mark" aria-hidden="true">
+          <span class="app-boot__glow"></span><span class="app-boot__track"></span>
+          <span class="app-boot__orbit"><span class="app-boot__comet"></span></span>
+          <svg class="app-boot__code" viewBox="0 0 68 68"><path class="l" d="M27 25 L18 34 L27 43"/><path class="r" d="M41 25 L50 34 L41 43"/><path class="s" d="M37.5 22 L30.5 46"/></svg>
+        </div>
         <p class="app-boot__label">Дети В ТОПЕ</p>
       </div>
     </div>
