@@ -71,29 +71,15 @@
     <link rel="preload" href="/avatars/student-girl.png" as="image" type="image/png" />
     <style>
       html, body { background: #000; }
-      /* Загрузчик: комета бежит по контуру (вращение conic-gradient под маской — на GPU), внутри прорисовывается </> */
-      .app-boot { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; background: radial-gradient(520px 320px at 50% 42%, rgba(230,0,43,.12), transparent 70%), #000; color: #fff; font-family: 'Onest Variable', system-ui, -apple-system, sans-serif; }
-      .app-boot__mark { position: relative; width: 68px; height: 68px; animation: boot-in .6s cubic-bezier(.23,1,.32,1) both; }
-      .app-boot__glow { position: absolute; inset: -18px; border-radius: 32px; background: radial-gradient(closest-side, rgba(230,0,43,.45), transparent); filter: blur(14px); opacity: .5; animation: boot-breathe 2.4s ease-in-out infinite; }
-      .app-boot__track { position: absolute; inset: 0; border-radius: 22px; background: linear-gradient(180deg, #151517, #0a0a0b); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.07), inset 0 1px 0 rgba(255,255,255,.08), 0 18px 40px -18px rgba(0,0,0,.9); }
-      .app-boot__orbit { position: absolute; inset: 0; border-radius: 22px; overflow: hidden;
-        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'%3E%3Crect x='1' y='1' width='66' height='66' rx='21' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-                mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'%3E%3Crect x='1' y='1' width='66' height='66' rx='21' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
-      .app-boot__comet { position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent 0 62%, rgba(230,0,43,.15) 74%, #e6002b 92%, #ff8fa3 99%, #fff 100%); animation: boot-spin 1.5s linear infinite; will-change: transform; }
-      .app-boot__code { position: absolute; inset: 0; width: 100%; height: 100%; }
-      .app-boot__code path { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; stroke-dashoffset: 30; animation: boot-draw .7s cubic-bezier(.23,1,.32,1) forwards, boot-breathe 2.4s ease-in-out 1.2s infinite; }
-      .app-boot__code .l { stroke: #fff; animation-delay: .15s, 1.2s; }
-      .app-boot__code .r { stroke: #fff; animation-delay: .3s, 1.2s; }
-      .app-boot__code .s { stroke: #e6002b; animation-delay: .45s, 1.2s; }
-      .app-boot__label { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .34em; text-transform: uppercase; color: #8a8a93; animation: boot-in .6s cubic-bezier(.23,1,.32,1) .2s both; }
-      @keyframes boot-spin { to { transform: rotate(360deg); } }
-      @keyframes boot-draw { to { stroke-dashoffset: 0; } }
-      @keyframes boot-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
-      @keyframes boot-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+      /* Загрузчик: тонкая линия со скользящим бликом. Появляется с задержкой — на быстрой загрузке его не видно */
+      .app-boot { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: #000; }
+      .app-boot__bar { position: relative; width: 120px; height: 2px; border-radius: 2px; overflow: hidden; background: rgba(255,255,255,.08); opacity: 0; animation: boot-show .5s cubic-bezier(.23,1,.32,1) var(--show-delay, .25s) forwards; }
+      .app-boot__bar::after { content: ''; position: absolute; inset: 0; width: 45%; border-radius: inherit; background: linear-gradient(90deg, transparent, #e6002b 45%, #ff6b85 55%, transparent); box-shadow: 0 0 12px rgba(230,0,43,.8); transform: translateX(-100%); animation: boot-glide 1.4s cubic-bezier(.77,0,.175,1) var(--glide-delay, 0s) infinite; will-change: transform; }
+      @keyframes boot-show { to { opacity: 1; } }
+      @keyframes boot-glide { to { transform: translateX(225%); } }
       @media (prefers-reduced-motion: reduce) {
-        .app-boot__mark, .app-boot__label { animation: none; }
-        .app-boot__comet { animation: none; transform: rotate(-45deg); }
-        .app-boot__code path { stroke-dashoffset: 0; animation: boot-breathe 2.4s ease-in-out infinite; }
+        .app-boot__bar::after { transform: translateX(60%); animation: boot-pulse 1.6s ease-in-out infinite; }
+        @keyframes boot-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
       }
     </style>
   </head>
@@ -107,12 +93,7 @@
     </noscript>
     <div id="root">
       <div class="app-boot" role="status" aria-label="Загрузка">
-        <div class="app-boot__mark" aria-hidden="true">
-          <span class="app-boot__glow"></span><span class="app-boot__track"></span>
-          <span class="app-boot__orbit"><span class="app-boot__comet"></span></span>
-          <svg class="app-boot__code" viewBox="0 0 68 68"><path class="l" d="M27 25 L18 34 L27 43"/><path class="r" d="M41 25 L50 34 L41 43"/><path class="s" d="M37.5 22 L30.5 46"/></svg>
-        </div>
-        <p class="app-boot__label">Дети В ТОПЕ</p>
+        <div class="app-boot__bar" aria-hidden="true"></div>
       </div>
     </div>
     <script type="module" src="/index.tsx"></script>

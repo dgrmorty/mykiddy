@@ -48,17 +48,15 @@ const AppContent: React.FC = () => {
   if (isLoading) {
     return (
       <div className="app-boot" role="status" aria-label="Загрузка">
-        <div className="app-boot__mark" aria-hidden="true">
-          <span className="app-boot__glow" />
-          <span className="app-boot__track" />
-          <span className="app-boot__orbit"><span className="app-boot__comet" /></span>
-          <svg className="app-boot__code" viewBox="0 0 68 68">
-            <path className="l" d="M27 25 L18 34 L27 43" />
-            <path className="r" d="M41 25 L50 34 L41 43" />
-            <path className="s" d="M37.5 22 L30.5 46" />
-          </svg>
-        </div>
-        <p className="app-boot__label">Дети В ТОПЕ</p>
+        {/* Продолжаем ту же фазу, что у статичного загрузчика из index.html, — без мигания при монтировании */}
+        <div
+          className="app-boot__bar"
+          aria-hidden="true"
+          style={{
+            '--show-delay': `${250 - performance.now()}ms`,
+            '--glide-delay': `${-(performance.now() % 1400)}ms`,
+          } as React.CSSProperties}
+        />
       </div>
     );
   }

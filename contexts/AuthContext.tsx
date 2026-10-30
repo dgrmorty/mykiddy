@@ -91,9 +91,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User>(GUEST_USER);
-  const [isLoading, setIsLoading] = useState(false);
+  // true до первой проверки сессии: иначе защищённые маршруты видят «гостя» и уводят на главную при перезагрузке
+  const [isLoading, setIsLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const loadingRef = React.useRef(false);
+  const loadingRef = React.useRef(true);
   const userRef = React.useRef<User>(user);
   const lastProfileRefreshRef = React.useRef(0);
   /** Сбрасываем устаревшие ответы fetchProfile (гонка USER_UPDATED / параллельные запросы). */
