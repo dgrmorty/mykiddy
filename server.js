@@ -1154,8 +1154,17 @@ app.delete('/api/schedule-groups/:id', async (req, res) => {
 });
 
 // Любой другой запрос отправляем на index.html в папке dist (SPA Routing)
+// Маршруты SPA (см. App.tsx). Всё остальное отдаём той же страницей, но со статусом 404,
+// чтобы поисковики не индексировали несуществующие адреса как дубли главной.
+const SPA_ROUTES = /^\/(?:|auth\/confirmed|courses|profile|notifications|schedule|community|users\/[^/]+|admin|privacy|terms)\/?$/;
+
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' });
+    }
+    const isAsset = /\.[a-z0-9]{2,5}$/i.test(req.path);
+    if (isAsset) return res.status(404).end();
+    res.status(SPA_ROUTES.test(req.path) ? 200 : 404).sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 const requiredEnv = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];

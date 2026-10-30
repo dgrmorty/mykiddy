@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_ADMIN_EMAILS?: string;
+  /** Номер счётчика Яндекс Метрики. Без него аналитика не грузится. */
+  readonly VITE_YM_ID?: string;
 }
 
 interface ImportMeta {

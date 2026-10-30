@@ -651,7 +651,7 @@ export const UserPublicProfile: React.FC = () => {
                               m.kind === 'video' ? (
                                 <video key={i} src={mediaPublicUrl(m.path)} className="max-h-48 rounded-xl border border-white/10" controls muted />
                               ) : (
-                                <img key={i} src={mediaPublicUrl(m.path)} alt="" className="max-h-48 rounded-xl border border-white/10 object-cover" />
+                                <img key={i} src={mediaPublicUrl(m.path)} loading="lazy" decoding="async" alt={`Изображение ${i + 1}`} className="max-h-48 rounded-xl border border-white/10 object-cover" />
                               )
                             )}
                           </div>
@@ -902,7 +902,7 @@ export const UserPublicProfile: React.FC = () => {
                             m.kind === 'video' ? (
                               <video key={i} src={mediaPublicUrl(m.path)} className="max-h-64 rounded-xl border border-white/10" controls muted />
                             ) : (
-                              <img key={i} src={mediaPublicUrl(m.path)} alt="" className="max-h-64 rounded-xl border border-white/10 object-cover" />
+                              <img key={i} src={mediaPublicUrl(m.path)} loading="lazy" decoding="async" alt={`Изображение ${i + 1}`} className="max-h-64 rounded-xl border border-white/10 object-cover" />
                             )
                           )}
                         </div>

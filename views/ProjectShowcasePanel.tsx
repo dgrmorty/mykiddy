@@ -68,7 +68,7 @@ const PostIsland = ({ p, au, name, body, media, liked, cnt, lvl, when, handleLik
             return m.kind === 'video' ? (
               <video key={idx} src={url} controls playsInline className={single ? 'aspect-video w-full rounded-3xl bg-black object-cover' : 'aspect-video w-[85%] shrink-0 snap-center rounded-3xl bg-black object-cover'} />
             ) : (
-              <img key={idx} src={url} alt="" className={single ? 'max-h-[min(60vh,400px)] w-full rounded-3xl bg-black object-cover' : 'aspect-video w-[85%] shrink-0 snap-center rounded-3xl object-cover'} />
+              <img key={idx} src={url} loading="lazy" decoding="async" alt={`Скриншот проекта${media.length > 1 ? ` ${idx + 1}` : ''}`} className={single ? 'max-h-[min(60vh,400px)] w-full rounded-3xl bg-black object-cover' : 'aspect-video w-[85%] shrink-0 snap-center rounded-3xl object-cover'} />
             );
           })}
         </div>

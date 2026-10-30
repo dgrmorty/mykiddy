@@ -1259,6 +1259,22 @@ body::before {
   border-top: 1px solid transparent;
   border-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent) 1;
 }
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  color: #a1a1aa;
+}
+.site-footer__links a,
+.site-footer__links button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 160ms ease;
+}
+.site-footer__links a:hover,
+.site-footer__links button:hover { color: #fff; }
 @media (min-width: 640px) {
   .site-footer {
     flex-direction: row;
@@ -1266,6 +1282,75 @@ body::before {
     text-align: left;
   }
 }
+
+/* Cookie-баннер: компактная стеклянная карточка снизу */
+.cookie-banner {
+  position: fixed;
+  z-index: 90;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  max-width: 420px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)), rgba(8, 8, 8, 0.92);
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  animation: fade-in-up 0.5s var(--ease-out) both;
+}
+@media (min-width: 640px) {
+  .cookie-banner { left: 24px; right: auto; bottom: 24px; }
+}
+.cookie-banner__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cookie-banner__check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: #e6002b;
+}
+
+/* Юридические документы */
+.legal-doc__body a,
+.legal-doc header a,
+.legal-link-button {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(230, 0, 43, 0.6);
+  text-underline-offset: 3px;
+}
+.legal-doc__body ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.legal-doc__body li {
+  position: relative;
+  padding-left: 18px;
+}
+.legal-doc__body li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.7em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e6002b;
+}
+.legal-doc__body b { color: #fff; font-weight: 600; }
 
 /* Логотип в шапке: мягкая кромка вместо «наклейки» */
 .nav-island-logo img {

@@ -10,6 +10,8 @@ export default {
   theme: {
     extend: {
           colors: {
+        // zinc-500/600 по умолчанию не дотягивают до AA на чёрном фоне
+        zinc: { 500: '#85858f', 600: '#6e6e78' },
         kiddy: {
           base: '#000000',
           surface: '#0a0a0a',
@@ -19,8 +21,9 @@ export default {
           cherryDim: 'rgba(230,0,43,0.18)',
           cherryGlow: 'rgba(230,0,43,0.45)',
           text: '#ffffff',
-          textSecondary: '#888888',
-          textMuted: '#555555',
+          // ≥ 4.5:1 на чёрном (WCAG AA для мелкого текста)
+          textSecondary: '#9a9a9a',
+          textMuted: '#808080',
         },
       },
       fontFamily: {

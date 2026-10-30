@@ -834,7 +834,7 @@ export const AdminPanel: React.FC = () => {
                                         {courses.map(c => (
                                             <div key={c.id} onClick={() => setActiveCourse(c)} className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden cursor-pointer hover:border-white/30 transition-colors group">
                                                 {c.cover_image ? (
-                                                    <img src={c.cover_image} className="w-full h-32 object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
+                                                    <img src={c.cover_image} loading="lazy" className="w-full h-32 object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt={`Обложка курса «${c.title}»`} />
                                                 ) : (
                                                     <div className="w-full h-32 bg-zinc-900 flex items-center justify-center"><BookOpen className="text-zinc-700" size={32}/></div>
                                                 )}

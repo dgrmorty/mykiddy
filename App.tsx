@@ -17,6 +17,9 @@ import { ToastProvider } from './contexts/ToastContext';
 import { ContentProvider } from './contexts/ContentContext';
 import { Role } from './types';
 import { AccessGate } from './components/AccessGate';
+import { PrivacyPolicy } from './views/legal/PrivacyPolicy';
+import { Terms } from './views/legal/Terms';
+import { NotFound } from './views/NotFound';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isGuest, isLoading, user } = useAuth();
@@ -106,7 +109,10 @@ const AppContent: React.FC = () => {
             </StaffRoute>
           } />
           
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="privacy" element={<PrivacyPolicy />} />
+          <Route path="terms" element={<Terms />} />
+
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

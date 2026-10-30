@@ -156,7 +156,11 @@ const CourseIsland = ({ course, onClick, index }: any) => {
       onClick={onClick}
       style={{ animation: `reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`, animationDelay: `${index * 0.1}s` }}
     >
-      <img src={course.coverImage || 'https://picsum.photos/400/250'} className="course-card__img absolute inset-0 h-full w-full object-cover" alt="" />
+      {course.coverImage ? (
+        <img src={course.coverImage} loading="lazy" decoding="async" className="course-card__img absolute inset-0 h-full w-full object-cover" alt={`Обложка курса «${course.title}»`} />
+      ) : (
+        <div className="course-card__img absolute inset-0 bg-[radial-gradient(120%_90%_at_30%_0%,rgba(230,0,43,0.35),transparent_60%),linear-gradient(180deg,#141414,#050505)]" aria-hidden />
+      )}
       <div className="course-card__shade" aria-hidden />
 
       <div className="absolute inset-x-3 bottom-3 flex items-end">

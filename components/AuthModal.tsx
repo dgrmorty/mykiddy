@@ -4,6 +4,7 @@ import { Modal } from './ui/Modal';
 import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAuthRedirectOrigin } from '../config';
+import { LEGAL } from '../config/legal';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -14,11 +15,16 @@ interface AuthModalProps {
   onSuccess: () => void;
 }
 
-const inputClass = "w-full rounded-2xl bg-[#111] border border-white/10 pl-12 pr-12 py-4 text-sm text-white placeholder:text-zinc-500 focus:border-white/30 focus:bg-[#1a1a1a] transition-colors outline-none";
+const inputClass = "w-full rounded-2xl bg-[#111] border border-white/10 pl-12 pr-12 py-4 text-sm text-white placeholder:text-zinc-400 focus:border-white/30 focus:bg-[#1a1a1a] transition-colors outline-none";
 const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 72;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** Боты заполняют форму быстрее человека — отсекаем отправку раньше 2 секунд. */
+const MIN_FILL_MS = 2000;
 
 function validatePassword(p: string): string | null {
   if (p.length < MIN_PASSWORD_LENGTH) return `Пароль не менее ${MIN_PASSWORD_LENGTH} символов`;
+  if (p.length > MAX_PASSWORD_LENGTH) return `Пароль не длиннее ${MAX_PASSWORD_LENGTH} символов`;
   if (!/[a-zA-Z]/.test(p)) return 'Добавьте буквы в пароль';
   if (!/[0-9]/.test(p)) return 'Добавьте цифры в пароль';
   return null;
@@ -60,6 +66,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [consent, setConsent] = useState(false);
+  /** Honeypot: скрытое поле, которое видят только боты. */
+  const [website, setWebsite] = useState('');
+  const openedAtRef = useRef(Date.now());
   const [pendingConfirm, setPendingConfirm] = useState<{ email: string; password: string } | null>(null);
   
   const authInFlightRef = useRef(false);
@@ -98,6 +108,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
 
   const handleGoogleLogin = async () => {
     if (authInFlightRef.current || loading) return;
+    if (mode === 'signup' && !consent) {
+      setError('Нужно согласие на обработку персональных данных');
+      return;
+    }
     authInFlightRef.current = true;
     setLoading(true);
     setError(null);
@@ -130,6 +144,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     setSuccess(null);
     try {
       const emailNormalized = normalizeEmail(email);
+      if (website || (mode !== 'login' && Date.now() - openedAtRef.current < MIN_FILL_MS)) {
+        setError('Не получилось отправить форму. Подождите пару секунд и попробуйте снова.');
+        return;
+      }
+      if (!EMAIL_RE.test(emailNormalized)) {
+        setError('Проверьте адрес почты — похоже, в нём опечатка.');
+        return;
+      }
       if (mode === 'forgot') {
         const { error: err } = await supabase.auth.resetPasswordForEmail(emailNormalized, {
           redirectTo: `${getAuthRedirectOrigin()}/`,
@@ -148,10 +170,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           setError('Укажите имя и фамилию через пробел');
           return;
         }
+        if (!consent) {
+          setError('Нужно согласие на обработку персональных данных');
+          return;
+        }
         const { data, error: err } = await supabase.auth.signUp({
           email: emailNormalized, password,
           options: {
-            data: { name: name.trim() },
+            data: {
+              name: name.trim(),
+              pd_consent_at: new Date().toISOString(),
+              pd_consent_version: LEGAL.consentVersion,
+            },
             emailRedirectTo: `${getAuthRedirectOrigin()}/auth/confirmed`,
           },
         });
@@ -275,13 +305,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           {currentMode === 'signup' && (
             <div className="relative group">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
-              <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя и Фамилия" required />
+              <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Имя и Фамилия" required minLength={3} maxLength={80} autoComplete="name" />
             </div>
           )}
 
           <div className="relative group">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={20} strokeWidth={2} />
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="Электронная почта" required />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="Электронная почта" required maxLength={254} autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} />
           </div>
 
           {currentMode !== 'forgot' && (
@@ -294,6 +324,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
                 className={inputClass}
                 placeholder={currentMode === 'signup' ? 'Пароль (мин. 8 символов)' : 'Пароль'}
                 required
+                minLength={currentMode === 'signup' ? MIN_PASSWORD_LENGTH : undefined}
+                maxLength={MAX_PASSWORD_LENGTH}
+                autoComplete={currentMode === 'signup' ? 'new-password' : 'current-password'}
               />
               <button
                 type="button"
@@ -323,6 +356,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
                 Вернуться к входу
               </button>
             </p>
+          )}
+
+          <input
+            type="text"
+            name="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute -left-[9999px] h-px w-px opacity-0"
+          />
+
+          {currentMode === 'signup' && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-left text-xs leading-relaxed text-zinc-400">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#e6002b]"
+              />
+              <span>
+                Я принимаю <a href="/terms" target="_blank" rel="noopener" className="font-semibold text-white underline underline-offset-2">условия</a> и
+                даю согласие на обработку персональных данных, в том числе их передачу за рубеж, по{' '}
+                <a href="/privacy" target="_blank" rel="noopener" className="font-semibold text-white underline underline-offset-2">политике конфиденциальности</a>.
+                Если ученику нет 16 лет, согласие даёт родитель.
+              </span>
+            </label>
           )}
 
           {error && (
@@ -358,6 +419,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           </button>
         </form>
 
+        {currentMode === 'login' && (
+          <p className="text-center text-[11px] leading-relaxed text-zinc-400">
+            Входя, в том числе через Google, вы принимаете{' '}
+            <a href="/terms" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-white">условия</a> и{' '}
+            <a href="/privacy" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-white">политику конфиденциальности</a>.
+          </p>
+        )}
         <p className="text-center pt-2">
           <button type="button" onClick={() => switchMode(currentMode === 'signup' ? 'login' : 'signup')} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
             {currentMode === 'signup' ? 'Уже есть аккаунт? Войти' : 'Создать аккаунт'}

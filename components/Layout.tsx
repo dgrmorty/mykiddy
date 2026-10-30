@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { AppTopNav } from './AppTopNav';
 import { User, Role } from '../types';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { PageTransition } from './PageTransition';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { OnboardingTour } from './onboarding/OnboardingTour';
 import { useProfileLastSeenHeartbeat } from '../hooks/useProfileLastSeenHeartbeat';
+import { SiteFooter } from './SiteFooter';
+import { CookieBanner } from './CookieBanner';
+import { trackPageView } from '../utils/consent';
 interface LayoutProps {
   user: User;
 }
@@ -13,6 +16,10 @@ interface LayoutProps {
 function LayoutShell({ user }: LayoutProps) {
   const isGuest = user.role === Role.GUEST;
   useProfileLastSeenHeartbeat(user.id, !isGuest && user.id !== 'guest');
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    trackPageView(pathname + search);
+  }, [pathname, search]);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
 
   useEffect(() => {
@@ -39,7 +46,10 @@ function LayoutShell({ user }: LayoutProps) {
         <PageTransition>
           <Outlet />
         </PageTransition>
+        {!pathname.startsWith('/admin') && <SiteFooter />}
       </main>
+
+      <CookieBanner />
 
       <OnboardingTour userId={user.id} isGuest={isGuest} role={user.role} />
     </div>

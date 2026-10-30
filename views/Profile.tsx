@@ -283,7 +283,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
             <div className="flex items-center gap-4 min-w-0">
               {isEditing ? (
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/20 bg-zinc-800">
-                  <img src={profileAvatarSrc} className="h-full w-full object-cover scale-110" alt="" />
+                  <img src={profileAvatarSrc} className="h-full w-full object-cover scale-110" alt="Аватар профиля" />
                   {saving && <div className="absolute inset-0 flex items-center justify-center bg-black/60"><Loader2 className="animate-spin text-white" size={16} /></div>}
                 </div>
               ) : (
@@ -364,7 +364,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         : 'border-white/10 hover:border-white/30'
                     }`}
                   >
-                    <img src={AVATAR_BOY_PATH} alt="" className="h-full w-full scale-110 object-cover" />
+                    <img src={AVATAR_BOY_PATH} alt="Аватар: мальчик" className="h-full w-full scale-110 object-cover" />
                   </button>
                   <button
                     type="button"
@@ -376,7 +376,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                         : 'border-white/10 hover:border-white/30'
                     }`}
                   >
-                    <img src={AVATAR_GIRL_PATH} alt="" className="h-full w-full scale-110 object-cover" />
+                    <img src={AVATAR_GIRL_PATH} alt="Аватар: девочка" className="h-full w-full scale-110 object-cover" />
                   </button>
                   {avatarSaving && <Loader2 className="animate-spin text-white" size={22} />}
                 </div>
@@ -709,7 +709,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       : 'border-white/10 hover:border-white/30'
                   }`}
                 >
-                  <img src={AVATAR_BOY_PATH} alt="" className="h-full w-full scale-110 object-cover" />
+                  <img src={AVATAR_BOY_PATH} alt="Аватар: мальчик" className="h-full w-full scale-110 object-cover" />
                 </button>
                 <button
                   type="button"
@@ -721,7 +721,7 @@ export const Profile: React.FC<ProfileProps> = ({ user: initialUser }) => {
                       : 'border-white/10 hover:border-white/30'
                   }`}
                 >
-                  <img src={AVATAR_GIRL_PATH} alt="" className="h-full w-full scale-110 object-cover" />
+                  <img src={AVATAR_GIRL_PATH} alt="Аватар: девочка" className="h-full w-full scale-110 object-cover" />
                 </button>
                 {avatarSaving && <div className="h-24 w-24 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={24} /></div>}
               </div>

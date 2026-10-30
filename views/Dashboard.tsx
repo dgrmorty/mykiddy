@@ -239,10 +239,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </section>
       )}
 
-      <footer className="site-footer mt-20 md:mt-24">
-        <span className="font-display text-sm font-semibold tracking-tight text-white">Дети В ТОПЕ</span>
-        <span className="text-zinc-500">IT-школа для детей и подростков · {new Date().getFullYear()}</span>
-      </footer>
     </div>
   );
 };
