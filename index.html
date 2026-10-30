@@ -51,24 +51,42 @@
         "@context": "https://schema.org",
         "@graph": [
           {
-            "@type": "Organization",
-            "name": "Дети В ТОПЕ",
-            "url": "https://detivtope.online/",
+            "@type": ["EducationalOrganization", "LocalBusiness"],
+            "@id": "https://detivtope.by/#school",
+            "name": "Дети в ТОПе",
+            "alternateName": ["Дети В ТОПЕ", "IT-школа «Дети в ТОПе»", "detivtope"],
+            "description": "Компьютерная IT-школа для детей 6–15 лет в Минске: дизайн, сайты, видео, игры, нейросети и 3D. Группы 3–7 человек, каждый месяц новая тема, первое занятие бесплатно.",
+            "url": "https://detivtope.by/",
             "logo": "https://detivtope.online/logo-vtope.png",
-            "description": "Образовательный центр и онлайн IT-школа для детей и подростков."
+            "image": "https://detivtope.online/og-image.png",
+            "telephone": "+375297730000",
+            "foundingDate": "2015",
+            "priceRange": "159–169 BYN за 4 недели",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "пр. Независимости, 186, 8 этаж",
+              "addressLocality": "Минск",
+              "postalCode": "220141",
+              "addressCountry": "BY"
+            },
+            "geo": { "@type": "GeoCoordinates", "latitude": 53.9476722, "longitude": 27.6971031 },
+            "areaServed": "Минск",
+            "sameAs": [
+              "https://detivtope.by/",
+              "https://www.instagram.com/detivtope",
+              "https://vk.com/detivtope",
+              "https://www.youtube.com/channel/UCnWyXlALlsAGFy6dzDFxleA",
+              "https://yandex.by/maps/org/206149759126/"
+            ],
+            "parentOrganization": { "@type": "Organization", "name": "ООО «В Топе»", "taxID": "193152775" }
           },
           {
             "@type": "WebSite",
-            "name": "Дети В ТОПЕ",
+            "name": "Дети в ТОПе — учебная платформа",
             "url": "https://detivtope.online/",
             "inLanguage": "ru-RU",
-            "description": "Онлайн-платформа с курсами по программированию и проектами учеников для детей."
-          },
-          {
-            "@type": "EducationalOrganization",
-            "name": "Дети В ТОПЕ",
-            "url": "https://detivtope.online/",
-            "description": "IT-школа для детей: программирование, Python, Roblox, нейросети."
+            "description": "Учебная платформа учеников IT-школы «Дети в ТОПе»: видеоуроки, задания с проверкой наставником, прогресс и витрина проектов.",
+            "publisher": { "@id": "https://detivtope.by/#school" }
           }
         ]
       }
