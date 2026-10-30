@@ -178,6 +178,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
   if (!open || isGuest || !step || steps.length === 0) return null;
 
   const sheet = isMobile || !card;
+  // Цель внизу (вкладки на телефоне) — карточку ставим сверху, чтобы не закрыть подсветку
+  const sheetTop = sheet && !!box && box.top + box.height / 2 > window.innerHeight / 2;
   const cardStyle: React.CSSProperties = sheet
     ? { zIndex: OVERLAY_Z + 3 }
     : {
@@ -214,7 +216,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ userId, isGuest,
 
       <div
         ref={cardRef}
-        className={`tour-card ${sheet ? 'tour-card--sheet' : 'tour-card--float'} ${
+        className={`tour-card ${sheet ? 'tour-card--sheet' : 'tour-card--float'} ${sheetTop ? 'tour-card--sheet-top' : ''} ${
           !sheet && card && card.caretX >= 0 ? (card.below ? 'has-caret-top' : 'has-caret-bottom') : ''
         }`}
         style={cardStyle}

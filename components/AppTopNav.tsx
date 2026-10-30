@@ -44,6 +44,12 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
       route === '/' ? pathname === '/' : pathname === route || pathname.startsWith(`${route}/`),
     );
 
+  // Нижняя панель на телефоне: те же разделы + профиль для вошедших
+  const tabs: NavItem[] = isGuest
+    ? items
+    : [...items, { iconName: 'user', label: 'Профиль', path: '/profile', matches: ['/profile'], locked: false, onboardingAnchor: 'nav-profile' }];
+  const activeTab = tabs.findIndex((t) => isItemActive(t) && !t.locked);
+
   const handleNavClick = (e: React.MouseEvent, locked: boolean) => {
     if (locked) {
       e.preventDefault();
@@ -52,6 +58,7 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
   };
 
   return (
+    <>
     <div className="nav-shell" data-compact={compact ? 'true' : 'false'}>
       <nav className="nav-island" aria-label="Основная навигация">
         <Link
@@ -127,12 +134,43 @@ export const AppTopNav: React.FC<AppTopNavProps> = ({ currentUser }) => {
               Войти
             </button>
           ) : (
-            <Link id="tour-dsk-nav-profile" to="/profile" className="nav-island-avatar" title="Профиль" aria-label="Профиль">
+            <Link id="tour-dsk-nav-profile" to="/profile" className="nav-island-avatar max-md:hidden" title="Профиль" aria-label="Профиль">
               <UserAvatar user={currentUser} size="xs" />
             </Link>
           )}
         </div>
       </nav>
     </div>
+
+    <nav
+      className="tabbar"
+      aria-label="Разделы"
+      style={{ '--tab-count': tabs.length, '--tab-index': Math.max(0, activeTab) } as React.CSSProperties}
+    >
+      {activeTab >= 0 && <span className="tabbar__indicator" aria-hidden />}
+      {tabs.map((item) => {
+        const active = isItemActive(item) && !item.locked;
+        return (
+          <Link
+            key={item.path}
+            id={item.onboardingAnchor && !item.locked ? `tour-mob-${item.onboardingAnchor}` : undefined}
+            to={item.path}
+            aria-current={active ? 'page' : undefined}
+            onClick={(e) => handleNavClick(e, item.locked)}
+            className={`tabbar__item ${active ? 'is-active' : ''} ${item.locked ? 'is-locked' : ''}`}
+          >
+            <AnimatedIcon
+              key={`${item.path}-${active ? 'active' : 'idle'}`}
+              name={item.iconName}
+              size={22}
+              className="tabbar__icon"
+              active={active}
+            />
+            <span className="tabbar__label">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+    </>
   );
 };
