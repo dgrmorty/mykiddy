@@ -16,7 +16,7 @@
     "supabase:migrations": "supabase migration list",
     "supabase:lint": "supabase db lint --linked",
     "supabase:push": "supabase db push",
-    "icons:generate": "node scripts/generate-icons.mjs",
+    "icons:generate": "python3 scripts/generate-app-icons.py",
     "promo:record": "node promo/record.mjs"
   },
   "dependencies": {

@@ -1,8 +1,10 @@
 """
 Иконки «на главный экран» из полного логотипа (scripts/assets/app-icon-logo.jpg):
 apple-touch-icon*, icon-192*, icon-512* и maskable-вариант для Android.
-Запуск: python3 scripts/generate-app-icons.py (нужен Pillow).
+Фавиконки (вкладка браузера, выдача Google) — из знака </> в public/favicon.svg.
+Запуск: python3 scripts/generate-app-icons.py (нужны Pillow и rsvg-convert).
 """
+import subprocess
 from pathlib import Path
 from PIL import Image, ImageOps
 
@@ -13,6 +15,7 @@ OUT = ROOT / 'public'
 # Логотип занимает такую долю ширины иконки; у maskable — меньше, чтобы попасть в безопасный круг
 REGULAR_WIDTH = 0.84
 MASKABLE_WIDTH = 0.66
+FAVICON_SVG = OUT / 'favicon.svg'
 
 
 def load_logo() -> Image.Image:
@@ -49,6 +52,15 @@ def main() -> None:
     for name, (size, ratio) in targets.items():
         compose(logo, size, ratio).save(OUT / name, optimize=True)
         print('wrote', name)
+
+    for size in (16, 32, 48, 96, 192, 256):
+        out = OUT / f'favicon-{size}x{size}.png'
+        subprocess.run(['rsvg-convert', '-w', str(size), '-h', str(size), '-o', str(out), str(FAVICON_SVG)], check=True)
+        print('wrote', out.name)
+    big = OUT / 'favicon-256x256.png'
+    Image.open(big).save(OUT / 'favicon.ico', sizes=[(16, 16), (32, 32), (48, 48)])
+    big.unlink()
+    print('wrote favicon.ico')
 
 
 if __name__ == '__main__':
