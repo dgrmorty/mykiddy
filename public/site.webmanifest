@@ -1,7 +1,7 @@
 {
   "name": "Дети В ТОПЕ — IT-школа для детей",
   "short_name": "В ТОПЕ",
-  "description": "Онлайн IT-школа для детей: программирование, проекты и нейросети.",
+  "description": "Учебная платформа IT-школы «Дети В ТОПЕ»: курсы, задания и проекты учеников.",
   "start_url": "/",
   "scope": "/",
   "lang": "ru",
@@ -19,7 +19,8 @@
       "purpose": "any"
     }
   ],
-  "theme_color": "#0a0a0a",
-  "background_color": "#0a0a0a",
-  "display": "standalone"
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "display": "standalone",
+  "id": "/"
 }

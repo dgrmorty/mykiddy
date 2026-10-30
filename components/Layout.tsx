@@ -8,6 +8,7 @@ import { OnboardingTour } from './onboarding/OnboardingTour';
 import { useProfileLastSeenHeartbeat } from '../hooks/useProfileLastSeenHeartbeat';
 import { SiteFooter } from './SiteFooter';
 import { CookieBanner } from './CookieBanner';
+import { InstallAppPrompt } from './InstallAppPrompt';
 import { trackPageView } from '../utils/consent';
 interface LayoutProps {
   user: User;
@@ -50,6 +51,7 @@ function LayoutShell({ user }: LayoutProps) {
       </main>
 
       <CookieBanner />
+      <InstallAppPrompt />
 
       <OnboardingTour userId={user.id} isGuest={isGuest} role={user.role} />
     </div>
